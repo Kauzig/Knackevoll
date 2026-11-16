@@ -812,15 +812,16 @@ body {
 
 .cargo-pieces-overlay {
   position: absolute;
-  inset: 5px;
-  display: flex;
-  align-items: stretch;
-  gap: 3px;
+  inset: 4px 0; /* Oben/unten 4px Luft, links/rechts 0, damit es exakt mit dem 10er-Raster fluchtet */
+  display: grid;
+  grid-template-columns: repeat(10, minmax(0, 1fr));
   pointer-events: none;
 }
 
 .cargo-block {
   height: 100%;
+  min-width: 0; /* Verhindert, dass der Text die Spalte über 10% hinaus aufdrückt */
+  margin: 0 1.5px; /* Kleiner optischer Spalt zwischen Kisten, ohne das Raster zu verschieben */
   border-radius: 8px;
   display: flex;
   align-items: center;
@@ -830,6 +831,7 @@ body {
   position: relative;
   pointer-events: auto;
   cursor: pointer;
+  overflow: hidden;
   transition: transform 0.12s, filter 0.15s;
   animation: dropIn 0.2s cubic-bezier(0.18, 0.89, 0.32, 1.28);
 }
@@ -837,25 +839,21 @@ body {
 .cargo-block:hover {
   filter: brightness(1.1);
   transform: translateY(-2px);
+  z-index: 5;
 }
 
 .cargo-block:hover::after {
   content: '↩ Auspacken';
   position: absolute;
   top: 2px;
-  right: 4px;
-  background: rgba(0, 0, 0, 0.78);
+  right: 2px;
+  background: rgba(0, 0, 0, 0.82);
   color: #fff;
-  font-size: 0.62rem;
-  padding: 1px 5px;
+  font-size: 0.55rem;
+  padding: 1px 4px;
   border-radius: 4px;
   pointer-events: none;
   white-space: nowrap;
-}
-
-.cargo-block.current-turn-piece:hover::after {
-  content: '↩ Gratis';
-  background: #15803d;
 }
 
 @keyframes dropIn {
@@ -864,7 +862,7 @@ body {
 }
 
 .cargo-block.block-10 {
-  width: 100%;
+  grid-column: span 10;
   background: linear-gradient(180deg, #3b82f6 0%, var(--dienes-blue) 100%);
   color: #fff;
   border: 2px solid #93c5fd;
@@ -874,7 +872,7 @@ body {
 }
 
 .cargo-block.block-5 {
-  width: 50%;
+  grid-column: span 5;
   background: linear-gradient(180deg, #fde047 0%, var(--dienes-yellow) 100%);
   color: #422006;
   border: 2px solid #fef08a;
@@ -883,25 +881,27 @@ body {
 }
 
 .cargo-block.block-1 {
-  width: 10%;
+  grid-column: span 1;
   background: linear-gradient(180deg, #f87171 0%, var(--dienes-red) 100%);
   color: #fff;
   border: 2px solid #fecaca;
   box-shadow: inset 0 -4px 0 #7f1d1d, inset 0 2px 0 rgba(255, 255, 255, 0.4);
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
   flex-direction: column;
-  line-height: 1.05;
-  padding: 2px;
+  line-height: 1;
+  padding: 2px 0;
 }
 
 .cargo-block.block-1 .piece-count-sm {
-  font-size: 0.65rem;
+  font-size: 0.56rem;
+  letter-spacing: -0.3px;
   font-weight: 900;
   white-space: nowrap;
 }
 
 .cargo-block.block-1 .piece-icon-sm {
-  font-size: 0.95rem;
+  font-size: 0.9rem;
+  margin-top: 2px;
 }
 
 .bag-footer {
