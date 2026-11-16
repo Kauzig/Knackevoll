@@ -693,9 +693,31 @@
       align-items: center;
       justify-content: center;
       font-weight: 900;
-      font-size: 0.95rem;
+      font-size: 0.92rem;
       position: relative;
+      pointer-events: auto;
+      cursor: pointer;
+      transition: transform 0.12s, filter 0.15s;
       animation: dropIn 0.2s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+    }
+
+    .cargo-block:hover {
+      filter: brightness(1.1);
+      transform: translateY(-2px);
+    }
+
+    .cargo-block:hover::after {
+      content: '↩ 1 Akt.';
+      position: absolute;
+      top: 2px;
+      right: 4px;
+      background: rgba(0, 0, 0, 0.78);
+      color: #fff;
+      font-size: 0.62rem;
+      padding: 1px 5px;
+      border-radius: 4px;
+      pointer-events: none;
+      white-space: nowrap;
     }
 
     @keyframes dropIn {
@@ -983,7 +1005,7 @@
     <div class="board-panel">
       <h3 class="panel-heading">
         <span>🏪 Offener Fracht-Markt</span>
-        <small style="font-weight:700; color:#78716c;">1 Aktion = bis zu 2 Frachtstücke greifen</small>
+        <small style="font-weight:700; color:#78716c;">1 Aktion = max. 2 Teile einladen | 1 Teil auspacken = 1 Aktion</small>
       </h3>
       <div class="market-depots">
         <!-- 10er-Kiste Blau -->
@@ -1500,7 +1522,7 @@
     if (leftSum < 10) {
       if (leftSum + val > 10) {
         wobbleBag('bagLeft');
-        setSpeech(`⚠️ Wackel-Regel! In der linken Satteltasche sind nur noch ${10 - leftSum} Plätze frei – ein ${val}er-Stück passt nicht!`, 'error');
+        setSpeech(`⚠️ Wackel-Regel! In der linken Satteltasche sind nur noch ${10 - leftSum} Plätze frei – ein ${val}er-Stück passt nicht! (Tipp: Du kannst Stücke für 1 Aktion wieder auspacken.)`, 'error');
         return;
       }
       target = 'left';
@@ -1546,7 +1568,35 @@
     render();
   }
 
-  // AKTION 3: Tauschen (10er-Kiste in zwei 5er-Säcke entbündeln)
+  // AKTION: Kiste/Frachtstück wieder auspacken (kostet 1 Aktion)
+  function unpackCargo(side, index) {
+    if (state.actionsUsed >= 2) {
+      setSpeech('Zum Auspacken brauchst du 1 freie Aktion! Klicke zuerst auf „Zug beenden“.', 'error');
+      return;
+    }
+
+    // Spiegelregel zur „Erst links, dann rechts“-Regel:
+    // Solange rechts noch Fracht liegt, muss zuerst rechts ausgepackt werden, damit links (10er-Tasche) voll bleibt.
+    if (side === 'left' && state.rightBag.length > 0) {
+      wobbleBag('bagLeft');
+      setSpeech('⚠️ Spiegelregel beim Auspacken: Räume zuerst die rechte Überlauf-Tasche leer, bevor du links auspackst!', 'error');
+      return;
+    }
+
+    const bag = side === 'left' ? state.leftBag : state.rightBag;
+    if (index < 0 || index >= bag.length) return;
+
+    pushHistory();
+    // Eine laufende "Fracht nehmen"-Aktion wird beendet, das Auspacken kostet 1 eigene Aktion
+    state.cargoGrabRemaining = 0;
+    state.actionsUsed += 1;
+
+    const removedVal = bag.splice(index, 1)[0];
+    setSpeech(`📤 ${removedVal}er-Frachtstück wieder ausgepackt und in den Markt zurückgelegt (1 Aktion verbraucht).`, '');
+    render();
+  }
+
+  // AKTION: Tauschen (10er-Kiste in zwei 5er-Säcke entbündeln, kostet 1 Aktion)
   function unbundleTen(side) {
     const bag = side === 'left' ? state.leftBag : state.rightBag;
     const idx = bag.indexOf(10);
@@ -1733,23 +1783,31 @@
     document.getElementById('leftBagCounter').textContent = `${leftSum} / 10`;
     document.getElementById('rightBagCounter').textContent = `${rightSum} / 10`;
 
-    document.getElementById('leftBagPieces').innerHTML = state.leftBag.map(v => `
-      <div class="cargo-block block-${v}">${v === 1 ? config.license.icon : v + 'er'}</div>
+    // Frachtstücke mit Klick-zum-Auspacken (1 Aktion)
+    document.getElementById('leftBagPieces').innerHTML = state.leftBag.map((v, idx) => `
+      <div class="cargo-block block-${v}" onclick="unpackCargo('left', ${idx})" title="Klicken zum Auspacken (kostet 1 Aktion)">
+        ${v === 1 ? config.license.icon : v + 'er'}
+      </div>
     `).join('');
 
     const rightBagEl = document.getElementById('bagRight');
+    const gridEl = document.getElementById('saddlebagsGrid');
     if (config.level === 1) {
       rightBagEl.style.display = 'none';
+      gridEl.classList.add('level-1-layout');
     } else {
       rightBagEl.style.display = 'block';
+      gridEl.classList.remove('level-1-layout');
       const unlocked = leftSum === 10;
       rightBagEl.classList.toggle('bag-locked', !unlocked);
       document.getElementById('rightLockHint').textContent = unlocked
-        ? '✅ Linke Tasche voll (10) – Überlauf offen!'
+        ? '💡 Klick auf Frachtstück = Auspacken (1 Akt.)'
         : '🔒 Erst öffnen, wenn links randvoll (10) ist!';
 
-      document.getElementById('rightBagPieces').innerHTML = state.rightBag.map(v => `
-        <div class="cargo-block block-${v}">${v === 1 ? config.license.icon : v + 'er'}</div>
+      document.getElementById('rightBagPieces').innerHTML = state.rightBag.map((v, idx) => `
+        <div class="cargo-block block-${v}" onclick="unpackCargo('right', ${idx})" title="Klicken zum Auspacken (kostet 1 Aktion)">
+          ${v === 1 ? config.license.icon : v + 'er'}
+        </div>
       `).join('');
     }
 
