@@ -23,6 +23,8 @@ let state = {
   score: 0,
   turn: 1,
   actionsUsed: 0,        // 0..2 Aktionen pro Zug (1 Kiste = 1 Aktion)
+  orderTurnsSpent: 1,    // Wie viele Züge bereits am aktuellen Auftrag gearbeitet wird
+  blitzStars: 0,         // Wie viele Aufträge im optimalen Profi-Tempo geschafft wurden
   activeOrder: null,
   activeOrderIdx: null,
   availableOrders: [],
@@ -31,18 +33,40 @@ let state = {
   history: []
 };
 
+/* Berechnet die minimale Kistenanzahl (durch optimales Bündeln) und die ideale Zuganzahl */
+function getOptimalPacking(target) {
+  let rem = target;
+  const pieces = [];
+  while (rem >= 10) {
+    pieces.push(10);
+    rem -= 10;
+  }
+  while (rem >= 5) {
+    pieces.push(5);
+    rem -= 5;
+  }
+  while (rem >= 1) {
+    pieces.push(1);
+    rem -= 1;
+  }
+  const minPieces = pieces.length;
+  const idealTurns = Math.ceil(minPieces / 2); // 2 Aktionen (= 2 Kisten) pro Zug
+  return {
+    pieces,
+    minPieces,
+    idealTurns
+  };
+}
+
 /* Top-Down SVG Illustrationen der 5 Packtiere (Blick von oben auf Rücken, Sattel & Gurte) */
 function getTopDownAnimalSVG(animalId) {
   const strapsAndSaddle = `
-    <!-- Lederriemen zu den linken und rechten Satteltaschen -->
     <rect x="4" y="76" width="152" height="12" rx="4" fill="#6e381b" stroke="#3e2411" stroke-width="2"/>
     <rect x="4" y="114" width="152" height="12" rx="4" fill="#6e381b" stroke="#3e2411" stroke-width="2"/>
-    <!-- Schnallen links & rechts -->
     <rect x="10" y="74" width="10" height="16" rx="2" fill="#fbbf24" stroke="#78350f" stroke-width="1.5"/>
     <rect x="140" y="74" width="10" height="16" rx="2" fill="#fbbf24" stroke="#78350f" stroke-width="1.5"/>
     <rect x="10" y="112" width="10" height="16" rx="2" fill="#fbbf24" stroke="#78350f" stroke-width="1.5"/>
     <rect x="140" y="112" width="10" height="16" rx="2" fill="#fbbf24" stroke="#78350f" stroke-width="1.5"/>
-    <!-- Satteldecke & Sitz von oben -->
     <rect x="44" y="64" width="72" height="72" rx="14" fill="#b91c1c" stroke="#fbbf24" stroke-width="2.5" stroke-dasharray="5 3"/>
     <ellipse cx="80" cy="100" rx="25" ry="28" fill="#8b5a2b" stroke="#3e2411" stroke-width="2.5"/>
     <ellipse cx="80" cy="100" rx="16" ry="18" fill="#a45a32"/>
@@ -203,16 +227,22 @@ function openOrderModal() {
   if (state.activeOrder !== null) return;
 
   const list = document.getElementById('popupOrdersList');
-  list.innerHTML = state.availableOrders.map((num, idx) => `
-    <div class="OrderCardPopup" onclick="pickOrderCard(${idx})">
-      <div class="order-badge-num">${num}</div>
-      <div class="order-cargo-title">${config.license.icon} ${config.license.name}</div>
-      ${renderTwentyStrip(num)}
-      <div style="margin-top:10px;">
-        <span class="btn btn-oasis" style="padding:5px 12px; font-size:0.82rem;">Kostenlos wählen</span>
+  list.innerHTML = state.availableOrders.map((num, idx) => {
+    const opt = getOptimalPacking(num);
+    return `
+      <div class="OrderCardPopup" onclick="pickOrderCard(${idx})">
+        <div class="order-badge-num">${num}</div>
+        <div class="order-cargo-title">${config.license.icon} ${config.license.name}</div>
+        ${renderTwentyStrip(num)}
+        <div style="margin-top:8px; font-size:0.78rem; font-weight:800; color:#6b5344;">
+          ⚡ Profi-Tempo: ${opt.idealTurns} ${opt.idealTurns === 1 ? 'Zug' : 'Züge'} (${opt.minPieces} ${opt.minPieces === 1 ? 'Kiste' : 'Kisten'})
+        </div>
+        <div style="margin-top:8px;">
+          <span class="btn btn-oasis" style="padding:5px 12px; font-size:0.82rem;">Kostenlos wählen</span>
+        </div>
       </div>
-    </div>
-  `).join('');
+    `;
+  }).join('');
 
   document.getElementById('orderModal').classList.remove('hidden');
 }
@@ -245,6 +275,7 @@ function pushHistory() {
   state.history.push(JSON.stringify({
     turn: state.turn,
     actionsUsed: state.actionsUsed,
+    orderTurnsSpent: state.orderTurnsSpent,
     activeOrder: state.activeOrder,
     activeOrderIdx: state.activeOrderIdx,
     leftBag: state.leftBag.map(p => ({ ...p })),
@@ -257,6 +288,7 @@ function undoStep() {
   const prev = JSON.parse(state.history.pop());
   state.turn = prev.turn;
   state.actionsUsed = prev.actionsUsed;
+  state.orderTurnsSpent = prev.orderTurnsSpent;
   state.activeOrder = prev.activeOrder;
   state.activeOrderIdx = prev.activeOrderIdx;
   state.leftBag = prev.leftBag;
@@ -269,12 +301,15 @@ function resetGame() {
   state.score = 0;
   state.turn = 1;
   state.actionsUsed = 0;
+  state.orderTurnsSpent = 1;
+  state.blitzStars = 0;
   state.activeOrder = null;
   state.activeOrderIdx = null;
   state.availableOrders = generateOrders();
   state.leftBag = [];
   state.rightBag = [];
   state.history = [];
+  document.getElementById('celebrationModal').classList.add('hidden');
   setSpeech('Wähle zuerst kostenlos deinen Auftrag für die Karawane aus!', '');
   render();
   if (document.getElementById('setupModal').classList.contains('hidden')) {
@@ -288,18 +323,21 @@ function pickOrderCard(index) {
 
   pushHistory();
 
-  // Falls im aktuellen Zug schon Aktionen (z. B. durch den vorigen Auftrag) verbraucht wurden,
-  // wird der alte Zug automatisch abgeschlossen und ein frischer Zug gestartet.
   if (state.actionsUsed > 0) {
     state.turn += 1;
     state.actionsUsed = 0;
   }
 
+  state.orderTurnsSpent = 1;
   state.activeOrderIdx = index;
   state.activeOrder = state.availableOrders[index];
 
+  const opt = getOptimalPacking(state.activeOrder);
   closeOrderModal();
-  setSpeech(`📜 Auftrag „${state.activeOrder}× ${config.license.name}“ angenommen! Du startest mit 2 freien Aktionen in Zug ${state.turn}.`, '');
+  setSpeech(
+    `📜 Auftrag „${state.activeOrder}× ${config.license.name}“ angenommen! Profi-Tempo: ${opt.idealTurns} ${opt.idealTurns === 1 ? 'Zug' : 'Züge'} mit nur ${opt.minPieces} ${opt.minPieces === 1 ? 'Frachtstück' : 'Frachtstücken'}.`,
+    ''
+  );
   render();
 }
 
@@ -319,7 +357,6 @@ function takeCargo(val) {
   const rightSum = sumArray(state.rightBag);
   const totalSum = leftSum + rightSum;
 
-  // Prüfen, ob über den Auftragswert geladen würde
   if (totalSum + val > state.activeOrder) {
     wobbleBag(leftSum < 10 ? 'bagLeft' : 'bagRight');
     setSpeech(`⚠️ Wackel-Regel! Dein Auftrag braucht genau ${state.activeOrder}. Mit +${val} wärst du bei ${totalSum + val}!`, 'error');
@@ -365,6 +402,7 @@ function takeCargo(val) {
 
   const newTotal = sumArray(state.leftBag) + sumArray(state.rightBag);
   if (newTotal === state.activeOrder) {
+    render();
     finishOrderDelivery();
     return;
   }
@@ -378,10 +416,7 @@ function takeCargo(val) {
 }
 
 // AKTION / RÜCKGABE: Frachtstück wieder auspacken
-// - In der aktuellen Runde eingeladen: gibt die 1 Aktion zurück!
-// - Aus einer früheren Runde: kostet 1 Aktion!
 function unpackCargo(side, index) {
-  // Spiegelregel zur „Erst links, dann rechts“-Regel
   if (side === 'left' && state.rightBag.length > 0) {
     wobbleBag('bagLeft');
     setSpeech('⚠️ Spiegelregel beim Auspacken: Räume zuerst die rechte Überlauf-Tasche leer, bevor du links auspackst!', 'error');
@@ -394,7 +429,6 @@ function unpackCargo(side, index) {
   const piece = bag[index];
   const isFromCurrentTurn = piece.turnLoaded === state.turn;
 
-  // Wenn das Stück aus einer früheren Runde stammt, kostet das Ausladen 1 freie Aktion
   if (!isFromCurrentTurn && state.actionsUsed >= 2) {
     setSpeech('Dieses Frachtstück stammt aus einer früheren Runde – zum Auspacken brauchst du 1 freie Aktion!', 'error');
     return;
@@ -428,7 +462,6 @@ function unbundleTen(side) {
   pushHistory();
   state.actionsUsed += 1;
 
-  // Die beiden 5er gelten als aus einer Vor-Aktion stammend (Ausladen kostet 1 Aktion; für kostenlosen Widerruf gibt es "Rückgängig")
   bag.splice(
     idx,
     1,
@@ -440,10 +473,113 @@ function unbundleTen(side) {
   render();
 }
 
+/* Konfetti-Animation auslösen */
+function launchConfetti(count = 45) {
+  const layer = document.getElementById('confettiLayer');
+  if (!layer) return;
+  const colors = ['#2563eb', '#facc15', '#ef4444', '#22c55e', '#f97316', '#ec4899'];
+
+  for (let i = 0; i < count; i++) {
+    const piece = document.createElement('div');
+    piece.className = 'confetti-piece';
+    piece.style.left = Math.random() * 100 + 'vw';
+    piece.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+    piece.style.animationDuration = (1.6 + Math.random() * 1.4) + 's';
+    piece.style.animationDelay = (Math.random() * 0.35) + 's';
+    layer.appendChild(piece);
+    setTimeout(() => piece.remove(), 3500);
+  }
+}
+
+/* Großes Feier-Pop-up bei abgeschlossener Lieferung */
 function finishOrderDelivery() {
   state.score += 1;
-  const delivered = state.activeOrder;
+  const deliveredOrder = state.activeOrder;
+  const packedPieces = [...state.leftBag, ...state.rightBag].map(p => p.val);
+  const usedPiecesCount = packedPieces.length;
+  const usedTurnsCount = state.orderTurnsSpent;
 
+  const opt = getOptimalPacking(deliveredOrder);
+  const isOptimalTurns = usedTurnsCount <= opt.idealTurns;
+  const isOptimalPieces = usedPiecesCount === opt.minPieces;
+
+  if (isOptimalTurns && isOptimalPieces) {
+    state.blitzStars += 1;
+  }
+
+  // Konfetti starten
+  launchConfetti(state.score >= 3 ? 80 : 45);
+
+  // Gepackte Frachtstücke als Chips darstellen
+  const userChipsHTML = packedPieces.map(v => `
+    <span class="mini-cargo-chip chip-${v}">${v === 1 ? '1er ' + config.license.icon : v + 'er'}</span>
+  `).join('');
+
+  const optChipsHTML = opt.pieces.map(v => `
+    <span class="mini-cargo-chip chip-${v}">${v === 1 ? '1er ' + config.license.icon : v + 'er'}</span>
+  `).join('');
+
+  let ratingBadge = '';
+  if (isOptimalTurns && isOptimalPieces) {
+    ratingBadge = `
+      <div style="background:#dcfce7; border:3px solid #16a34a; color:#14532d; padding:10px 14px; border-radius:14px; font-weight:900; margin-top:10px;">
+        ⚡ PERFEKT GEBÜNDELT! Du hast das ideale Profi-Tempo (${opt.idealTurns} ${opt.idealTurns === 1 ? 'Zug' : 'Züge'} mit nur ${opt.minPieces} ${opt.minPieces === 1 ? 'Stück' : 'Stücken'}) erreicht!
+      </div>
+    `;
+  } else {
+    ratingBadge = `
+      <div style="background:#ffedd5; border:3px solid #f97316; color:#9a3412; padding:10px 14px; border-radius:14px; font-weight:800; margin-top:10px; font-size:0.9rem;">
+        💡 <strong>Profi-Tipp fürs nächste Mal:</strong> Mit dieser Bündelung schaffst du die <strong>${deliveredOrder}</strong> schon in <strong>${opt.idealTurns} ${opt.idealTurns === 1 ? 'Zug' : 'Zügen'}</strong> (${opt.minPieces} Stücke):
+        <div class="delivered-pieces-row" style="margin:8px 0 2px;">${optChipsHTML}</div>
+      </div>
+    `;
+  }
+
+  const isGameWon = state.score >= 3;
+  const dialog = document.getElementById('celebrationDialog');
+
+  dialog.innerHTML = `
+    <div class="celebration-trophy">${isGameWon ? '🏆🎉🐪' : '🎉⭐📦'}</div>
+    <h2 style="margin:0; font-size:1.75rem; color:var(--wood-dark);">
+      ${isGameWon ? 'KARAWANEN-SIEG!' : `Lieferung ${state.score} von 3 geschafft!`}
+    </h2>
+    <p style="margin:6px 0 12px; font-weight:800; color:#6b5344; font-size:1.05rem;">
+      ${config.animal.icon} Dein ${config.animal.name} hat genau <strong>${deliveredOrder}× ${config.license.name}</strong> in die Oase geliefert!
+    </p>
+
+    <div style="font-size:0.85rem; font-weight:800; color:var(--wood-dark);">Deine gelieferten Frachtstücke (${usedPiecesCount} Stück):</div>
+    <div class="delivered-pieces-row">${userChipsHTML}</div>
+
+    <div class="celebration-stats-grid">
+      <div class="stat-box ${isOptimalTurns ? 'highlight-pro' : ''}">
+        <small>Dein Packtempo</small>
+        <strong>${usedTurnsCount} ${usedTurnsCount === 1 ? 'Zug' : 'Züge'} (${usedPiecesCount} Kisten)</strong>
+      </div>
+      <div class="stat-box highlight-pro">
+        <small>⚡ Ideales Profi-Tempo</small>
+        <strong>${opt.idealTurns} ${opt.idealTurns === 1 ? 'Zug' : 'Züge'} (${opt.minPieces} Kisten)</strong>
+      </div>
+    </div>
+
+    ${ratingBadge}
+
+    <div style="margin-top:18px;">
+      ${
+        isGameWon
+          ? `<p style="font-weight:900; color:#15803d; margin-bottom:12px;">
+               Du hast alle 3 Oasen-Aufträge erfüllt (davon ${state.blitzStars}× im perfekten Blitz-Tempo)!
+             </p>
+             <button class="btn btn-oasis" onclick="resetGame()" style="font-size:1.05rem; padding:12px 24px;">
+               🔄 Neue Karawane starten
+             </button>`
+          : `<button class="btn btn-oasis" onclick="acknowledgeCelebration()" style="font-size:1.05rem; padding:12px 24px;">
+               📜 Weiter zum nächsten Auftrag!
+             </button>`
+      }
+    </div>
+  `;
+
+  // Taschen leeren und Auftrag abschließen
   state.leftBag = [];
   state.rightBag = [];
   state.activeOrder = null;
@@ -451,17 +587,24 @@ function finishOrderDelivery() {
   state.activeOrderIdx = null;
   state.history = [];
 
-  if (state.score >= 3) {
-    setSpeech(`🎉 KNACKEVOLL! Auftrag (${delivered}) geliefert! Du hast alle 3 Lieferungen in Zug ${state.turn} geschafft und gewinnst!`, 'success');
-  } else {
-    setSpeech(`🎉 Lieferung (${delivered}× ${config.license.name}) perfekt abgeschlossen! Wähle jetzt kostenlos deinen nächsten Auftrag (startet automatisch den nächsten Zug).`, 'success');
-  }
+  document.getElementById('celebrationModal').classList.remove('hidden');
+  setSpeech(`🎉 Lieferung (${deliveredOrder}× ${config.license.name}) erfolgreich in die Oase gebracht!`, 'success');
   render();
+}
+
+function acknowledgeCelebration() {
+  document.getElementById('celebrationModal').classList.add('hidden');
+  if (state.score < 3) {
+    openOrderModal();
+  }
 }
 
 function nextTurn() {
   state.turn += 1;
   state.actionsUsed = 0;
+  if (state.activeOrder !== null) {
+    state.orderTurnsSpent += 1;
+  }
   state.history = [];
   setSpeech(`⏭️ Zug ${state.turn} beginnt! Du hast wieder 2 volle Aktionen zur Verfügung.`, '');
   render();
@@ -550,7 +693,7 @@ function render() {
 
   document.getElementById('btnUndo').disabled = state.history.length === 0;
 
-  // Einzel-Slot für den aktuellen Auftrag (Auswahl ist kostenlos & startet ggf. neuen Zug)
+  // Einzel-Slot für den aktuellen Auftrag (inkl. Live-Profi-Tempo)
   const slot = document.getElementById('activeOrderSlot');
   const lockLabel = document.getElementById('orderLockLabel');
   if (state.activeOrder === null) {
@@ -565,13 +708,20 @@ function render() {
       </button>
     `;
   } else {
+    const opt = getOptimalPacking(state.activeOrder);
+    const currentPieces = state.leftBag.length + state.rightBag.length;
+    const isOnTrack = state.orderTurnsSpent <= opt.idealTurns && currentPieces <= opt.minPieces;
+
     slot.className = 'order-slot-box locked-order';
     lockLabel.textContent = '🔒 Fest eingeloggt';
     slot.innerHTML = `
       <div class="order-badge-num">${state.activeOrder}</div>
       <div class="order-cargo-title">${config.license.icon} ${config.license.name}</div>
       ${renderTwentyStrip(state.activeOrder)}
-      <small style="margin-top:10px; color:#15803d; font-weight:900;">🔒 Aktiv bis zur Lieferung</small>
+      <div class="tempo-badge ${isOnTrack ? 'on-track' : 'over-par'}">
+        ⚡ Profi-Ziel: <strong>${opt.idealTurns} ${opt.idealTurns === 1 ? 'Zug' : 'Züge'}</strong> (min. ${opt.minPieces} Kisten)<br>
+        ⏱️ Aktuell: <strong>Zug ${state.orderTurnsSpent}</strong> (${currentPieces} geladen)
+      </div>
     `;
   }
 
@@ -594,7 +744,7 @@ function render() {
   document.getElementById('leftBagCounter').textContent = `${leftSum} / 10`;
   document.getElementById('rightBagCounter').textContent = `${rightSum} / 10`;
 
-  // Frachtstücke rendern (unterscheidet zwischen aktueller Runde = Aktion zurück vs. ältere Runde = 1 Aktion Kosten)
+  // Frachtstücke rendern
   document.getElementById('leftBagPieces').innerHTML = state.leftBag.map((p, idx) => {
     const isCurrentTurn = p.turnLoaded === state.turn;
     const tooltip = isCurrentTurn

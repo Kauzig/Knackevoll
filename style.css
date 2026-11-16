@@ -951,3 +951,145 @@ body {
   border-color: var(--oasis-green);
   box-shadow: 0 9px 0 rgba(22, 163, 74, 0.35);
 }
+
+/* Profi-Tempo-Anzeige auf der Auftragskarte */
+.tempo-badge {
+  margin-top: 10px;
+  background: #fef3c7;
+  border: 2px solid #d97706;
+  border-radius: 10px;
+  padding: 6px 10px;
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: var(--wood-dark);
+  width: 100%;
+}
+
+.tempo-badge.on-track {
+  background: #dcfce7;
+  border-color: var(--oasis-green);
+  color: #14532d;
+}
+
+.tempo-badge.over-par {
+  background: #ffedd5;
+  border-color: #ea580c;
+  color: #9a3412;
+}
+
+/* Feier-Modal (Lieferung & Spielsieg) */
+.celebration-card {
+  text-align: center;
+  border-color: #d97706;
+  background: radial-gradient(circle at top, #fffbeb 0%, #fef3c7 100%);
+  animation: popCelebration 0.35s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+}
+
+@keyframes popCelebration {
+  0% { transform: scale(0.7); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.celebration-trophy {
+  font-size: 4.2rem;
+  line-height: 1;
+  margin: 4px 0 10px;
+  filter: drop-shadow(0 6px 8px rgba(180, 83, 9, 0.35));
+  animation: trophyBounce 1.2s ease-in-out infinite;
+}
+
+@keyframes trophyBounce {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-6px) scale(1.06); }
+}
+
+.celebration-stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin: 16px 0;
+}
+
+.stat-box {
+  background: #ffffff;
+  border: 3px solid #d6c3a5;
+  border-radius: 14px;
+  padding: 12px;
+  box-shadow: 0 4px 0 #d6c3a5;
+}
+
+.stat-box.highlight-pro {
+  border-color: var(--oasis-green);
+  background: #f0fdf4;
+  box-shadow: 0 4px 0 rgba(22, 163, 74, 0.35);
+}
+
+.stat-box small {
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: #78716c;
+  text-transform: uppercase;
+}
+
+.stat-box strong {
+  display: block;
+  font-size: 1.45rem;
+  color: var(--wood-dark);
+  margin-top: 3px;
+}
+
+.delivered-pieces-row {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 12px 0;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.7);
+  border-radius: 12px;
+  border: 2px dashed var(--wood-light);
+}
+
+.mini-cargo-chip {
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-weight: 900;
+  font-size: 0.9rem;
+  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.2);
+}
+
+.mini-cargo-chip.chip-10 { background: var(--dienes-blue); color: #fff; }
+.mini-cargo-chip.chip-5  { background: var(--dienes-yellow); color: #422006; }
+.mini-cargo-chip.chip-1  { background: var(--dienes-red); color: #fff; }
+
+/* Konfetti-Regen */
+.confetti-layer {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 300;
+  overflow: hidden;
+}
+
+.confetti-piece {
+  position: absolute;
+  top: -20px;
+  width: 12px;
+  height: 16px;
+  border-radius: 3px;
+  opacity: 0.95;
+  animation: confettiFall linear forwards;
+}
+
+@keyframes confettiFall {
+  0% {
+    transform: translateY(0) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(105vh) rotate(720deg);
+    opacity: 0;
+  }
+}
