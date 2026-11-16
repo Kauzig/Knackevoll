@@ -16,13 +16,15 @@ const LICENSES = [
 let config = {
   animal: ANIMALS[1],
   license: LICENSES[0],
-  level: 2
+  level: 2,
+  foxMode: false         // Modul 2: Der schlaue Wüstenfuchs (im Setup zuschaltbar)
 };
 
 let state = {
-  activeOrder: null,
+  activeOrder: null,     // Zielzahl (z. B. 14)
+  activeFoxBlock: null,  // Welches Depot blockiert der Fuchs aktuell? (null, 10, 5 oder 1)
   activeOrderIdx: null,
-  availableOrders: [],
+  availableOrders: [],   // Array aus { val, foxBlock }
   leftBag: [],           // Array aus Zahlenwerten: [10, 5, 1, ...]
   rightBag: []
 };
@@ -102,17 +104,17 @@ async function initPlayerManagement() {
   try {
     profiles = await dbGetAllProfiles();
     if (profiles.length === 0) {
-      // Standard-Profil beim allerersten Start anlegen
       const defaultProfile = {
         id: 'player_' + Date.now(),
         name: 'Karawanen-Kind',
         animalId: 'raptor',
         licenseId: 'fairy',
         level: 2,
+        foxMode: false,
         stats: {
-          totalCargoSent: 0, // Insgesamt verschickte Frachteinheiten
-          packedAnimals: 0,  // Gelieferte Tiere / Aufträge insgesamt
-          proPackers: 0      // Davon optimal als Profi-Packer gepackt
+          totalCargoSent: 0,
+          packedAnimals: 0,
+          proPackers: 0
         },
         createdAt: Date.now()
       };
@@ -120,7 +122,6 @@ async function initPlayerManagement() {
       profiles = [defaultProfile];
     }
 
-    // Zuletzt aktives Profil aus localStorage wiederherstellen (oder erstes nehmen)
     const lastId = localStorage.getItem('knackevoll_activeProfileId');
     const found = profiles.find(p => p.id === lastId) || profiles[0];
     await selectProfile(found.id, false);
@@ -136,10 +137,10 @@ async function selectProfile(profileId, shouldRenderSetup = true) {
   activeProfile = target;
   localStorage.setItem('knackevoll_activeProfileId', target.id);
 
-  // Gespeicherte Vorlieben des Profils übernehmen
   config.animal = ANIMALS.find(a => a.id === target.animalId) || ANIMALS[1];
   config.license = LICENSES.find(l => l.id === target.licenseId) || LICENSES[0];
   config.level = target.level || 2;
+  config.foxMode = Boolean(target.foxMode);
 
   if (shouldRenderSetup) {
     renderSetupModal();
@@ -161,6 +162,7 @@ async function createNewProfile() {
     animalId: config.animal.id,
     licenseId: config.license.id,
     level: config.level,
+    foxMode: config.foxMode,
     stats: {
       totalCargoSent: 0,
       packedAnimals: 0,
@@ -200,6 +202,7 @@ async function saveActiveProfilePreferences() {
   activeProfile.animalId = config.animal.id;
   activeProfile.licenseId = config.license.id;
   activeProfile.level = config.level;
+  activeProfile.foxMode = config.foxMode;
   await dbSaveProfile(activeProfile);
 }
 
@@ -208,7 +211,6 @@ async function recordDeliveryStats(deliveredAmount, isProPacker) {
   if (!activeProfile.stats) {
     activeProfile.stats = { totalCargoSent: 0, packedAnimals: 0, proPackers: 0 };
   }
-  // Abwärtskompatibilität für ältere Profile
   if (typeof activeProfile.stats.totalCargoSent !== 'number') {
     activeProfile.stats.totalCargoSent = 0;
   }
@@ -222,16 +224,26 @@ async function recordDeliveryStats(deliveredAmount, isProPacker) {
 }
 
 /* ============================================================================
-   SPIELLOGIK & DARSTELLUNG
+   SPIELLOGIK, WÜSTENFUCHS & OPTIMAL-BERECHNUNG
    ============================================================================ */
 
-/* Berechnet die minimale Kistenanzahl durch optimales Bündeln (10er -> 5er -> 1er) */
-function getOptimalPacking(target) {
+/*
+ * Berechnet die minimale Kistenanzahl im Sattel am Ende:
+ * - Standard (oder wenn 5er / 1er durch den Fuchs blockiert sind):
+ *   Über den Entbündel-Workaround (10er -> 2x 5er oder 5er -> 5x 1er und Überschuss auspacken)
+ *   kann man im Sattel trotzdem die absolute Ideal-Zerlegung erreichen!
+ * - Ausnahme: Wenn der Fuchs die [10er-Kisten] blockiert, gibt es kein größeres Stück zum Entbündeln.
+ *   Dann muss man 10er-Taschen mit zwei 5er-Säcken füllen -> das Profi-Ziel passt sich fair an!
+ */
+function getOptimalPacking(target, foxBlockedDepot = null) {
   let rem = target;
   const pieces = [];
-  while (rem >= 10) {
-    pieces.push(10);
-    rem -= 10;
+
+  if (foxBlockedDepot !== 10) {
+    while (rem >= 10) {
+      pieces.push(10);
+      rem -= 10;
+    }
   }
   while (rem >= 5) {
     pieces.push(5);
@@ -245,6 +257,20 @@ function getOptimalPacking(target) {
     pieces,
     minPieces: pieces.length
   };
+}
+
+/* Wählt für einen Auftragswert ein spannendes, garantiert lösbares Fuchs-Hindernis */
+function pickFoxBlockForValue(val) {
+  const candidates = [];
+  // 10er-Blockade ist spannend, wenn die Zahl >= 10 ist (man muss auf 5er ausweichen)
+  if (val >= 10) candidates.push(10);
+  // 5er-Blockade fordert Entbündeln einer 10er-Kiste, wenn eine 5er-Einheit gebraucht wird oder val >= 5
+  if (val >= 5) candidates.push(5);
+  // 1er-Blockade fordert das Aufschnüren eines 5er-Sacks, wenn Einerstellen (nicht durch 5 teilbar) gebraucht werden
+  if (val % 5 !== 0) candidates.push(1);
+
+  if (candidates.length === 0) return null;
+  return candidates[Math.floor(Math.random() * candidates.length)];
 }
 
 /* Top-Down SVG Illustrationen der 5 Packtiere */
@@ -434,6 +460,14 @@ function renderSetupModal() {
   document.getElementById('lvlTile1').classList.toggle('active-tile', config.level === 1);
   document.getElementById('lvlTile2').classList.toggle('active-tile', config.level === 2);
 
+  // 4. Wüstenfuchs-Erweiterung (Modul 2)
+  const foxOff = document.getElementById('foxOffTile');
+  const foxOn = document.getElementById('foxOnTile');
+  if (foxOff && foxOn) {
+    foxOff.classList.toggle('active-tile', !config.foxMode);
+    foxOn.classList.toggle('active-tile', config.foxMode);
+  }
+
   const playerName = activeProfile ? activeProfile.name : 'Karawanen-Kind';
   document.getElementById('setupMottoBox').textContent =
     `${playerName}: „Ich bin ${config.animal.article} und fahre heute eine offizielle ${config.license.name}-Lieferung!“`;
@@ -457,6 +491,12 @@ function setLevel(lvl) {
   renderSetupModal();
 }
 
+function setFoxMode(enabled) {
+  config.foxMode = Boolean(enabled);
+  saveActiveProfilePreferences();
+  renderSetupModal();
+}
+
 function openSetupModal() {
   renderSetupModal();
   document.getElementById('setupModal').classList.remove('hidden');
@@ -472,13 +512,21 @@ function openOrderModal() {
   if (state.activeOrder !== null) return;
 
   const list = document.getElementById('popupOrdersList');
-  list.innerHTML = state.availableOrders.map((num, idx) => {
-    const opt = getOptimalPacking(num);
+  list.innerHTML = state.availableOrders.map((orderObj, idx) => {
+    const num = orderObj.val;
+    const foxBlock = orderObj.foxBlock;
+    const opt = getOptimalPacking(num, foxBlock);
+
+    const foxBadgeHTML = foxBlock
+      ? `<div class="fox-card-badge">🦊 Fuchs blockiert ${foxBlock}er-Depot!</div>`
+      : `<div style="margin-top:6px; font-size:0.75rem; color:#15803d; font-weight:800;">🌿 Freier Markt</div>`;
+
     return `
       <div class="OrderCardPopup" onclick="pickOrderCard(${idx})">
         <div class="order-badge-num">${num}</div>
         <div class="order-cargo-title">${config.license.icon} ${config.license.name}</div>
         ${renderTwentyStrip(num)}
+        ${foxBadgeHTML}
         <div style="margin-top:8px; font-size:0.8rem; font-weight:800; color:#6b5344;">
           ⭐ Profi-Packer: <strong>${opt.minPieces} ${opt.minPieces === 1 ? 'Frachtstück' : 'Frachtstücke'}</strong>
         </div>
@@ -496,28 +544,44 @@ function closeOrderModal() {
   document.getElementById('orderModal').classList.add('hidden');
 }
 
-function generateOrders() {
-  const maxVal = config.level === 1 ? 10 : 20;
-  const minVal = config.level === 1 ? 2 : 6;
-  const set = new Set();
-  while (set.size < 3) {
-    set.add(Math.floor(Math.random() * (maxVal - minVal + 1)) + minVal);
+function createOrderEntry(val, forceFox = false) {
+  let foxBlock = null;
+  if (config.foxMode && forceFox) {
+    foxBlock = pickFoxBlockForValue(val);
   }
-  return Array.from(set);
+  return { val, foxBlock };
+}
+
+function generateOrders() {
+  const maxVal = config.level === 1 ? 9 : 19; // Bis 9 bzw. 19, damit beim Entbündeln immer Platz in der Tasche ist
+  const minVal = config.level === 1 ? 2 : 6;
+  const values = [];
+  while (values.length < 3) {
+    const candidate = Math.floor(Math.random() * (maxVal - minVal + 1)) + minVal;
+    if (!values.includes(candidate)) {
+      values.push(candidate);
+    }
+  }
+  // Wenn der Wüstenfuchs-Modus aktiv ist, bekommen die ersten 2 Karten einen Wüstenfuchs
+  return values.map((val, idx) => createOrderEntry(val, config.foxMode && idx < 2));
 }
 
 function generateReplacementOrder() {
-  const maxVal = config.level === 1 ? 10 : 20;
+  const maxVal = config.level === 1 ? 9 : 19;
   const minVal = config.level === 1 ? 2 : 6;
+  const existingVals = state.availableOrders.map(o => o.val);
   let candidate = Math.floor(Math.random() * (maxVal - minVal + 1)) + minVal;
-  while (state.availableOrders.includes(candidate)) {
+  while (existingVals.includes(candidate)) {
     candidate = Math.floor(Math.random() * (maxVal - minVal + 1)) + minVal;
   }
-  return candidate;
+  // Im Fuchs-Modus haben ~70% der nachrückenden Karten ein Fuchs-Symbol
+  const hasFox = config.foxMode && Math.random() < 0.7;
+  return createOrderEntry(candidate, hasFox);
 }
 
 function resetGame() {
   state.activeOrder = null;
+  state.activeFoxBlock = null;
   state.activeOrderIdx = null;
   state.availableOrders = generateOrders();
   state.leftBag = [];
@@ -534,36 +598,67 @@ function resetGame() {
 function pickOrderCard(index) {
   if (state.activeOrder !== null) return;
 
+  const chosen = state.availableOrders[index];
   state.activeOrderIdx = index;
-  state.activeOrder = state.availableOrders[index];
+  state.activeOrder = chosen.val;
+  state.activeFoxBlock = chosen.foxBlock;
 
-  const opt = getOptimalPacking(state.activeOrder);
+  const opt = getOptimalPacking(state.activeOrder, state.activeFoxBlock);
   closeOrderModal();
-  setSpeech(
-    `📜 Auftrag „${state.activeOrder}× ${config.license.name}“ angenommen! Schaffst du es als Profi-Packer mit nur ${opt.minPieces} ${opt.minPieces === 1 ? 'Frachtstück' : 'Frachtstücken'}?`,
-    ''
-  );
+
+  if (state.activeFoxBlock) {
+    let tip = '';
+    if (state.activeFoxBlock === 5) {
+      tip = 'Tipp: Lade eine 10er-Kiste ein, schnüre sie in zwei 5er auf und packe einen 5er wieder aus!';
+    } else if (state.activeFoxBlock === 1) {
+      tip = 'Tipp: Lade einen 5er-Sack ein, schnüre ihn in fünf 1er auf und packe die überzähligen 1er wieder aus!';
+    } else {
+      tip = 'Tipp: Nutze zwei 5er-Säcke, um die linke 10er-Tasche vollzumachen!';
+    }
+    setSpeech(`🦊 Oh! Der Wüstenfuchs schläft auf den ${state.activeFoxBlock}er-Kisten! ${tip}`, '');
+  } else {
+    setSpeech(
+      `📜 Auftrag „${state.activeOrder}× ${config.license.name}“ angenommen! Schaffst du es als Profi-Packer mit nur ${opt.minPieces} ${opt.minPieces === 1 ? 'Frachtstück' : 'Frachtstücken'}?`,
+      ''
+    );
+  }
   render();
 }
 
-// Frachtstück einladen
+// Prüft nach jeder Änderung (Einladen oder Auspacken), ob der Zielwert exakt erreicht wurde
+function checkOrderCompletion() {
+  if (state.activeOrder === null) return false;
+  const totalSum = sumArray(state.leftBag) + sumArray(state.rightBag);
+  if (totalSum === state.activeOrder) {
+    render();
+    finishOrderDelivery();
+    return true;
+  }
+  return false;
+}
+
+// Frachtstück einladen (Option 1: man darf bis zum Taschenlimit 10/20 einladen, um große Stücke in der Tasche entbündeln zu können)
 function takeCargo(val) {
   if (state.activeOrder === null) {
     setSpeech('Bitte wähle zuerst oben einen Auftrag aus, bevor du Fracht einlädst!', 'error');
     return;
   }
 
-  const leftSum = sumArray(state.leftBag);
-  const rightSum = sumArray(state.rightBag);
-  const totalSum = leftSum + rightSum;
-
-  if (totalSum + val > state.activeOrder) {
-    wobbleBag(leftSum < 10 ? 'bagLeft' : 'bagRight');
-    setSpeech(`⚠️ Wackel-Regel! Dein Auftrag braucht genau ${state.activeOrder}. Mit +${val} wärst du bei ${totalSum + val}!`, 'error');
+  // Prüfen, ob der Wüstenfuchs auf diesem Markt-Depot schläft
+  if (state.activeFoxBlock === val) {
+    const foxHint = val === 1
+      ? 'Hol dir stattdessen einen 5er-Sack und schnüre ihn an der Satteltasche in fünf 1er auf!'
+      : (val === 5
+          ? 'Hol dir stattdessen eine 10er-Kiste und teile sie an der Satteltasche in zwei 5er!'
+          : 'Nimm stattdessen zwei 5er-Säcke für die linke Tasche!');
+    setSpeech(`🦊💤 Pssst! Der Wüstenfuchs schläft auf den ${val}er-Kisten! ${foxHint}`, 'error');
     return;
   }
 
-  // „Erst links, dann rechts“-Regel
+  const leftSum = sumArray(state.leftBag);
+  const rightSum = sumArray(state.rightBag);
+
+  // „Erst links, dann rechts“-Regel + Wackel-Regel für Taschenkapazität (10 pro Tasche)
   let target = 'left';
   if (leftSum < 10) {
     if (leftSum + val > 10) {
@@ -592,22 +687,27 @@ function takeCargo(val) {
     state.rightBag.push(val);
   }
 
-  const newTotal = sumArray(state.leftBag) + sumArray(state.rightBag);
-  if (newTotal === state.activeOrder) {
-    render();
-    finishOrderDelivery();
-    return;
-  }
+  // Falls Zielwert exakt getroffen -> Lieferung feiern!
+  if (checkOrderCompletion()) return;
 
-  const totalPieces = state.leftBag.length + state.rightBag.length;
-  setSpeech(
-    `✅ ${val} mal ${config.license.icon} eingeladen! Aktuell liegen ${totalPieces} ${totalPieces === 1 ? 'Stück' : 'Stücke'} (${newTotal} / ${state.activeOrder}) in den Taschen.`,
-    ''
-  );
+  const newTotal = sumArray(state.leftBag) + sumArray(state.rightBag);
+  if (newTotal > state.activeOrder) {
+    const diff = newTotal - state.activeOrder;
+    setSpeech(
+      `🔨 Du hast jetzt ${newTotal} geladen (Ziel: ${state.activeOrder}). Nutze jetzt „🔄 Tauschen (Entbündeln)“ an der Tasche und packe ${diff} überzählige Einheit${diff === 1 ? '' : 'en'} wieder aus!`,
+      ''
+    );
+  } else {
+    const totalPieces = state.leftBag.length + state.rightBag.length;
+    setSpeech(
+      `✅ ${val} mal ${config.license.icon} eingeladen! Aktuell liegen ${totalPieces} ${totalPieces === 1 ? 'Stück' : 'Stücke'} (${newTotal} / ${state.activeOrder}) in den Taschen.`,
+      ''
+    );
+  }
   render();
 }
 
-// Frachtstück wieder auspacken
+// Frachtstück wieder auspacken (kann nach dem Entbündeln auch direkt die Lieferung auslösen!)
 function unpackCargo(side, index) {
   if (side === 'left' && state.rightBag.length > 0) {
     wobbleBag('bagLeft');
@@ -619,18 +719,33 @@ function unpackCargo(side, index) {
   if (index < 0 || index >= bag.length) return;
 
   const removedVal = bag.splice(index, 1)[0];
+
+  // Prüfen, ob durch das Auspacken des Überschusses genau der Zielwert erreicht wurde!
+  if (checkOrderCompletion()) return;
+
   setSpeech(`↩️ ${removedVal} mal ${config.license.icon} wieder ausgepackt und in den Markt zurückgelegt.`, '');
   render();
 }
 
-// Tauschen: 10er-Kiste in zwei 5er-Säcke entbündeln
+// Entbündeln 1: Blaue 10er-Kiste in zwei gelbe 5er-Säcke teilen
 function unbundleTen(side) {
   const bag = side === 'left' ? state.leftBag : state.rightBag;
   const idx = bag.indexOf(10);
   if (idx === -1) return;
 
   bag.splice(idx, 1, 5, 5);
-  setSpeech('🔄 Basar-Tausch: Die blaue 10er-Kiste wurde in zwei gelbe 5er-Säcke entbündelt!', '');
+  setSpeech('🔄 Clever entbündelt: Die blaue 10er-Kiste wurde in zwei gelbe 5er-Säcke geteilt! Du kannst einzelne Stücke per Klick auspacken.', '');
+  render();
+}
+
+// Entbündeln 2: Gelben 5er-Sack in fünf rote 1er-Einheiten aufschnüren
+function unbundleFive(side) {
+  const bag = side === 'left' ? state.leftBag : state.rightBag;
+  const idx = bag.indexOf(5);
+  if (idx === -1) return;
+
+  bag.splice(idx, 1, 1, 1, 1, 1, 1);
+  setSpeech('🔄 Clever entbündelt: Der gelbe 5er-Sack wurde in fünf einzelne 1er aufgeschnürt! Klicke überzählige 1er an, um sie auszupacken.', '');
   render();
 }
 
@@ -652,19 +767,17 @@ function launchConfetti(count = 45) {
   }
 }
 
-/* Großes Feier-Pop-up bei abgeschlossener Lieferung (Endlos-Modus) */
+/* Großes Feier-Pop-up bei abgeschlossener Lieferung */
 async function finishOrderDelivery() {
   const deliveredOrder = state.activeOrder;
+  const foxWasActive = state.activeFoxBlock;
   const packedPieces = [...state.leftBag, ...state.rightBag];
   const usedPiecesCount = packedPieces.length;
 
-  const opt = getOptimalPacking(deliveredOrder);
-  const isProPacker = usedPiecesCount === opt.minPieces;
+  const opt = getOptimalPacking(deliveredOrder, foxWasActive);
+  const isProPacker = usedPiecesCount <= opt.minPieces;
 
-  // In IndexedDB persistieren (Frachtmenge + Gepacktes Tier + ggf. Profi-Packer)
   await recordDeliveryStats(deliveredOrder, isProPacker);
-
-  // Konfetti starten
   launchConfetti(isProPacker ? 65 : 40);
 
   const userChipsHTML = packedPieces.map(v => `
@@ -675,17 +788,23 @@ async function finishOrderDelivery() {
     <span class="mini-cargo-chip chip-${v}">${v} mal ${config.license.icon}</span>
   `).join('');
 
+  const foxPraise = foxWasActive
+    ? `<div style="margin-top:8px; background:#ffedd5; border:2px solid #ea580c; color:#9a3412; padding:6px 12px; border-radius:10px; font-weight:900; font-size:0.88rem;">
+         🦊 Schlauer als der Wüstenfuchs! Du hast die ${foxWasActive}er-Sperre durch cleveres Tauschen/Bündeln ausgetrickst!
+       </div>`
+    : '';
+
   let ratingBadge = '';
   if (isProPacker) {
     ratingBadge = `
       <div style="background:#dcfce7; border:3px solid #16a34a; color:#14532d; padding:12px 14px; border-radius:14px; font-weight:900; margin-top:10px;">
-        🏅 PROFI-PACKER! Du hast die ${deliveredOrder} optimal gebündelt und nur ${opt.minPieces} ${opt.minPieces === 1 ? 'Frachtstück' : 'Frachtstücke'} gebraucht!
+        🏅 PROFI-PACKER! Du hast die ${deliveredOrder} optimal gebündelt und nur ${usedPiecesCount} ${usedPiecesCount === 1 ? 'Frachtstück' : 'Frachtstücke'} gebraucht!
       </div>
     `;
   } else {
     ratingBadge = `
       <div style="background:#ffedd5; border:3px solid #f97316; color:#9a3412; padding:12px 14px; border-radius:14px; font-weight:800; margin-top:10px; font-size:0.9rem;">
-        💡 <strong>Profi-Packer-Tipp:</strong> Du hast ${usedPiecesCount} Frachtstücke genutzt. Wenn du noch größere Stücke bündelst, reichen für die <strong>${deliveredOrder}</strong> schon <strong>${opt.minPieces} ${opt.minPieces === 1 ? 'Stück' : 'Stücke'}</strong>:
+        💡 <strong>Profi-Packer-Tipp:</strong> Du hast ${usedPiecesCount} Frachtstücke genutzt. Ideal wären <strong>${opt.minPieces} ${opt.minPieces === 1 ? 'Stück' : 'Stücke'}</strong>:
         <div class="delivered-pieces-row" style="margin:8px 0 2px;">${optChipsHTML}</div>
       </div>
     `;
@@ -701,7 +820,7 @@ async function finishOrderDelivery() {
   const dialog = document.getElementById('celebrationDialog');
 
   dialog.innerHTML = `
-    <div class="celebration-trophy">${isProPacker ? '🏅⭐📦' : '🎉🐪📦'}</div>
+    <div class="celebration-trophy">${isProPacker ? (foxWasActive ? '🦊🏅⭐' : '🏅⭐📦') : '🎉🐪📦'}</div>
     <h2 style="margin:0; font-size:1.75rem; color:var(--wood-dark);">
       Lieferung geschafft! (+${deliveredOrder} ${config.license.icon})
     </h2>
@@ -709,7 +828,9 @@ async function finishOrderDelivery() {
       ${config.animal.icon} Dein ${config.animal.name} hat genau <strong>${deliveredOrder}× ${config.license.name}</strong> in die Oase geliefert!
     </p>
 
-    <div style="font-size:0.85rem; font-weight:800; color:var(--wood-dark);">Deine gepackten Frachtstücke:</div>
+    ${foxPraise}
+
+    <div style="font-size:0.85rem; font-weight:800; color:var(--wood-dark); margin-top:10px;">Deine gepackten Frachtstücke:</div>
     <div class="delivered-pieces-row">${userChipsHTML}</div>
 
     <div class="celebration-stats-grid">
@@ -737,6 +858,7 @@ async function finishOrderDelivery() {
   state.leftBag = [];
   state.rightBag = [];
   state.activeOrder = null;
+  state.activeFoxBlock = null;
   state.availableOrders[state.activeOrderIdx] = generateReplacementOrder();
   state.activeOrderIdx = null;
 
@@ -823,6 +945,10 @@ function render() {
   document.getElementById('topDownAnimalSVG').innerHTML = getTopDownAnimalSVG(config.animal.id);
   document.getElementById('mountCaptionLabel').textContent = `${config.animal.icon} ${config.animal.name}`;
 
+  const leftSum = sumArray(state.leftBag);
+  const rightSum = sumArray(state.rightBag);
+  const totalLoaded = leftSum + rightSum;
+
   // Einzel-Slot für den aktuellen Auftrag (Breitformat mit prominentem Profi-Packer-Ziel)
   const slot = document.getElementById('activeOrderSlot');
   const lockLabel = document.getElementById('orderLockLabel');
@@ -837,7 +963,7 @@ function render() {
       </button>
     `;
   } else {
-    const opt = getOptimalPacking(state.activeOrder);
+    const opt = getOptimalPacking(state.activeOrder, state.activeFoxBlock);
     const currentPieces = state.leftBag.length + state.rightBag.length;
     const isWithinProLimit = currentPieces <= opt.minPieces;
 
@@ -852,6 +978,14 @@ function render() {
       }
     }
 
+    const foxInfoLine = state.activeFoxBlock
+      ? `<div class="fox-card-badge" style="margin-top:8px;">🦊 Wüstenfuchs blockiert ${state.activeFoxBlock}er-Depot!</div>`
+      : '';
+
+    const overloadHint = totalLoaded > state.activeOrder
+      ? `<span class="overload-warning-pill">⚡ ${totalLoaded} / ${state.activeOrder} geladen: Entbündeln & ${totalLoaded - state.activeOrder} auspacken!</span>`
+      : `<span class="pro-counter-pill">Im Sattel: ${currentPieces} von optimal ${opt.minPieces} ${opt.minPieces === 1 ? 'Stück' : 'Stücken'}</span>`;
+
     slot.className = 'order-slot-box locked-order';
     lockLabel.textContent = '🔒 Aktiv bis zur Lieferung';
     slot.innerHTML = `
@@ -859,6 +993,7 @@ function render() {
         <div class="order-badge-num">${state.activeOrder}</div>
         <div class="order-cargo-title">${config.license.icon} ${config.license.name}</div>
         ${renderTwentyStrip(state.activeOrder)}
+        ${foxInfoLine}
       </div>
 
       <div class="pro-goal-showcase ${isWithinProLimit ? 'on-track' : 'over-par'}">
@@ -871,29 +1006,49 @@ function render() {
         </div>
         <div class="pro-goal-slots">
           <div class="crate-slots-row">${pipsHTML}</div>
-          <span class="pro-counter-pill">
-            Im Sattel: ${currentPieces} von optimal ${opt.minPieces} ${opt.minPieces === 1 ? 'Stück' : 'Stücken'}
-          </span>
+          ${overloadHint}
         </div>
       </div>
     `;
   }
 
-  // Markt-Depots aktivieren/deaktivieren
+  // Markt-Depots aktivieren/deaktivieren + Wüstenfuchs-Overlay rendern
   const canGrab = state.activeOrder !== null;
-  ['depot10', 'depot5', 'depot1'].forEach(id => {
-    document.getElementById(id).classList.toggle('disabled', !canGrab);
+  [
+    { id: 'depot10', val: 10 },
+    { id: 'depot5', val: 5 },
+    { id: 'depot1', val: 1 }
+  ].forEach(d => {
+    const el = document.getElementById(d.id);
+    if (!el) return;
+    el.classList.toggle('disabled', !canGrab);
+
+    // Vorheriges Fuchs-Overlay entfernen
+    const oldFox = el.querySelector('.fox-blocker-overlay');
+    if (oldFox) oldFox.remove();
+
+    const isFoxHere = state.activeOrder !== null && state.activeFoxBlock === d.val;
+    el.classList.toggle('fox-blocked', isFoxHere);
+
+    if (isFoxHere) {
+      const overlay = document.createElement('div');
+      overlay.className = 'fox-blocker-overlay';
+      overlay.innerHTML = `
+        <div class="fox-emoji">🦊💤</div>
+        <strong>Vom Wüstenfuchs besetzt!</strong>
+        <small>Tipp: Größeres Stück am Sattel entbündeln!</small>
+      `;
+      el.appendChild(overlay);
+    }
   });
 
   // Satteltaschen & Top-Down Grid
-  const leftSum = sumArray(state.leftBag);
-  const rightSum = sumArray(state.rightBag);
   const maxCap = config.level === 1 ? 10 : 20;
 
   document.getElementById('totalLoadText').textContent =
     state.activeOrder !== null
-      ? `${leftSum + rightSum} / ${state.activeOrder} geladen`
-      : `${leftSum + rightSum} / ${maxCap} geladen`;
+      ? `${totalLoaded} / ${state.activeOrder} geladen`
+      : `${totalLoaded} / ${maxCap} geladen`;
 
   document.getElementById('leftBagCounter').textContent = `${leftSum} / 10`;
   document.getElementById('rightBagCounter').textContent = `${rightSum} / 10`;
@@ -923,7 +1078,7 @@ function render() {
     const unlocked = leftSum === 10;
     rightBagEl.classList.toggle('bag-locked', !unlocked);
     document.getElementById('rightLockHint').textContent = unlocked
-      ? '💡 Klick auf Frachtstück = Wieder auspacken'
+      ? '💡 Klick auf Kiste = Auspacken'
       : '🔒 Erst öffnen, wenn links randvoll (10) ist!';
 
     document.getElementById('rightBagPieces').innerHTML = state.rightBag.map((val, idx) => `
@@ -935,20 +1090,19 @@ function render() {
     `).join('');
   }
 
-  // Basar-Tausch Buttons
-  const hasTenLeft = state.leftBag.includes(10);
-  const hasTenRight = state.rightBag.includes(10);
-  const btnL = document.getElementById('swapBtnLeft');
-  const btnR = document.getElementById('swapBtnRight');
+  // Entbündel-Buttons an beiden Taschen ein-/ausblenden
+  const btnL10 = document.getElementById('swapBtnLeft10');
+  const btnL5  = document.getElementById('swapBtnLeft5');
+  const btnR10 = document.getElementById('swapBtnRight10');
+  const btnR5  = document.getElementById('swapBtnRight5');
 
-  btnL.style.display = hasTenLeft ? 'inline-block' : 'none';
-  btnL.disabled = false;
-
-  btnR.style.display = hasTenRight ? 'inline-block' : 'none';
-  btnR.disabled = false;
+  if (btnL10) btnL10.style.display = state.leftBag.includes(10) ? 'inline-block' : 'none';
+  if (btnL5)  btnL5.style.display  = state.leftBag.includes(5)  ? 'inline-block' : 'none';
+  if (btnR10) btnR10.style.display = state.rightBag.includes(10) ? 'inline-block' : 'none';
+  if (btnR5)  btnR5.style.display  = state.rightBag.includes(5)  ? 'inline-block' : 'none';
 }
 
-// Initialisierung beim Laden (startet IndexedDB und rendert dann Setup + Spiel)
+// Initialisierung beim Laden
 initPlayerManagement().then(() => {
   renderSetupModal();
   render();
