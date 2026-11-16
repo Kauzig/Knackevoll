@@ -946,7 +946,7 @@
     <div class="board-panel">
       <h3 class="panel-heading">
         <span>📜 Aktueller Auftrag</span>
-        <small style="font-weight:700; color:#78716c;" id="orderLockLabel">Auswahl per Pop-up</small>
+        <small style="font-weight:700; color:#15803d;" id="orderLockLabel">Freie Wahl (0 Akt.)</small>
       </h3>
       <div class="order-slot-box" id="activeOrderSlot"></div>
     </div>
@@ -1094,12 +1094,12 @@
   </div>
 </div>
 
-<!-- POP-UP 2: Auftrag auswählen (3 Karten zur Wahl, danach gesperrt) -->
+<!-- POP-UP 2: Auftrag auswählen (kostenlos, 3 Karten zur Wahl, danach gesperrt) -->
 <div class="modal-backdrop hidden" id="orderModal">
   <div class="modal-dialog">
     <div class="modal-header-banner">
-      <h2>📜 Auftrag wählen (kostet 1 Aktion)</h2>
-      <p>Such dir 1 Auftragskarte aus der offenen Auslage aus. Danach bleibt dieser Auftrag bis zur Lieferung fest eingeloggt!</p>
+      <h2>📜 Auftrag wählen (kostenlos)</h2>
+      <p>Such dir 1 Auftragskarte aus der offenen Auslage aus. Das Auswählen kostet keine Aktion – danach bleibt der Auftrag bis zur Lieferung fest eingeloggt!</p>
     </div>
 
     <div class="popup-orders-grid" id="popupOrdersList"></div>
@@ -1194,10 +1194,6 @@
 
   function openOrderModal() {
     if (state.activeOrder !== null) return;
-    if (state.actionsUsed >= 2) {
-      setSpeech('Deine 2 Aktionen in diesem Zug sind verbraucht! Klicke zuerst auf „Zug beenden“.', 'error');
-      return;
-    }
 
     const list = document.getElementById('popupOrdersList');
     list.innerHTML = state.availableOrders.map((num, idx) => `
@@ -1206,7 +1202,7 @@
         <div class="order-cargo-title">${config.license.icon} ${config.license.name}</div>
         ${renderTwentyStrip(num)}
         <div style="margin-top:10px;">
-          <span class="btn btn-oasis" style="padding:5px 12px; font-size:0.82rem;">Auftrag annehmen</span>
+          <span class="btn btn-oasis" style="padding:5px 12px; font-size:0.82rem;">Kostenlos wählen</span>
         </div>
       </div>
     `).join('');
@@ -1273,32 +1269,30 @@
     state.leftBag = [];
     state.rightBag = [];
     state.history = [];
-    setSpeech('Wähle deinen ersten Auftrag für die Karawane (kostet 1 Aktion)!', '');
+    setSpeech('Wähle zuerst kostenlos deinen Auftrag für die Karawane aus!', '');
     render();
     if (document.getElementById('setupModal').classList.contains('hidden')) {
       openOrderModal();
     }
   }
 
-  // AKTION 1: Auftrag im Pop-up wählen
+  // Auftrag im Pop-up wählen (KOSTENLOS - verbraucht 0 Aktionen)
   function pickOrderCard(index) {
-    if (state.activeOrder !== null || state.actionsUsed >= 2) return;
+    if (state.activeOrder !== null) return;
 
     pushHistory();
-    state.cargoGrabRemaining = 0;
-    state.actionsUsed += 1;
     state.activeOrderIdx = index;
     state.activeOrder = state.availableOrders[index];
 
     closeOrderModal();
-    setSpeech(`📜 Auftrag „${state.activeOrder}× ${config.license.name}“ angenommen (1 Aktion verbraucht). Belade jetzt dein Packtier!`, '');
+    setSpeech(`📜 Auftrag „${state.activeOrder}× ${config.license.name}“ kostenlos angenommen! Du hast noch alle Aktionen zum Beladen frei.`, '');
     render();
   }
 
-  // AKTION 2: Fracht nehmen (maximal 2 Teile pro Aktion)
+  // AKTION: Fracht nehmen (maximal 2 Teile pro Aktion)
   function takeCargo(val) {
     if (state.activeOrder === null) {
-      setSpeech('Bitte wähle zuerst links einen Auftrag aus, bevor du Fracht einlädst!', 'error');
+      setSpeech('Bitte wähle zuerst links einen Auftrag aus (kostenlos), bevor du Fracht einlädst!', 'error');
       return;
     }
 
@@ -1405,7 +1399,7 @@
     if (state.score >= 3) {
       setSpeech(`🎉 KNACKEVOLL! Auftrag (${delivered}) geliefert! Du hast alle 3 Lieferungen in Zug ${state.turn} geschafft und gewinnst!`, 'success');
     } else {
-      setSpeech(`🎉 Lieferung (${delivered}× ${config.license.name}) perfekt abgeschlossen! Wähle deinen nächsten Auftrag.`, 'success');
+      setSpeech(`🎉 Lieferung (${delivered}× ${config.license.name}) perfekt abgeschlossen! Wähle jetzt kostenlos deinen nächsten Auftrag.`, 'success');
     }
     render();
   }
@@ -1511,18 +1505,18 @@
 
     document.getElementById('btnUndo').disabled = state.history.length === 0;
 
-    // Einzel-Slot für den aktuellen Auftrag
+    // Einzel-Slot für den aktuellen Auftrag (Auswahl ist kostenlos)
     const slot = document.getElementById('activeOrderSlot');
     const lockLabel = document.getElementById('orderLockLabel');
     if (state.activeOrder === null) {
       slot.className = 'order-slot-box';
-      lockLabel.textContent = 'Noch kein Auftrag aktiv';
-      const canOpen = state.actionsUsed < 2 && state.score < 3;
+      lockLabel.textContent = 'Kostenlose Wahl (0 Akt.)';
+      const canOpen = state.score < 3;
       slot.innerHTML = `
         <div style="font-size:2.2rem; margin-bottom:6px;">📜</div>
-        <p style="margin:0 0 12px; color:#6b5344; font-weight:700;">Du hast aktuell keinen Auftrag geladen.</p>
+        <p style="margin:0 0 12px; color:#6b5344; font-weight:700;">Noch kein Auftrag aktiv.</p>
         <button class="btn btn-oasis" onclick="openOrderModal()" ${!canOpen ? 'disabled' : ''}>
-          📜 Auftrag auswählen (1 Aktion)
+          📜 Auftrag auswählen (kostenlos)
         </button>
       `;
     } else {
