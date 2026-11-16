@@ -604,7 +604,7 @@
       align-items: center;
       margin-bottom: 10px;
       font-weight: 900;
-      font-size: 1rem;
+      font-size: 0.96rem;
       text-shadow: 0 2px 0 rgba(0,0,0,0.35);
     }
 
@@ -719,8 +719,9 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
+      gap: 8px;
       min-height: 36px;
-      font-size: 0.82rem;
+      font-size: 0.8rem;
       color: #fde68a;
     }
 
@@ -729,8 +730,8 @@
       color: #1e3a8a;
       border: 2px solid #1e3a8a;
       border-radius: 10px;
-      padding: 5px 12px;
-      font-size: 0.82rem;
+      padding: 5px 10px;
+      font-size: 0.8rem;
       font-weight: 900;
       cursor: pointer;
       box-shadow: 0 3px 0 #1e3a8a;
@@ -1044,7 +1045,7 @@
         <div class="bag-footer">
           <span id="rightLockHint">🔒 Erst links vollpacken (10)!</span>
           <button class="btn-bazaar-swap" id="swapBtnRight" onclick="unbundleTen('right')" style="display:none;">
-            🔄 Tauschen: 10er ➔ 2× 5er (1 Aktion)
+            🔄 10er ➔ 2× 5er (1 Akt.)
           </button>
         </div>
       </div>
@@ -1075,7 +1076,7 @@
     <div class="selection-grid" style="grid-template-columns: 1fr 1fr;">
       <div class="tile-option" id="lvlTile1" onclick="setLevel(1)">
         <div style="font-size:1.3rem; font-weight:900;">Stufe 1: ZR bis 10</div>
-        <small>Nur 1 Satteltasche (1. Halbjahr)</small>
+        <small>Nur linke Satteltasche (1. Halbjahr)</small>
       </div>
       <div class="tile-option active-tile" id="lvlTile2" onclick="setLevel(2)">
         <div style="font-size:1.3rem; font-weight:900;">Stufe 2: ZR bis 20</div>
