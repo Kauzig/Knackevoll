@@ -6,18 +6,24 @@
   <title>KNACKEVOLL! – Passt, wackelt und hat Fracht!</title>
   <style>
     :root {
-      --bg-sand: #fdf6e3;
-      --bg-panel: #fffdf7;
-      --border-wood: #8b5a2b;
-      --accent-orange: #d97706;
-      --accent-green: #16a34a;
-      --blue-10: #2563eb;
-      --blue-10-dark: #1d4ed8;
-      --yellow-5: #facc15;
-      --yellow-5-dark: #ca8a04;
-      --red-1: #ef4444;
-      --red-1-dark: #b91c1c;
-      --text-main: #292524;
+      --sand-bg: #f6ead4;
+      --sand-dark: #e6d2b5;
+      --parchment: #fffcf5;
+      --wood-dark: #5c3a21;
+      --wood-mid: #8b5a2b;
+      --wood-light: #c48f5a;
+      --leather: #a45a32;
+      --leather-dark: #6e381b;
+      --stitch-gold: #fbbf24;
+      --dienes-blue: #2563eb;
+      --dienes-blue-dark: #1d4ed8;
+      --dienes-yellow: #facc15;
+      --dienes-yellow-dark: #ca8a04;
+      --dienes-red: #ef4444;
+      --dienes-red-dark: #b91c1c;
+      --oasis-green: #16a34a;
+      --oasis-green-dark: #15803d;
+      --text-dark: #291d14;
     }
 
     * {
@@ -27,762 +33,1080 @@
 
     body {
       margin: 0;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background-color: var(--bg-sand);
-      color: var(--text-main);
-      padding: 16px;
+      font-family: 'Trebuchet MS', 'Segoe UI', Tahoma, sans-serif;
+      background: radial-gradient(circle at top, #fdf6e7 0%, var(--sand-bg) 60%, var(--sand-dark) 100%);
+      color: var(--text-dark);
+      min-height: 100vh;
+      padding: 18px;
     }
 
-    .container {
-      max-width: 1020px;
+    .app-shell {
+      max-width: 1080px;
       margin: 0 auto;
     }
 
-    /* Header */
-    header {
+    /* Wooden Header Banner */
+    .game-header {
+      background: linear-gradient(180deg, #9c6634 0%, var(--wood-mid) 50%, var(--wood-dark) 100%);
+      color: #fff8eb;
+      border: 4px solid #3e2411;
+      border-radius: 20px;
+      padding: 14px 22px;
       display: flex;
       flex-wrap: wrap;
       justify-content: space-between;
       align-items: center;
-      background: var(--bg-panel);
-      border: 3px solid var(--border-wood);
-      border-radius: 14px;
-      padding: 12px 20px;
-      margin-bottom: 16px;
-      box-shadow: 0 4px 0 rgba(139, 90, 43, 0.25);
+      gap: 14px;
+      box-shadow: 0 8px 0 rgba(62, 36, 17, 0.35), inset 0 2px 2px rgba(255, 255, 255, 0.25);
+      margin-bottom: 18px;
     }
 
-    .title-group h1 {
+    .brand-title h1 {
       margin: 0;
-      font-size: 1.65rem;
-      color: var(--border-wood);
+      font-size: 1.9rem;
+      letter-spacing: 1px;
+      text-shadow: 0 3px 0 #3e2411;
+      display: flex;
+      align-items: center;
+      gap: 10px;
     }
 
-    .title-group p {
-      margin: 2px 0 0;
-      font-size: 0.9rem;
-      color: #57534e;
+    .brand-title p {
+      margin: 3px 0 0;
+      font-size: 0.95rem;
+      color: #fde68a;
       font-style: italic;
     }
 
-    .header-controls {
+    .header-actions {
       display: flex;
-      gap: 10px;
       align-items: center;
+      gap: 12px;
       flex-wrap: wrap;
     }
 
-    .badge-score {
-      background: #fef3c7;
-      border: 2px solid var(--accent-orange);
-      padding: 6px 14px;
+    /* Trophy Progress Stars */
+    .trophy-pill {
+      background: rgba(30, 15, 5, 0.45);
+      border: 2px solid var(--stitch-gold);
       border-radius: 999px;
-      font-weight: 700;
+      padding: 6px 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 800;
       font-size: 1rem;
+      color: #fff;
     }
 
-    button {
+    .star-slot {
+      font-size: 1.3rem;
+      filter: grayscale(1) opacity(0.4);
+      transition: transform 0.3s, filter 0.3s;
+    }
+
+    .star-slot.earned {
+      filter: none;
+      transform: scale(1.15);
+    }
+
+    /* Tactile Buttons */
+    .btn {
       cursor: pointer;
       font-family: inherit;
-      font-weight: 700;
-      border-radius: 10px;
-      border: 2px solid var(--border-wood);
-      padding: 8px 14px;
-      background: #fff;
-      color: var(--text-main);
-      transition: transform 0.1s, background 0.15s;
+      font-weight: 800;
+      font-size: 0.95rem;
+      border-radius: 12px;
+      border: 3px solid #3e2411;
+      padding: 9px 16px;
+      background: linear-gradient(180deg, #fffbeb 0%, #fde68a 100%);
+      color: var(--wood-dark);
+      box-shadow: 0 4px 0 #3e2411;
+      transition: transform 0.1s, filter 0.15s;
     }
 
-    button:hover:not(:disabled) {
-      background: #fef3c7;
+    .btn:hover:not(:disabled) {
+      filter: brightness(1.05);
       transform: translateY(-1px);
     }
 
-    button:disabled {
+    .btn:active:not(:disabled) {
+      transform: translateY(3px);
+      box-shadow: 0 1px 0 #3e2411;
+    }
+
+    .btn:disabled {
       opacity: 0.45;
       cursor: not-allowed;
+      box-shadow: none;
+      transform: none;
     }
 
     .btn-primary {
-      background: var(--accent-orange);
-      color: white;
-      border-color: #9a3412;
+      background: linear-gradient(180deg, #f59e0b 0%, #d97706 100%);
+      color: #fff;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
     }
 
-    .btn-primary:hover:not(:disabled) {
-      background: #b45309;
+    .btn-oasis {
+      background: linear-gradient(180deg, #22c55e 0%, var(--oasis-green) 100%);
+      color: #fff;
+      border-color: #064e3b;
+      box-shadow: 0 4px 0 #064e3b;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
     }
 
-    /* Turn & Action Bar */
-    .turn-bar {
-      display: grid;
-      grid-template-columns: 1fr auto;
-      gap: 16px;
+    /* Turn & Action Economy Bar */
+    .turn-hud {
+      background: var(--parchment);
+      border: 3px solid var(--wood-mid);
+      border-radius: 16px;
+      padding: 12px 20px;
+      margin-bottom: 18px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
       align-items: center;
-      background: #fffbeb;
-      border: 3px solid var(--accent-orange);
-      border-radius: 14px;
-      padding: 12px 18px;
-      margin-bottom: 16px;
+      gap: 14px;
+      box-shadow: 0 5px 0 rgba(139, 90, 43, 0.2);
     }
 
-    .action-pills {
+    .turn-left {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 12px;
       flex-wrap: wrap;
     }
 
-    .turn-badge {
-      background: var(--border-wood);
-      color: #fff;
-      padding: 5px 12px;
-      border-radius: 8px;
-      font-weight: 700;
+    .turn-counter {
+      background: var(--wood-dark);
+      color: #fde68a;
+      font-weight: 900;
+      font-size: 1.05rem;
+      padding: 7px 14px;
+      border-radius: 10px;
+      border: 2px solid #3e2411;
     }
 
-    .action-dot {
+    .action-token {
       display: inline-flex;
       align-items: center;
-      gap: 6px;
-      padding: 5px 12px;
-      border-radius: 8px;
-      font-weight: 700;
+      gap: 7px;
+      padding: 7px 14px;
+      border-radius: 999px;
+      font-weight: 800;
       font-size: 0.92rem;
-      border: 2px solid #78716c;
+      border: 2px solid #a8a29e;
       background: #e7e5e4;
-      color: #57534e;
+      color: #78716c;
+      transition: all 0.2s;
     }
 
-    .action-dot.available {
-      background: #dcfce7;
-      border-color: var(--accent-green);
-      color: #166534;
+    .action-token.ready {
+      background: linear-gradient(180deg, #dcfce7 0%, #bbf7d0 100%);
+      border-color: var(--oasis-green);
+      color: #14532d;
+      box-shadow: 0 3px 0 rgba(22, 163, 74, 0.25);
     }
 
-    .action-dot.active-grab {
-      background: #dbeafe;
-      border-color: var(--blue-10);
-      color: #1e40af;
-      animation: pulse 1.2s infinite;
+    .action-token.grabbing {
+      background: linear-gradient(180deg, #dbeafe 0%, #bfdbfe 100%);
+      border-color: var(--dienes-blue);
+      color: #1e3a8a;
+      animation: gentlePulse 1.1s infinite;
     }
 
-    @keyframes pulse {
+    @keyframes gentlePulse {
       0%, 100% { transform: scale(1); }
-      50% { transform: scale(1.03); }
+      50% { transform: scale(1.04); }
     }
 
-    /* Streamlined Top Grid: Active Order & Market */
-    .top-grid {
+    /* Top Row: Active Order Card & Bazaar Market */
+    .bazaar-grid {
       display: grid;
-      grid-template-columns: 320px 1fr;
-      gap: 16px;
-      margin-bottom: 16px;
+      grid-template-columns: 330px 1fr;
+      gap: 18px;
+      margin-bottom: 18px;
     }
 
-    @media (max-width: 780px) {
-      .top-grid {
+    @media (max-width: 820px) {
+      .bazaar-grid {
         grid-template-columns: 1fr;
       }
     }
 
-    .panel {
-      background: var(--bg-panel);
-      border: 3px solid var(--border-wood);
-      border-radius: 14px;
-      padding: 16px;
-      box-shadow: 0 4px 0 rgba(139, 90, 43, 0.18);
+    .board-panel {
+      background: var(--parchment);
+      border: 4px solid var(--wood-mid);
+      border-radius: 20px;
+      padding: 18px;
+      box-shadow: 0 7px 0 rgba(92, 58, 33, 0.22);
+      position: relative;
     }
 
-    .panel-title {
+    .panel-heading {
       margin: 0 0 12px 0;
-      font-size: 1.1rem;
-      color: var(--border-wood);
+      font-size: 1.15rem;
+      color: var(--wood-dark);
       display: flex;
       justify-content: space-between;
       align-items: center;
+      border-bottom: 2px dashed #e7d8c5;
+      padding-bottom: 8px;
     }
 
-    /* Single Active Order Slot */
-    .active-order-slot {
+    /* Active Order Card Slot */
+    .order-slot-box {
+      min-height: 185px;
+      border: 3px dashed #cbb69b;
+      border-radius: 16px;
+      background: #faf3e6;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      min-height: 155px;
-      border: 3px dashed #d6d3d1;
-      border-radius: 12px;
-      padding: 14px;
-      background: #fafaf9;
+      padding: 16px;
       text-align: center;
+      transition: all 0.2s;
     }
 
-    .active-order-slot.has-order {
-      border-style: solid;
-      border-color: var(--accent-green);
-      background: #f0fdf4;
+    .order-slot-box.locked-order {
+      border: 3px solid var(--oasis-green);
+      background: linear-gradient(180deg, #ffffff 0%, #f0fdf4 100%);
+      box-shadow: inset 0 0 0 3px rgba(22, 163, 74, 0.15);
     }
 
-    .order-card {
-      border: 3px solid #d6d3d1;
-      border-radius: 12px;
-      padding: 14px;
-      background: #fff;
-      text-align: center;
-      cursor: pointer;
-      transition: all 0.15s;
-    }
-
-    .order-card:hover {
-      border-color: var(--accent-orange);
-      transform: translateY(-3px);
-      box-shadow: 0 6px 12px rgba(0,0,0,0.1);
-    }
-
-    .order-number {
-      font-size: 2.3rem;
+    .order-badge-num {
+      font-size: 2.8rem;
       font-weight: 900;
-      color: var(--text-main);
+      color: var(--wood-dark);
       line-height: 1;
+      text-shadow: 0 2px 0 rgba(0, 0, 0, 0.08);
     }
 
-    .order-desc {
-      font-size: 0.9rem;
-      font-weight: 700;
-      color: #57534e;
+    .order-cargo-title {
+      font-size: 1rem;
+      font-weight: 800;
+      color: var(--leather);
       margin: 6px 0 10px;
     }
 
-    /* Visual 20-strip */
-    .mini-strip-wrap {
+    /* Didaktisches 20er-Streifenmuster auf den Karten */
+    .twenty-strip-box {
       display: flex;
       flex-direction: column;
       gap: 4px;
-      align-items: center;
       width: 100%;
+      max-width: 185px;
+      margin: 0 auto;
     }
 
-    .mini-strip {
+    .ten-row {
       display: grid;
       grid-template-columns: repeat(10, 1fr);
       gap: 2px;
-      width: 100%;
-      max-width: 160px;
-      background: #d6d3d1;
+      background: #8b5a2b;
       padding: 3px;
-      border-radius: 4px;
+      border-radius: 6px;
     }
 
-    .mini-cell {
-      height: 10px;
-      background: #fff;
-      border-radius: 1px;
+    .ten-pip {
+      height: 12px;
+      background: #fff8eb;
+      border-radius: 2px;
     }
 
-    .mini-cell.filled-10 { background: var(--blue-10); }
-    .mini-cell.filled-1 { background: var(--accent-orange); }
-    .mini-cell.mid-border { border-right: 2px solid #1c1917; }
-
-    /* Market */
-    .market-items {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
+    .ten-pip.pip-10 {
+      background: var(--dienes-blue);
     }
 
-    .market-btn {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 10px 14px;
-      border-radius: 10px;
-      border: 3px solid transparent;
-      color: #fff;
-      font-size: 1rem;
-      font-weight: 800;
-      box-shadow: 0 3px 0 rgba(0,0,0,0.2);
+    .ten-pip.pip-1 {
+      background: #f59e0b;
     }
 
-    .market-btn.piece-10 {
-      background: var(--blue-10);
-      border-color: var(--blue-10-dark);
+    .ten-pip.pip-mid {
+      margin-right: 3px;
     }
 
-    .market-btn.piece-5 {
-      background: var(--yellow-5);
-      border-color: var(--yellow-5-dark);
-      color: #1c1917;
-    }
-
-    .market-btn.piece-1 {
-      background: var(--red-1);
-      border-color: var(--red-1-dark);
-    }
-
-    .piece-preview {
-      display: flex;
-      height: 22px;
-      border-radius: 4px;
-      overflow: hidden;
-      border: 2px solid rgba(0,0,0,0.35);
-    }
-
-    .piece-preview span {
-      width: 14px;
-      height: 100%;
-      border-right: 1px dashed rgba(0,0,0,0.3);
-    }
-
-    .piece-preview span:last-child {
-      border-right: none;
-    }
-
-    /* Animal Board */
-    .board-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 12px;
-      margin-bottom: 14px;
-    }
-
-    .waybill {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      background: #fef3c7;
-      border: 2px dashed var(--border-wood);
-      padding: 8px 14px;
-      border-radius: 10px;
-    }
-
-    .waybill-icon {
-      font-size: 1.8rem;
-    }
-
-    .waybill-text strong {
-      display: block;
-      font-size: 0.78rem;
-      text-transform: uppercase;
-      color: var(--border-wood);
-    }
-
-    .waybill-text span {
-      font-size: 0.95rem;
-      font-weight: 700;
-    }
-
-    .animal-display {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      font-size: 1.25rem;
-      font-weight: 800;
-    }
-
-    .bags-grid {
+    /* Bazaar Market Depots (Dienes Blocks) */
+    .market-depots {
       display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 20px;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
     }
 
-    @media (max-width: 720px) {
-      .bags-grid {
+    @media (max-width: 650px) {
+      .market-depots {
         grid-template-columns: 1fr;
       }
     }
 
-    .saddlebag {
-      background: #f5ebe0;
-      border: 3px solid var(--border-wood);
-      border-radius: 14px;
-      padding: 14px;
-      position: relative;
-      transition: transform 0.15s;
-    }
-
-    .saddlebag.locked {
-      opacity: 0.55;
-      background: #e7e5e4;
-    }
-
-    .bag-header {
+    .depot-card {
+      border: 3px solid #cbb69b;
+      border-radius: 16px;
+      background: #fdf8ee;
+      padding: 14px 12px;
       display: flex;
+      flex-direction: column;
+      align-items: center;
       justify-content: space-between;
-      font-weight: 800;
-      margin-bottom: 10px;
-      font-size: 0.95rem;
+      gap: 10px;
+      cursor: pointer;
+      transition: transform 0.12s, border-color 0.15s, box-shadow 0.15s;
+      box-shadow: 0 5px 0 #d6c3a5;
     }
 
-    .bag-track {
+    .depot-card:hover:not(.disabled) {
+      transform: translateY(-3px);
+      border-color: var(--wood-mid);
+      box-shadow: 0 8px 0 #c5ae8b;
+    }
+
+    .depot-card:active:not(.disabled) {
+      transform: translateY(2px);
+      box-shadow: 0 2px 0 #c5ae8b;
+    }
+
+    .depot-card.disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+
+    .depot-title {
+      font-weight: 900;
+      font-size: 1.05rem;
+      color: var(--wood-dark);
+    }
+
+    .depot-sub {
+      font-size: 0.8rem;
+      color: #6b5344;
+      text-align: center;
+    }
+
+    /* Physical Dienes Block Visuals */
+    .dienes-preview-10 {
+      width: 100%;
+      max-width: 170px;
+      height: 36px;
+      background: linear-gradient(180deg, #3b82f6 0%, var(--dienes-blue) 100%);
+      border: 3px solid var(--dienes-blue-dark);
+      border-radius: 8px;
+      box-shadow: 0 4px 0 #1e3a8a, inset 0 2px 0 rgba(255,255,255,0.35);
       position: relative;
-      height: 64px;
-      background: #fff;
-      border: 3px solid #78350f;
-      border-radius: 10px;
       display: grid;
       grid-template-columns: repeat(10, 1fr);
-      overflow: hidden;
     }
 
-    .bag-slot-bg {
-      border-right: 1px dotted #d6d3d1;
-      display: flex;
-      align-items: flex-end;
-      justify-content: center;
-      padding-bottom: 3px;
-      font-size: 0.65rem;
-      color: #a8a29e;
+    .dienes-preview-10 span {
+      border-right: 1px dashed rgba(255,255,255,0.35);
     }
 
-    .bag-slot-bg:nth-child(5) {
-      border-right: 3px dashed #b45309;
+    .dienes-preview-10 span:nth-child(5) {
+      border-right: 3px solid #fde047;
     }
 
-    .bag-slot-bg:last-child {
+    .dienes-preview-10 span:last-child {
       border-right: none;
     }
 
-    .bag-pieces-layer {
-      position: absolute;
-      inset: 0;
-      display: flex;
-      align-items: stretch;
-      padding: 4px;
-      gap: 2px;
-      pointer-events: none;
+    .dienes-preview-5 {
+      width: 55%;
+      min-width: 90px;
+      height: 36px;
+      background: linear-gradient(180deg, #fde047 0%, var(--dienes-yellow) 100%);
+      border: 3px solid var(--dienes-yellow-dark);
+      border-radius: 8px;
+      box-shadow: 0 4px 0 #a16207, inset 0 2px 0 rgba(255,255,255,0.5);
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
     }
 
-    .loaded-piece {
-      height: 100%;
-      border-radius: 6px;
+    .dienes-preview-5 span {
+      border-right: 1px dashed rgba(161, 98, 7, 0.45);
+    }
+
+    .dienes-preview-5 span:last-child {
+      border-right: none;
+    }
+
+    .dienes-preview-1 {
+      width: 34px;
+      height: 36px;
+      background: linear-gradient(180deg, #f87171 0%, var(--dienes-red) 100%);
+      border: 3px solid var(--dienes-red-dark);
+      border-radius: 8px;
+      box-shadow: 0 4px 0 #7f1d1d, inset 0 2px 0 rgba(255,255,255,0.4);
       display: flex;
       align-items: center;
       justify-content: center;
-      font-weight: 800;
+      color: #fff;
+      font-size: 0.95rem;
+    }
+
+    /* Packtier-Tableau */
+    .animal-tableau {
+      background: linear-gradient(180deg, #fffdf8 0%, #f7ebd7 100%);
+      border: 5px solid var(--wood-mid);
+      border-radius: 24px;
+      padding: 20px;
+      box-shadow: 0 10px 0 rgba(92, 58, 33, 0.25);
+    }
+
+    .tableau-top {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr;
+      gap: 16px;
+      align-items: center;
+      margin-bottom: 18px;
+    }
+
+    @media (max-width: 780px) {
+      .tableau-top {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Offizieller Frachtbrief (Lizenz-Plakette oben links) */
+    .waybill-plaque {
+      background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+      border: 3px dashed var(--wood-mid);
+      border-radius: 16px;
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      box-shadow: inset 0 0 0 3px rgba(251, 191, 36, 0.25);
+    }
+
+    .waybill-seal {
+      width: 54px;
+      height: 54px;
+      border-radius: 14px;
+      background: #fde68a;
+      border: 3px solid var(--wood-mid);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2rem;
+      flex-shrink: 0;
+      box-shadow: 0 3px 0 rgba(139, 90, 43, 0.25);
+    }
+
+    .waybill-meta small {
+      display: block;
+      font-size: 0.75rem;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--leather);
+    }
+
+    .waybill-meta strong {
+      display: block;
+      font-size: 1.05rem;
+      color: var(--wood-dark);
+      margin-bottom: 2px;
+    }
+
+    .waybill-meta span {
+      font-size: 0.88rem;
+      color: #57412f;
+      font-style: italic;
+    }
+
+    /* Packtier Avatar & Gesamtkapazität */
+    .animal-hero {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 14px;
+    }
+
+    @media (max-width: 780px) {
+      .animal-hero {
+        justify-content: flex-start;
+      }
+    }
+
+    .animal-avatar-circle {
+      width: 68px;
+      height: 68px;
+      border-radius: 50%;
+      background: radial-gradient(circle, #fef3c7 0%, #f59e0b 100%);
+      border: 4px solid var(--wood-dark);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2.5rem;
+      box-shadow: 0 5px 0 rgba(62, 36, 17, 0.3);
+    }
+
+    .capacity-meter {
+      background: var(--wood-dark);
+      color: #fff;
+      padding: 10px 16px;
+      border-radius: 14px;
+      border: 3px solid #3e2411;
+    }
+
+    .capacity-meter small {
+      display: block;
+      font-size: 0.75rem;
+      color: #fde68a;
+      text-transform: uppercase;
+    }
+
+    .capacity-meter strong {
+      font-size: 1.35rem;
+    }
+
+    /* Leather Saddlebags (Zwanzigerfeld) */
+    .saddlebags-container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 22px;
+    }
+
+    @media (max-width: 760px) {
+      .saddlebags-container {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .leather-bag {
+      background: linear-gradient(180deg, #b86b3f 0%, var(--leather) 60%, #8a4824 100%);
+      border: 4px solid var(--leather-dark);
+      border-radius: 20px;
+      padding: 16px;
+      color: #fff8eb;
+      box-shadow: 0 7px 0 var(--leather-dark), inset 0 2px 4px rgba(255, 255, 255, 0.25);
+      position: relative;
+      transition: opacity 0.25s, filter 0.25s;
+    }
+
+    .leather-bag::before {
+      content: '';
+      position: absolute;
+      inset: 6px;
+      border: 2px dashed rgba(253, 230, 138, 0.45);
+      border-radius: 14px;
+      pointer-events: none;
+    }
+
+    .leather-bag.bag-locked {
+      filter: grayscale(0.55) brightness(0.88);
+      opacity: 0.72;
+    }
+
+    .bag-title-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+      font-weight: 900;
+      font-size: 1rem;
+      text-shadow: 0 2px 0 rgba(0,0,0,0.35);
+    }
+
+    .bag-pill-count {
+      background: rgba(35, 16, 6, 0.55);
+      padding: 4px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(253, 230, 138, 0.5);
       font-size: 0.9rem;
-      box-shadow: inset 0 -3px 0 rgba(0,0,0,0.2);
     }
 
-    .loaded-piece.val-10 {
+    /* 10-Unit Track with Golden 5-Seam */
+    .bag-track-10 {
+      position: relative;
+      height: 74px;
+      background: #3b2110;
+      border: 3px solid #241308;
+      border-radius: 12px;
+      display: grid;
+      grid-template-columns: repeat(10, 1fr);
+      overflow: hidden;
+      box-shadow: inset 0 4px 8px rgba(0,0,0,0.55);
+    }
+
+    .unit-cell {
+      border-right: 1px dashed rgba(255, 248, 235, 0.2);
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      padding-bottom: 4px;
+      font-size: 0.7rem;
+      font-weight: 800;
+      color: rgba(255, 248, 235, 0.45);
+    }
+
+    /* Optische 5er-Ziernaht */
+    .unit-cell:nth-child(5) {
+      border-right: 4px dashed var(--stitch-gold);
+    }
+
+    .unit-cell:last-child {
+      border-right: none;
+    }
+
+    .cargo-pieces-overlay {
+      position: absolute;
+      inset: 5px;
+      display: flex;
+      align-items: stretch;
+      gap: 3px;
+      pointer-events: none;
+    }
+
+    .cargo-block {
+      height: 100%;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 900;
+      font-size: 0.95rem;
+      position: relative;
+      animation: dropIn 0.2s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+    }
+
+    @keyframes dropIn {
+      0% { transform: scale(0.75) translateY(-10px); opacity: 0; }
+      100% { transform: scale(1) translateY(0); opacity: 1; }
+    }
+
+    .cargo-block.block-10 {
       width: 100%;
-      background: var(--blue-10);
+      background: linear-gradient(180deg, #3b82f6 0%, var(--dienes-blue) 100%);
       color: #fff;
-      border: 2px solid var(--blue-10-dark);
-      background-image: linear-gradient(to right, transparent 49.5%, rgba(255,255,255,0.6) 49.5%, rgba(255,255,255,0.6) 50.5%, transparent 50.5%);
+      border: 2px solid #93c5fd;
+      box-shadow: inset 0 -4px 0 #1e3a8a;
+      background-image: linear-gradient(
+        to right,
+        transparent calc(50% - 2px),
+        rgba(253, 224, 71, 0.85) calc(50% - 2px),
+        rgba(253, 224, 71, 0.85) calc(50% + 2px),
+        transparent calc(50% + 2px)
+      );
     }
 
-    .loaded-piece.val-5 {
+    .cargo-block.block-5 {
       width: 50%;
-      background: var(--yellow-5);
-      color: #1c1917;
-      border: 2px solid var(--yellow-5-dark);
-      background-image: repeating-linear-gradient(to right, transparent, transparent calc(20% - 1px), rgba(0,0,0,0.18) calc(20% - 1px), rgba(0,0,0,0.18) 20%);
+      background: linear-gradient(180deg, #fde047 0%, var(--dienes-yellow) 100%);
+      color: #422006;
+      border: 2px solid #fef08a;
+      box-shadow: inset 0 -4px 0 #a16207;
+      background-image: repeating-linear-gradient(
+        to right,
+        transparent,
+        transparent calc(20% - 2px),
+        rgba(161, 98, 7, 0.35) calc(20% - 2px),
+        rgba(161, 98, 7, 0.35) 20%
+      );
     }
 
-    .loaded-piece.val-1 {
+    .cargo-block.block-1 {
       width: 10%;
-      background: var(--red-1);
+      background: linear-gradient(180deg, #f87171 0%, var(--dienes-red) 100%);
       color: #fff;
-      border: 2px solid var(--red-1-dark);
+      border: 2px solid #fecaca;
+      box-shadow: inset 0 -4px 0 #7f1d1d;
+      font-size: 0.8rem;
     }
 
-    .bag-actions {
+    .bag-footer {
       margin-top: 10px;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      min-height: 34px;
+      min-height: 36px;
+      font-size: 0.82rem;
+      color: #fde68a;
     }
 
-    .btn-unbundle {
-      background: #dbeafe;
-      border-color: var(--blue-10);
+    .btn-bazaar-swap {
+      background: linear-gradient(180deg, #dbeafe 0%, #93c5fd 100%);
       color: #1e3a8a;
-      font-size: 0.85rem;
-      padding: 6px 10px;
-    }
-
-    @keyframes shake {
-      0%, 100% { transform: translateX(0); }
-      20%, 60% { transform: translateX(-8px) rotate(-1deg); }
-      40%, 80% { transform: translateX(8px) rotate(1deg); }
-    }
-
-    .shake {
-      animation: shake 0.45s ease-in-out;
-      border-color: var(--red-1) !important;
-    }
-
-    .feedback-bar {
-      margin-top: 14px;
-      padding: 12px 16px;
+      border: 2px solid #1e3a8a;
       border-radius: 10px;
-      font-weight: 700;
-      background: #f5f5f4;
-      border-left: 6px solid var(--border-wood);
+      padding: 5px 12px;
+      font-size: 0.82rem;
+      font-weight: 900;
+      cursor: pointer;
+      box-shadow: 0 3px 0 #1e3a8a;
     }
 
-    .feedback-bar.error {
+    /* Wackel-Animation */
+    @keyframes bagWobble {
+      0%, 100% { transform: translateX(0) rotate(0); }
+      20%, 60% { transform: translateX(-10px) rotate(-1.5deg); }
+      40%, 80% { transform: translateX(10px) rotate(1.5deg); }
+    }
+
+    .wobble-error {
+      animation: bagWobble 0.45s ease-in-out;
+      border-color: var(--dienes-red) !important;
+    }
+
+    /* Narrator / Feedback Banner */
+    .camel-speech {
+      margin-top: 18px;
+      background: #fffbeb;
+      border: 3px solid var(--wood-mid);
+      border-left: 10px solid var(--wood-mid);
+      border-radius: 14px;
+      padding: 13px 18px;
+      font-weight: 800;
+      font-size: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .camel-speech.speech-error {
       background: #fef2f2;
-      border-left-color: var(--red-1);
+      border-color: var(--dienes-red);
+      border-left-color: var(--dienes-red);
       color: #991b1b;
     }
 
-    .feedback-bar.success {
+    .camel-speech.speech-success {
       background: #f0fdf4;
-      border-left-color: var(--accent-green);
+      border-color: var(--oasis-green);
+      border-left-color: var(--oasis-green);
       color: #166534;
     }
 
-    /* Modals (Setup & Order Selection) */
-    .modal-overlay {
+    /* Pop-up Modals (Setup & Order Selection) */
+    .modal-backdrop {
       position: fixed;
       inset: 0;
-      background: rgba(28, 25, 23, 0.72);
+      background: rgba(32, 18, 8, 0.76);
+      backdrop-filter: blur(3px);
       display: flex;
       align-items: center;
       justify-content: center;
       padding: 16px;
-      z-index: 100;
+      z-index: 200;
     }
 
-    .modal-overlay.hidden {
+    .modal-backdrop.hidden {
       display: none;
     }
 
-    .modal-card {
-      background: var(--bg-panel);
-      border: 4px solid var(--border-wood);
-      border-radius: 18px;
-      max-width: 620px;
+    .modal-dialog {
+      background: var(--parchment);
+      border: 5px solid var(--wood-mid);
+      border-radius: 24px;
+      max-width: 680px;
       width: 100%;
       padding: 24px;
-      box-shadow: 0 12px 30px rgba(0,0,0,0.35);
+      box-shadow: 0 18px 40px rgba(0,0,0,0.5);
+      max-height: 92vh;
+      overflow-y: auto;
     }
 
-    .setup-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
-      gap: 8px;
+    .modal-header-banner {
+      background: linear-gradient(180deg, var(--wood-mid), var(--wood-dark));
+      color: #fff8eb;
+      padding: 12px 18px;
+      border-radius: 14px;
       margin-bottom: 16px;
     }
 
-    .orders-modal-grid {
+    .modal-header-banner h2 {
+      margin: 0;
+      font-size: 1.45rem;
+    }
+
+    .modal-header-banner p {
+      margin: 4px 0 0;
+      font-size: 0.9rem;
+      color: #fde68a;
+    }
+
+    .setup-section-label {
+      display: block;
+      font-weight: 900;
+      color: var(--wood-dark);
+      margin: 12px 0 8px;
+    }
+
+    .selection-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(115px, 1fr));
+      gap: 10px;
+    }
+
+    .tile-option {
+      background: #fff;
+      border: 3px solid #d6c3a5;
+      border-radius: 14px;
+      padding: 10px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.15s;
+      box-shadow: 0 4px 0 #d6c3a5;
+    }
+
+    .tile-option:hover {
+      transform: translateY(-2px);
+      border-color: var(--wood-mid);
+    }
+
+    .tile-option.active-tile {
+      background: #fef3c7;
+      border-color: #d97706;
+      box-shadow: 0 4px 0 #d97706;
+    }
+
+    .motto-scroll {
+      margin: 16px 0;
+      padding: 12px 16px;
+      background: #fef3c7;
+      border: 3px dashed var(--wood-mid);
+      border-radius: 14px;
+      text-align: center;
+      font-weight: 900;
+      font-size: 1.02rem;
+      color: var(--wood-dark);
+    }
+
+    /* Order Pop-up Cards */
+    .popup-orders-grid {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
       gap: 14px;
       margin: 18px 0;
     }
 
-    @media (max-width: 560px) {
-      .orders-modal-grid {
+    @media (max-width: 600px) {
+      .popup-orders-grid {
         grid-template-columns: 1fr;
       }
     }
 
-    .choice-btn {
-      padding: 10px;
+    .OrderCardPopup {
+      background: linear-gradient(180deg, #ffffff 0%, #fef9ee 100%);
+      border: 4px solid var(--wood-light);
+      border-radius: 18px;
+      padding: 16px 12px;
       text-align: center;
-      border: 2px solid #d6d3d1;
-      border-radius: 10px;
-      background: #fff;
       cursor: pointer;
+      box-shadow: 0 6px 0 #cbb69b;
+      transition: transform 0.15s, border-color 0.15s;
     }
 
-    .choice-btn.selected {
-      border-color: var(--accent-orange);
-      background: #fef3c7;
-      box-shadow: 0 0 0 2px var(--accent-orange);
-    }
-
-    .motto-preview {
-      background: #fef3c7;
-      border: 2px dashed var(--border-wood);
-      padding: 12px;
-      border-radius: 10px;
-      text-align: center;
-      font-weight: 700;
-      margin: 14px 0;
+    .OrderCardPopup:hover {
+      transform: translateY(-4px);
+      border-color: var(--oasis-green);
+      box-shadow: 0 9px 0 rgba(22, 163, 74, 0.35);
     }
   </style>
 </head>
 <body>
 
-<div class="container">
-  <header>
-    <div class="title-group">
-      <h1>KNACKEVOLL! – Passt, wackelt und hat Fracht!</h1>
-      <p>Modul 1: Aufbruch der Karawane</p>
+<div class="app-shell">
+  <!-- Holz-Kopfzeile -->
+  <header class="game-header">
+    <div class="brand-title">
+      <h1>🐪 KNACKEVOLL!</h1>
+      <p>Passt, wackelt und hat Fracht! – Modul 1: Aufbruch der Karawane</p>
     </div>
-    <div class="header-controls">
-      <div class="badge-score" id="scoreDisplay">🏆 Aufträge: 0 / 3</div>
-      <button onclick="openSetup()">⚙️ Setup</button>
-      <button onclick="resetGame()">🔄 Neustart</button>
+    <div class="header-actions">
+      <div class="trophy-pill" title="Erfülle 3 Aufträge für den Sieg!">
+        <span>Lieferungen:</span>
+        <span class="star-slot" id="star1">⭐</span>
+        <span class="star-slot" id="star2">⭐</span>
+        <span class="star-slot" id="star3">⭐</span>
+      </div>
+      <button class="btn" onclick="openSetupModal()">⚙️ Karawanen-Setup</button>
+      <button class="btn" onclick="resetGame()">🔄 Neustart</button>
     </div>
   </header>
 
-  <!-- Turn & Action Bar -->
-  <div class="turn-bar">
-    <div class="action-pills">
-      <span class="turn-badge" id="turnCounter">Zug 1</span>
-      <span class="action-dot available" id="actSlot1">⚡ Aktion 1: Frei</span>
-      <span class="action-dot available" id="actSlot2">⚡ Aktion 2: Frei</span>
-      <span class="action-dot" id="grabStatus" style="display:none;"></span>
+  <!-- Zug- & Aktionsleiste -->
+  <section class="turn-hud">
+    <div class="turn-left">
+      <div class="turn-counter" id="turnBadge">Zug 1</div>
+      <div class="action-token ready" id="actionPill1">⚡ Aktion 1: Frei</div>
+      <div class="action-token ready" id="actionPill2">⚡ Aktion 2: Frei</div>
+      <div class="action-token grabbing" id="grabSubPill" style="display:none;"></div>
     </div>
-    <div style="display:flex; gap:8px;">
-      <button id="btnUndo" onclick="undoLastStep()" disabled title="Letzten Klick in diesem Zug korrigieren">↩️ Rückgängig</button>
-      <button class="btn-primary" onclick="endTurn()">⏭️ Zug beenden</button>
+    <div style="display:flex; gap:10px;">
+      <button class="btn" id="btnUndo" onclick="undoStep()" disabled>↩️ Rückgängig</button>
+      <button class="btn btn-primary" onclick="nextTurn()">⏭️ Zug beenden</button>
     </div>
-  </div>
+  </section>
 
-  <!-- Top Grid: Active Order Slot & Market -->
-  <div class="top-grid">
-    <!-- Aktiver Auftrag -->
-    <div class="panel">
-      <div class="panel-title">
-        <span>📜 Dein aktueller Auftrag</span>
-      </div>
-      <div id="activeOrderSlot" class="active-order-slot"></div>
+  <!-- Oasen-Basar: Aktiver Auftrag (links) & Dienes-Frachtmarkt (rechts) -->
+  <section class="bazaar-grid">
+    <!-- Aktiver Auftrag (Einzel-Slot) -->
+    <div class="board-panel">
+      <h3 class="panel-heading">
+        <span>📜 Aktueller Auftrag</span>
+        <small style="font-weight:700; color:#78716c;" id="orderLockLabel">Auswahl per Pop-up</small>
+      </h3>
+      <div class="order-slot-box" id="activeOrderSlot"></div>
     </div>
 
-    <!-- Markt -->
-    <div class="panel">
-      <div class="panel-title">
+    <!-- Offener Fracht-Markt -->
+    <div class="board-panel">
+      <h3 class="panel-heading">
         <span>🏪 Offener Fracht-Markt</span>
-        <small style="font-weight:normal; color:#57534e;">Max. 2 Teile pro Aktion</small>
-      </div>
-      <div class="market-items">
-        <button class="market-btn piece-10" id="btnBuy10" onclick="takeCargo(10)">
-          <span>📦 10er-Kiste (Blau)</span>
-          <div class="piece-preview">
-            <span style="width:45px; border-right:2px solid #fff;"></span>
-            <span style="width:45px;"></span>
-          </div>
-        </button>
-        <button class="market-btn piece-5" id="btnBuy5" onclick="takeCargo(5)">
-          <span>💰 5er-Sack (Gelb)</span>
-          <div class="piece-preview">
+        <small style="font-weight:700; color:#78716c;">1 Aktion = bis zu 2 Frachtstücke greifen</small>
+      </h3>
+      <div class="market-depots">
+        <!-- 10er-Kiste Blau -->
+        <div class="depot-card" id="depot10" onclick="takeCargo(10)">
+          <div class="depot-title">10er-Kiste (Blau)</div>
+          <div class="dienes-preview-10">
+            <span></span><span></span><span></span><span></span><span></span>
             <span></span><span></span><span></span><span></span><span></span>
           </div>
-        </button>
-        <button class="market-btn piece-1" id="btnBuy1" onclick="takeCargo(1)">
-          <span>🍎 1er-Einheit (Rot)</span>
-          <div class="piece-preview">
-            <span></span>
+          <div class="depot-sub">Füllt 1 ganze Tasche sofort (10)</div>
+        </div>
+
+        <!-- 5er-Sack Gelb -->
+        <div class="depot-card" id="depot5" onclick="takeCargo(5)">
+          <div class="depot-title">5er-Sack (Gelb)</div>
+          <div class="dienes-preview-5">
+            <span></span><span></span><span></span><span></span><span></span>
           </div>
-        </button>
-      </div>
-    </div>
-  </div>
+          <div class="depot-sub">Halbe Tasche bis zur Naht (5)</div>
+        </div>
 
-  <!-- Animal Tableau -->
-  <div class="panel">
-    <div class="board-header">
-      <div class="waybill">
-        <div class="waybill-icon" id="waybillIcon">✨</div>
-        <div class="waybill-text">
-          <strong>Offizieller Frachtbrief</strong>
-          <span id="waybillMotto"></span>
+        <!-- 1er-Einheit Rot -->
+        <div class="depot-card" id="depot1" onclick="takeCargo(1)">
+          <div class="depot-title">1er-Einheit (Rot)</div>
+          <div class="dienes-preview-1" id="unitDepotIcon">🍎</div>
+          <div class="depot-sub">Einzelnes Frachtstück (1)</div>
         </div>
       </div>
-      <div class="animal-display">
-        <span id="animalBadge"></span>
-        <span style="background:#fef3c7; border:2px solid var(--border-wood); padding:4px 10px; border-radius:8px; font-size:1rem;" id="totalLoadBadge"></span>
+    </div>
+  </section>
+
+  <!-- Packtier-Tableau -->
+  <section class="animal-tableau">
+    <div class="tableau-top">
+      <!-- Offizieller Frachtbrief oben links -->
+      <div class="waybill-plaque">
+        <div class="waybill-seal" id="waybillEmoji">✨</div>
+        <div class="waybill-meta">
+          <small>Offizieller Frachtbrief</small>
+          <strong id="waybillTitle">Königliche Feenstaub-Lizenz</strong>
+          <span id="waybillSentence">„Ich bin der Raptor und fahre heute eine offizielle Feenstaub-Lieferung!“</span>
+        </div>
+      </div>
+
+      <!-- Tier-Avatar & Ladeanzeige -->
+      <div class="animal-hero">
+        <div class="animal-avatar-circle" id="animalAvatar">🦖</div>
+        <div class="capacity-meter">
+          <small id="animalBoardName">Raptor-Tableau</small>
+          <strong id="totalLoadText">0 / 20 geladen</strong>
+        </div>
       </div>
     </div>
 
-    <div class="bags-grid">
-      <!-- Linke Tasche -->
-      <div class="saddlebag" id="bagLeft">
-        <div class="bag-header">
+    <!-- Zwei Satteltaschen (Zwanzigerfeld) -->
+    <div class="saddlebags-container">
+      <!-- Linke Satteltasche (Zehnerstelle) -->
+      <div class="leather-bag" id="bagLeft">
+        <div class="bag-title-row">
           <span>👈 Linke Satteltasche (10er-Tasche)</span>
-          <span id="leftCount">0 / 10</span>
+          <span class="bag-pill-count" id="leftBagCounter">0 / 10</span>
         </div>
-        <div class="bag-track">
-          <div class="bag-slot-bg">1</div><div class="bag-slot-bg">2</div><div class="bag-slot-bg">3</div><div class="bag-slot-bg">4</div><div class="bag-slot-bg">5</div>
-          <div class="bag-slot-bg">6</div><div class="bag-slot-bg">7</div><div class="bag-slot-bg">8</div><div class="bag-slot-bg">9</div><div class="bag-slot-bg">10</div>
-          <div class="bag-pieces-layer" id="leftPieces"></div>
+        <div class="bag-track-10">
+          <div class="unit-cell">1</div><div class="unit-cell">2</div><div class="unit-cell">3</div><div class="unit-cell">4</div><div class="unit-cell">5</div>
+          <div class="unit-cell">6</div><div class="unit-cell">7</div><div class="unit-cell">8</div><div class="unit-cell">9</div><div class="unit-cell">10</div>
+          <div class="cargo-pieces-overlay" id="leftBagPieces"></div>
         </div>
-        <div class="bag-actions">
-          <small style="color:#57534e;">Ziernaht bei 5 Einheiten</small>
-          <button class="btn-unbundle" id="btnUnbundleLeft" onclick="unbundleTen('left')" style="display:none;">
+        <div class="bag-footer">
+          <span>✨ Goldene 5er-Ziernaht in der Mitte</span>
+          <button class="btn-bazaar-swap" id="swapBtnLeft" onclick="unbundleTen('left')" style="display:none;">
             🔄 Tauschen: 10er ➔ 2× 5er (1 Aktion)
           </button>
         </div>
       </div>
 
-      <!-- Rechte Tasche -->
-      <div class="saddlebag" id="bagRight">
-        <div class="bag-header">
+      <!-- Rechte Satteltasche (Einer-/Überlauf-Tasche) -->
+      <div class="leather-bag" id="bagRight">
+        <div class="bag-title-row">
           <span>👉 Rechte Satteltasche (Überlauf-Tasche)</span>
-          <span id="rightCount">0 / 10</span>
+          <span class="bag-pill-count" id="rightBagCounter">0 / 10</span>
         </div>
-        <div class="bag-track">
-          <div class="bag-slot-bg">11</div><div class="bag-slot-bg">12</div><div class="bag-slot-bg">13</div><div class="bag-slot-bg">14</div><div class="bag-slot-bg">15</div>
-          <div class="bag-slot-bg">16</div><div class="bag-slot-bg">17</div><div class="bag-slot-bg">18</div><div class="bag-slot-bg">19</div><div class="bag-slot-bg">20</div>
-          <div class="bag-pieces-layer" id="rightPieces"></div>
+        <div class="bag-track-10">
+          <div class="unit-cell">11</div><div class="unit-cell">12</div><div class="unit-cell">13</div><div class="unit-cell">14</div><div class="unit-cell">15</div>
+          <div class="unit-cell">16</div><div class="unit-cell">17</div><div class="unit-cell">18</div><div class="unit-cell">19</div><div class="unit-cell">20</div>
+          <div class="cargo-pieces-overlay" id="rightBagPieces"></div>
         </div>
-        <div class="bag-actions">
-          <small id="rightBagRuleHint" style="color:#57534e;"></small>
-          <button class="btn-unbundle" id="btnUnbundleRight" onclick="unbundleTen('right')" style="display:none;">
+        <div class="bag-footer">
+          <span id="rightLockHint">🔒 Erst links vollpacken (10)!</span>
+          <button class="btn-bazaar-swap" id="swapBtnRight" onclick="unbundleTen('right')" style="display:none;">
             🔄 Tauschen: 10er ➔ 2× 5er (1 Aktion)
           </button>
         </div>
       </div>
     </div>
 
-    <div class="feedback-bar" id="feedbackBox">
-      <span id="feedbackText"></span>
+    <!-- Feedback-Spruchband -->
+    <div class="camel-speech" id="speechBanner">
+      <span id="speechText">Willkommen bei der Karawane!</span>
     </div>
-  </div>
+  </section>
 </div>
 
-<!-- Modal 1: Karawanen-Setup -->
-<div class="modal-overlay" id="setupModal">
-  <div class="modal-card">
-    <h2 style="margin-top:0; color:var(--border-wood);">⛺ Karawanen-Setup</h2>
-    <p style="margin-top:-6px; color:#57534e;">Wähle dein Packtier, deine Fracht-Lizenz und den Zahlenraum:</p>
+<!-- POP-UP 1: Karawanen-Setup (öffnet direkt beim Spielstart) -->
+<div class="modal-backdrop" id="setupModal">
+  <div class="modal-dialog">
+    <div class="modal-header-banner">
+      <h2>⛺ Karawanen-Setup vor der Runde</h2>
+      <p>Wähle dein Packtier-Tableau, deine offizielle Fracht-Lizenz und den Zahlenraum!</p>
+    </div>
 
-    <strong>1. Dein Packtier-Tableau:</strong>
-    <div class="setup-grid" id="animalChoices"></div>
+    <label class="setup-section-label">1. Wähle dein Packtier-Tableau:</label>
+    <div class="selection-grid" id="setupAnimals"></div>
 
-    <strong>2. Deine offizielle Fracht-Lizenz:</strong>
-    <div class="setup-grid" id="licenseChoices"></div>
+    <label class="setup-section-label">2. Wähle deine offizielle Fracht-Lizenz:</label>
+    <div class="selection-grid" id="setupLicenses"></div>
 
-    <strong>3. Didaktische Stellschraube (Zahlenraum):</strong>
-    <div class="setup-grid" style="grid-template-columns: 1fr 1fr;">
-      <div class="choice-btn" id="lvl1Btn" onclick="selectLevel(1)">
-        <strong>Stufe 1 (ZR bis 10)</strong><br><small>Nur 1 Satteltasche</small>
+    <label class="setup-section-label">3. Didaktische Stellschraube (Zahlenraum):</label>
+    <div class="selection-grid" style="grid-template-columns: 1fr 1fr;">
+      <div class="tile-option" id="lvlTile1" onclick="setLevel(1)">
+        <div style="font-size:1.3rem; font-weight:900;">Stufe 1: ZR bis 10</div>
+        <small>Nur 1 Satteltasche (1. Halbjahr)</small>
       </div>
-      <div class="choice-btn selected" id="lvl2Btn" onclick="selectLevel(2)">
-        <strong>Stufe 2 (ZR bis 20)</strong><br><small>Beide Satteltaschen (20er-Feld)</small>
+      <div class="tile-option active-tile" id="lvlTile2" onclick="setLevel(2)">
+        <div style="font-size:1.3rem; font-weight:900;">Stufe 2: ZR bis 20</div>
+        <small>Beide Satteltaschen (20er-Feld)</small>
       </div>
     </div>
 
-    <div class="motto-preview" id="setupMottoPreview"></div>
+    <div class="motto-scroll" id="setupMottoBox"></div>
 
     <div style="text-align:right;">
-      <button class="btn-primary" onclick="closeSetupAndStart()" style="font-size:1.05rem; padding:10px 20px;">
+      <button class="btn btn-oasis" onclick="startFromSetup()" style="font-size:1.05rem; padding:11px 24px;">
         🚀 Karawane starten!
       </button>
     </div>
   </div>
 </div>
 
-<!-- Modal 2: Auftrag wählen (Pop-up) -->
-<div class="modal-overlay hidden" id="orderModal">
-  <div class="modal-card">
-    <h2 style="margin-top:0; color:var(--border-wood);">📜 Auftrag wählen (kostet 1 Aktion)</h2>
-    <p style="margin-top:-6px; color:#57534e;">
-      Wähle eine der 3 offenen Auftragskarten. Sobald du dich entschieden hast, bleibt dieser Auftrag fest bestehen, bis er geliefert ist!
-    </p>
+<!-- POP-UP 2: Auftrag auswählen (3 Karten zur Wahl, danach gesperrt) -->
+<div class="modal-backdrop hidden" id="orderModal">
+  <div class="modal-dialog">
+    <div class="modal-header-banner">
+      <h2>📜 Auftrag wählen (kostet 1 Aktion)</h2>
+      <p>Such dir 1 Auftragskarte aus der offenen Auslage aus. Danach bleibt dieser Auftrag bis zur Lieferung fest eingeloggt!</p>
+    </div>
 
-    <div class="orders-modal-grid" id="modalOrdersContainer"></div>
+    <div class="popup-orders-grid" id="popupOrdersList"></div>
 
     <div style="text-align:right;">
-      <button onclick="closeOrderModal()">Abbrechen</button>
+      <button class="btn" onclick="closeOrderModal()">Später wählen</button>
     </div>
   </div>
 </div>
@@ -797,10 +1121,10 @@
   ];
 
   const LICENSES = [
-    { id: 'fairy', name: 'Feenstaub', icon: '✨' },
-    { id: 'dino', name: 'Dino-Knochen', icon: '🍖' },
-    { id: 'honey', name: 'Meister-Honig', icon: '🍯' },
-    { id: 'fish', name: 'Edel-Stinkefisch', icon: '🐟' }
+    { id: 'fairy', name: 'Feenstaub', title: 'Königliche Feenstaub-Lizenz', icon: '✨' },
+    { id: 'dino', name: 'Dino-Knochen', title: 'Große Dino-Knochen-Lizenz', icon: '🍖' },
+    { id: 'honey', name: 'Meister-Honig', title: 'Meister-Honig-Lizenz', icon: '🍯' },
+    { id: 'fish', name: 'Edel-Stinkefisch', title: 'Edel-Stinkefisch-Lizenz', icon: '🐟' }
   ];
 
   let config = {
@@ -812,8 +1136,8 @@
   let state = {
     score: 0,
     turn: 1,
-    actionsUsed: 0,
-    cargoGrabRemaining: 0,
+    actionsUsed: 0,        // 0..2 Aktionen pro Zug
+    cargoGrabRemaining: 0, // 1 weiteres Frachtstück innerhalb derselben "Fracht nehmen"-Aktion frei
     activeOrder: null,
     activeOrderIdx: null,
     availableOrders: [],
@@ -822,49 +1146,49 @@
     history: []
   };
 
-  function initSetupUI() {
-    document.getElementById('animalChoices').innerHTML = ANIMALS.map(a => `
-      <div class="choice-btn ${a.id === config.animal.id ? 'selected' : ''}" onclick="pickAnimal('${a.id}')">
-        <div style="font-size:1.8rem;">${a.icon}</div>
+  function renderSetupModal() {
+    document.getElementById('setupAnimals').innerHTML = ANIMALS.map(a => `
+      <div class="tile-option ${a.id === config.animal.id ? 'active-tile' : ''}" onclick="chooseAnimal('${a.id}')">
+        <div style="font-size:2.1rem;">${a.icon}</div>
         <strong>${a.name}</strong>
       </div>
     `).join('');
 
-    document.getElementById('licenseChoices').innerHTML = LICENSES.map(l => `
-      <div class="choice-btn ${l.id === config.license.id ? 'selected' : ''}" onclick="pickLicense('${l.id}')">
-        <div style="font-size:1.8rem;">${l.icon}</div>
+    document.getElementById('setupLicenses').innerHTML = LICENSES.map(l => `
+      <div class="tile-option ${l.id === config.license.id ? 'active-tile' : ''}" onclick="chooseLicense('${l.id}')">
+        <div style="font-size:2.1rem;">${l.icon}</div>
         <strong>${l.name}</strong>
       </div>
     `).join('');
 
-    document.getElementById('lvl1Btn').classList.toggle('selected', config.level === 1);
-    document.getElementById('lvl2Btn').classList.toggle('selected', config.level === 2);
+    document.getElementById('lvlTile1').classList.toggle('active-tile', config.level === 1);
+    document.getElementById('lvlTile2').classList.toggle('active-tile', config.level === 2);
 
-    document.getElementById('setupMottoPreview').textContent =
+    document.getElementById('setupMottoBox').textContent =
       `„Ich bin ${config.animal.article} und fahre heute eine offizielle ${config.license.name}-Lieferung!“`;
   }
 
-  function pickAnimal(id) {
+  function chooseAnimal(id) {
     config.animal = ANIMALS.find(a => a.id === id);
-    initSetupUI();
+    renderSetupModal();
   }
 
-  function pickLicense(id) {
+  function chooseLicense(id) {
     config.license = LICENSES.find(l => l.id === id);
-    initSetupUI();
+    renderSetupModal();
   }
 
-  function selectLevel(lvl) {
+  function setLevel(lvl) {
     config.level = lvl;
-    initSetupUI();
+    renderSetupModal();
   }
 
-  function openSetup() {
-    initSetupUI();
+  function openSetupModal() {
+    renderSetupModal();
     document.getElementById('setupModal').classList.remove('hidden');
   }
 
-  function closeSetupAndStart() {
+  function startFromSetup() {
     document.getElementById('setupModal').classList.add('hidden');
     resetGame();
   }
@@ -872,16 +1196,19 @@
   function openOrderModal() {
     if (state.activeOrder !== null) return;
     if (state.actionsUsed >= 2) {
-      setFeedback('Keine Aktion mehr in diesem Zug frei! Klicke zuerst auf „Zug beenden“.', 'error');
+      setSpeech('Deine 2 Aktionen in diesem Zug sind verbraucht! Klicke zuerst auf „Zug beenden“.', 'error');
       return;
     }
 
-    const wrap = document.getElementById('modalOrdersContainer');
-    wrap.innerHTML = state.availableOrders.map((val, idx) => `
-      <div class="order-card" onclick="selectOrderCard(${idx})">
-        <div class="order-number">${val}</div>
-        <div class="order-desc">${config.license.icon} ${config.license.name}</div>
-        ${buildMiniStripHTML(val)}
+    const list = document.getElementById('popupOrdersList');
+    list.innerHTML = state.availableOrders.map((num, idx) => `
+      <div class="OrderCardPopup" onclick="pickOrderCard(${idx})">
+        <div class="order-badge-num">${num}</div>
+        <div class="order-cargo-title">${config.license.icon} ${config.license.name}</div>
+        ${renderTwentyStrip(num)}
+        <div style="margin-top:10px;">
+          <span class="btn btn-oasis" style="padding:5px 12px; font-size:0.82rem;">Auftrag annehmen</span>
+        </div>
       </div>
     `).join('');
 
@@ -902,7 +1229,17 @@
     return Array.from(set);
   }
 
-  function saveSnapshot() {
+  function generateReplacementOrder() {
+    const maxVal = config.level === 1 ? 10 : 20;
+    const minVal = config.level === 1 ? 2 : 6;
+    let candidate = Math.floor(Math.random() * (maxVal - minVal + 1)) + minVal;
+    while (state.availableOrders.includes(candidate)) {
+      candidate = Math.floor(Math.random() * (maxVal - minVal + 1)) + minVal;
+    }
+    return candidate;
+  }
+
+  function pushHistory() {
     state.history.push(JSON.stringify({
       actionsUsed: state.actionsUsed,
       cargoGrabRemaining: state.cargoGrabRemaining,
@@ -913,7 +1250,7 @@
     }));
   }
 
-  function undoLastStep() {
+  function undoStep() {
     if (state.history.length === 0) return;
     const prev = JSON.parse(state.history.pop());
     state.actionsUsed = prev.actionsUsed;
@@ -922,7 +1259,7 @@
     state.activeOrderIdx = prev.activeOrderIdx;
     state.leftBag = prev.leftBag;
     state.rightBag = prev.rightBag;
-    setFeedback('↩️ Letzter Schritt in diesem Zug wurde rückgängig gemacht.', '');
+    setSpeech('↩️ Letzter Schritt in diesem Zug wurde rückgängig gemacht.', '');
     render();
   }
 
@@ -937,288 +1274,290 @@
     state.leftBag = [];
     state.rightBag = [];
     state.history = [];
-    setFeedback('Klicke auf „Auftrag auswählen“, um deinen ersten Auftrag anzunehmen (1 Aktion)!', '');
+    setSpeech('Wähle deinen ersten Auftrag für die Karawane (kostet 1 Aktion)!', '');
     render();
-    // Direkt das Auftrags-Pop-up anbieten, wenn das Setup geschlossen ist
     if (document.getElementById('setupModal').classList.contains('hidden')) {
       openOrderModal();
     }
   }
 
   // AKTION 1: Auftrag im Pop-up wählen
-  function selectOrderCard(index) {
+  function pickOrderCard(index) {
     if (state.activeOrder !== null || state.actionsUsed >= 2) return;
 
-    saveSnapshot();
+    pushHistory();
     state.cargoGrabRemaining = 0;
     state.actionsUsed += 1;
     state.activeOrderIdx = index;
     state.activeOrder = state.availableOrders[index];
 
     closeOrderModal();
-    setFeedback(`📜 Auftrag „${state.activeOrder} ${config.license.name}“ fest angenommen (1 Aktion verbraucht).`, '');
+    setSpeech(`📜 Auftrag „${state.activeOrder}× ${config.license.name}“ angenommen (1 Aktion verbraucht). Belade jetzt dein Packtier!`, '');
     render();
   }
 
   // AKTION 2: Fracht nehmen (maximal 2 Teile pro Aktion)
-  function takeCargo(pieceValue) {
+  function takeCargo(val) {
     if (state.activeOrder === null) {
-      setFeedback('Du brauchst zuerst einen Auftrag! Klicke links auf „Auftrag auswählen“.', 'error');
+      setSpeech('Bitte wähle zuerst links einen Auftrag aus, bevor du Fracht einlädst!', 'error');
       return;
     }
 
-    const needsNewAction = state.cargoGrabRemaining === 0;
-    if (needsNewAction && state.actionsUsed >= 2) {
-      setFeedback('Deine 2 Aktionen für diesen Zug sind verbraucht! Klicke auf „Zug beenden“.', 'error');
+    const startsNewAction = state.cargoGrabRemaining === 0;
+    if (startsNewAction && state.actionsUsed >= 2) {
+      setSpeech('Deine 2 Aktionen für diesen Zug sind aufgebraucht! Klicke auf „Zug beenden“.', 'error');
       return;
     }
 
-    const leftSum = sumBag(state.leftBag);
-    const rightSum = sumBag(state.rightBag);
+    const leftSum = sumArray(state.leftBag);
+    const rightSum = sumArray(state.rightBag);
     const totalSum = leftSum + rightSum;
 
-    if (totalSum + pieceValue > state.activeOrder) {
-      triggerShake(leftSum < 10 ? 'bagLeft' : 'bagRight');
-      setFeedback(`⚠️ Wackel-Regel! Dein Auftrag verlangt genau ${state.activeOrder}. Mit +${pieceValue} würdest du überladen (${totalSum + pieceValue})!`, 'error');
+    // Prüfen, ob über den Auftragswert geladen würde
+    if (totalSum + val > state.activeOrder) {
+      wobbleBag(leftSum < 10 ? 'bagLeft' : 'bagRight');
+      setSpeech(`⚠️ Wackel-Regel! Dein Auftrag braucht genau ${state.activeOrder}. Mit +${val} wärst du bei ${totalSum + val}!`, 'error');
       return;
     }
 
-    let targetBag = 'left';
+    // „Erst links, dann rechts“-Regel
+    let target = 'left';
     if (leftSum < 10) {
-      if (leftSum + pieceValue > 10) {
-        triggerShake('bagLeft');
-        setFeedback(`⚠️ Wackel-Regel! In der linken Tasche sind nur noch ${10 - leftSum} Plätze frei. Ein ${pieceValue}er-Stück passt dort nicht hinein!`, 'error');
+      if (leftSum + val > 10) {
+        wobbleBag('bagLeft');
+        setSpeech(`⚠️ Wackel-Regel! In der linken Satteltasche sind nur noch ${10 - leftSum} Plätze frei – ein ${val}er-Stück passt nicht!`, 'error');
         return;
       }
-      targetBag = 'left';
+      target = 'left';
     } else {
       if (config.level === 1) {
-        triggerShake('bagLeft');
-        setFeedback('Die Satteltasche ist bereits voll (10/10)!', 'error');
+        wobbleBag('bagLeft');
+        setSpeech('Die Satteltasche ist bereits randvoll (10/10)!', 'error');
         return;
       }
-      if (rightSum + pieceValue > 10) {
-        triggerShake('bagRight');
-        setFeedback(`⚠️ Wackel-Regel! In der rechten Tasche sind nur noch ${10 - rightSum} Plätze frei. Ein ${pieceValue}er-Stück passt nicht!`, 'error');
+      if (rightSum + val > 10) {
+        wobbleBag('bagRight');
+        setSpeech(`⚠️ Wackel-Regel! In der rechten Satteltasche sind nur noch ${10 - rightSum} Plätze frei!`, 'error');
         return;
       }
-      targetBag = 'right';
+      target = 'right';
     }
 
-    saveSnapshot();
+    pushHistory();
 
-    if (needsNewAction) {
+    if (startsNewAction) {
       state.actionsUsed += 1;
       state.cargoGrabRemaining = 1;
     } else {
       state.cargoGrabRemaining = 0;
     }
 
-    if (targetBag === 'left') {
-      state.leftBag.push(pieceValue);
+    if (target === 'left') {
+      state.leftBag.push(val);
     } else {
-      state.rightBag.push(pieceValue);
+      state.rightBag.push(val);
     }
 
-    const newTotal = sumBag(state.leftBag) + sumBag(state.rightBag);
+    const newTotal = sumArray(state.leftBag) + sumArray(state.rightBag);
     if (newTotal === state.activeOrder) {
-      completeDelivery();
+      finishOrderDelivery();
       return;
     }
 
-    const grabInfo = state.cargoGrabRemaining === 1
+    const msgExtra = state.cargoGrabRemaining === 1
       ? 'Du darfst in dieser Aktion noch 1 weiteres Frachtstück greifen!'
-      : '2 Frachtstücke in dieser Aktion gegriffen.';
-    setFeedback(`✅ ${pieceValue}er-Fracht geladen. ${grabInfo}`, '');
+      : 'Damit hast du alle 2 Teile dieser Aktion genutzt.';
+    setSpeech(`✅ ${val}er-Frachtstück eingeladen! ${msgExtra}`, '');
     render();
   }
 
-  // AKTION 3: Tauschen (Entbündeln)
-  function unbundleTen(bagSide) {
-    const bag = bagSide === 'left' ? state.leftBag : state.rightBag;
-    const tenIdx = bag.indexOf(10);
-    if (tenIdx === -1) return;
+  // AKTION 3: Tauschen (10er-Kiste in zwei 5er-Säcke entbündeln)
+  function unbundleTen(side) {
+    const bag = side === 'left' ? state.leftBag : state.rightBag;
+    const idx = bag.indexOf(10);
+    if (idx === -1) return;
 
     if (state.actionsUsed >= 2) {
-      setFeedback('Zum Tauschen brauchst du 1 freie Aktion! Klicke zuerst auf „Zug beenden“.', 'error');
+      setSpeech('Für den Basar-Tausch (Entbündeln) brauchst du 1 freie Aktion! Beende zuerst deinen Zug.', 'error');
       return;
     }
 
-    saveSnapshot();
+    pushHistory();
     state.cargoGrabRemaining = 0;
     state.actionsUsed += 1;
+    bag.splice(idx, 1, 5, 5);
 
-    bag.splice(tenIdx, 1, 5, 5);
-    setFeedback('🔄 Basar-Tausch (1 Aktion): 10er-Kiste in zwei 5er-Säcke entbündelt!', '');
+    setSpeech('🔄 Basar-Tausch (1 Aktion): Die blaue 10er-Kiste wurde in zwei gelbe 5er-Säcke entbündelt!', '');
     render();
   }
 
-  function completeDelivery() {
+  function finishOrderDelivery() {
     state.score += 1;
-    const finishedOrder = state.activeOrder;
+    const delivered = state.activeOrder;
 
     state.leftBag = [];
     state.rightBag = [];
     state.activeOrder = null;
-    state.availableOrders[state.activeOrderIdx] = generateSingleOrder();
+    state.availableOrders[state.activeOrderIdx] = generateReplacementOrder();
     state.activeOrderIdx = null;
     state.cargoGrabRemaining = 0;
     state.history = [];
 
     if (state.score >= 3) {
-      setFeedback(`🎉 KNACKEVOLL! Auftrag (${finishedOrder}) geliefert und alle 3 Aufträge erfüllt! Du gewinnst in Zug ${state.turn}!`, 'success');
+      setSpeech(`🎉 KNACKEVOLL! Auftrag (${delivered}) geliefert! Du hast alle 3 Lieferungen in Zug ${state.turn} geschafft und gewinnst!`, 'success');
     } else {
-      setFeedback(`🎉 Lieferung (${finishedOrder}) abgeschlossen! Wähle deinen nächsten Auftrag.`, 'success');
+      setSpeech(`🎉 Lieferung (${delivered}× ${config.license.name}) perfekt abgeschlossen! Wähle deinen nächsten Auftrag.`, 'success');
     }
     render();
   }
 
-  function generateSingleOrder() {
-    const maxVal = config.level === 1 ? 10 : 20;
-    const minVal = config.level === 1 ? 2 : 6;
-    let candidate = Math.floor(Math.random() * (maxVal - minVal + 1)) + minVal;
-    while (state.availableOrders.includes(candidate)) {
-      candidate = Math.floor(Math.random() * (maxVal - minVal + 1)) + minVal;
-    }
-    return candidate;
-  }
-
-  function endTurn() {
+  function nextTurn() {
     state.turn += 1;
     state.actionsUsed = 0;
     state.cargoGrabRemaining = 0;
     state.history = [];
-    setFeedback(`⏭️ Zug ${state.turn} startet! Du hast wieder 2 frische Aktionen.`, '');
+    setSpeech(`⏭️ Zug ${state.turn} beginnt! Du hast wieder 2 volle Aktionen zur Verfügung.`, '');
     render();
   }
 
-  function sumBag(arr) {
+  function sumArray(arr) {
     return arr.reduce((a, b) => a + b, 0);
   }
 
-  function triggerShake(elementId) {
-    const el = document.getElementById(elementId);
-    el.classList.remove('shake');
+  function wobbleBag(id) {
+    const el = document.getElementById(id);
+    el.classList.remove('wobble-error');
     void el.offsetWidth;
-    el.classList.add('shake');
+    el.classList.add('wobble-error');
   }
 
-  function setFeedback(msg, type) {
-    const box = document.getElementById('feedbackBox');
-    box.className = 'feedback-bar ' + (type || '');
-    document.getElementById('feedbackText').textContent = msg;
+  function setSpeech(text, type) {
+    const banner = document.getElementById('speechBanner');
+    banner.className = 'camel-speech' + (type ? ` speech-${type}` : '');
+    document.getElementById('speechText').textContent = text;
   }
 
-  function buildMiniStripHTML(target) {
-    let row1 = '';
+  function renderTwentyStrip(target) {
+    let r1 = '';
     for (let i = 1; i <= 10; i++) {
-      const filled = i <= target ? (target >= 10 ? 'filled-10' : 'filled-1') : '';
-      const mid = i === 5 ? 'mid-border' : '';
-      row1 += `<div class="mini-cell ${filled} ${mid}"></div>`;
+      const cls = i <= target ? (target >= 10 ? 'pip-10' : 'pip-1') : '';
+      const mid = i === 5 ? 'pip-mid' : '';
+      r1 += `<div class="ten-pip ${cls} ${mid}"></div>`;
     }
-    let row2 = '';
+    let r2 = '';
     if (config.level === 2) {
       for (let i = 11; i <= 20; i++) {
-        const filled = i <= target ? 'filled-1' : '';
-        const mid = i === 15 ? 'mid-border' : '';
-        row2 += `<div class="mini-cell ${filled} ${mid}"></div>`;
+        const cls = i <= target ? 'pip-1' : '';
+        const mid = i === 15 ? 'pip-mid' : '';
+        r2 += `<div class="ten-pip ${cls} ${mid}"></div>`;
       }
     }
     return `
-      <div class="mini-strip-wrap">
-        <div class="mini-strip">${row1}</div>
-        ${config.level === 2 ? `<div class="mini-strip">${row2}</div>` : ''}
+      <div class="twenty-strip-box">
+        <div class="ten-row">${r1}</div>
+        ${config.level === 2 ? `<div class="ten-row">${r2}</div>` : ''}
       </div>
     `;
   }
 
   function render() {
-    document.getElementById('scoreDisplay').textContent = `🏆 Aufträge: ${state.score} / 3`;
-    document.getElementById('waybillIcon').textContent = config.license.icon;
-    document.getElementById('waybillMotto').textContent =
-      `„Ich bin ${config.animal.article} und fahre heute eine offizielle ${config.license.name}-Lieferung!“`;
-    document.getElementById('animalBadge').textContent = `${config.animal.icon} ${config.animal.name}-Tableau`;
+    // Sterne
+    for (let s = 1; s <= 3; s++) {
+      document.getElementById(`star${s}`).classList.toggle('earned', state.score >= s);
+    }
 
-    // Turn & Action Pills
-    document.getElementById('turnCounter').textContent = `Zug ${state.turn}`;
-    const slot1 = document.getElementById('actSlot1');
-    const slot2 = document.getElementById('actSlot2');
+    // Frachtbrief & Packtier
+    document.getElementById('waybillEmoji').textContent = config.license.icon;
+    document.getElementById('waybillTitle').textContent = config.license.title;
+    document.getElementById('waybillSentence').textContent =
+      `„Ich bin ${config.animal.article} und fahre heute eine offizielle ${config.license.name}-Lieferung!“`;
+    document.getElementById('animalAvatar').textContent = config.animal.icon;
+    document.getElementById('animalBoardName').textContent = `${config.animal.name}-Tableau`;
+    document.getElementById('unitDepotIcon').textContent = config.license.icon;
+
+    // Zug & Aktionen
+    document.getElementById('turnBadge').textContent = `Zug ${state.turn}`;
+    const p1 = document.getElementById('actionPill1');
+    const p2 = document.getElementById('actionPill2');
 
     if (state.actionsUsed === 0) {
-      slot1.className = 'action-dot available';
-      slot1.textContent = '⚡ Aktion 1: Frei';
+      p1.className = 'action-token ready';
+      p1.textContent = '⚡ Aktion 1: Frei';
     } else if (state.actionsUsed === 1 && state.cargoGrabRemaining === 1) {
-      slot1.className = 'action-dot active-grab';
-      slot1.textContent = '📦 Aktion 1: 1/2 Fracht';
+      p1.className = 'action-token grabbing';
+      p1.textContent = '📦 Aktion 1: 1/2 Fracht';
     } else {
-      slot1.className = 'action-dot';
-      slot1.textContent = '✓ Aktion 1: Verbraucht';
+      p1.className = 'action-token';
+      p1.textContent = '✓ Aktion 1: Verbraucht';
     }
 
     if (state.actionsUsed < 2) {
-      slot2.className = 'action-dot available';
-      slot2.textContent = '⚡ Aktion 2: Frei';
+      p2.className = 'action-token ready';
+      p2.textContent = '⚡ Aktion 2: Frei';
     } else if (state.actionsUsed === 2 && state.cargoGrabRemaining === 1) {
-      slot2.className = 'action-dot active-grab';
-      slot2.textContent = '📦 Aktion 2: 1/2 Fracht';
+      p2.className = 'action-token grabbing';
+      p2.textContent = '📦 Aktion 2: 1/2 Fracht';
     } else {
-      slot2.className = 'action-dot';
-      slot2.textContent = '✓ Aktion 2: Verbraucht';
+      p2.className = 'action-token';
+      p2.textContent = '✓ Aktion 2: Verbraucht';
     }
 
-    const grabBadge = document.getElementById('grabStatus');
+    const sub = document.getElementById('grabSubPill');
     if (state.cargoGrabRemaining > 0) {
-      grabBadge.style.display = 'inline-flex';
-      grabBadge.className = 'action-dot active-grab';
-      grabBadge.textContent = '🖐️ Noch 1 Teil frei!';
+      sub.style.display = 'inline-flex';
+      sub.textContent = '🖐️ Noch 1 Frachtstück in dieser Aktion frei!';
     } else {
-      grabBadge.style.display = 'none';
+      sub.style.display = 'none';
     }
 
     document.getElementById('btnUndo').disabled = state.history.length === 0;
 
-    // Single Active Order Slot
-    const orderSlot = document.getElementById('activeOrderSlot');
+    // Einzel-Slot für den aktuellen Auftrag
+    const slot = document.getElementById('activeOrderSlot');
+    const lockLabel = document.getElementById('orderLockLabel');
     if (state.activeOrder === null) {
-      orderSlot.className = 'active-order-slot';
-      const canChoose = state.actionsUsed < 2 && state.score < 3;
-      orderSlot.innerHTML = `
-        <p style="margin:0 0 10px; color:#57534e; font-size:0.9rem;">Noch kein Auftrag aktiv</p>
-        <button class="btn-primary" onclick="openOrderModal()" ${!canChoose ? 'disabled' : ''}>
+      slot.className = 'order-slot-box';
+      lockLabel.textContent = 'Noch kein Auftrag aktiv';
+      const canOpen = state.actionsUsed < 2 && state.score < 3;
+      slot.innerHTML = `
+        <div style="font-size:2.2rem; margin-bottom:6px;">📜</div>
+        <p style="margin:0 0 12px; color:#6b5344; font-weight:700;">Du hast aktuell keinen Auftrag geladen.</p>
+        <button class="btn btn-oasis" onclick="openOrderModal()" ${!canOpen ? 'disabled' : ''}>
           📜 Auftrag auswählen (1 Aktion)
         </button>
       `;
     } else {
-      orderSlot.className = 'active-order-slot has-order';
-      orderSlot.innerHTML = `
-        <div class="order-number">${state.activeOrder}</div>
-        <div class="order-desc">${config.license.icon} ${config.license.name}</div>
-        ${buildMiniStripHTML(state.activeOrder)}
-        <small style="margin-top:8px; color:#166534; font-weight:700;">🔒 Aktiv bis zur Lieferung</small>
+      slot.className = 'order-slot-box locked-order';
+      lockLabel.textContent = '🔒 Fest eingeloggt';
+      slot.innerHTML = `
+        <div class="order-badge-num">${state.activeOrder}</div>
+        <div class="order-cargo-title">${config.license.icon} ${config.license.name}</div>
+        ${renderTwentyStrip(state.activeOrder)}
+        <small style="margin-top:10px; color:#15803d; font-weight:900;">🔒 Aktiv bis zur Lieferung</small>
       `;
     }
 
-    // Market buttons
-    const canGrabCargo = state.activeOrder !== null && (state.cargoGrabRemaining > 0 || state.actionsUsed < 2);
-    document.getElementById('btnBuy10').disabled = !canGrabCargo;
-    document.getElementById('btnBuy5').disabled = !canGrabCargo;
-    document.getElementById('btnBuy1').disabled = !canGrabCargo;
+    // Markt-Depots aktivieren/deaktivieren
+    const canGrab = state.activeOrder !== null && (state.cargoGrabRemaining > 0 || state.actionsUsed < 2);
+    ['depot10', 'depot5', 'depot1'].forEach(id => {
+      document.getElementById(id).classList.toggle('disabled', !canGrab);
+    });
 
-    // Bags
-    const leftSum = sumBag(state.leftBag);
-    const rightSum = sumBag(state.rightBag);
+    // Satteltaschen rendern
+    const leftSum = sumArray(state.leftBag);
+    const rightSum = sumArray(state.rightBag);
     const maxCap = config.level === 1 ? 10 : 20;
 
-    document.getElementById('totalLoadBadge').textContent =
+    document.getElementById('totalLoadText').textContent =
       state.activeOrder !== null
-        ? `Geladen: ${leftSum + rightSum} / Ziel: ${state.activeOrder}`
-        : `Ladung: ${leftSum + rightSum} / ${maxCap}`;
+        ? `${leftSum + rightSum} / ${state.activeOrder} geladen`
+        : `${leftSum + rightSum} / ${maxCap} geladen`;
 
-    document.getElementById('leftCount').textContent = `${leftSum} / 10`;
-    document.getElementById('rightCount').textContent = `${rightSum} / 10`;
+    document.getElementById('leftBagCounter').textContent = `${leftSum} / 10`;
+    document.getElementById('rightBagCounter').textContent = `${rightSum} / 10`;
 
-    document.getElementById('leftPieces').innerHTML = state.leftBag.map(val => `
-      <div class="loaded-piece val-${val}">${val}er</div>
+    document.getElementById('leftBagPieces').innerHTML = state.leftBag.map(v => `
+      <div class="cargo-block block-${v}">${v === 1 ? config.license.icon : v + 'er'}</div>
     `).join('');
 
     const rightBagEl = document.getElementById('bagRight');
@@ -1226,27 +1565,31 @@
       rightBagEl.style.display = 'none';
     } else {
       rightBagEl.style.display = 'block';
-      const rightUnlocked = leftSum === 10;
-      rightBagEl.classList.toggle('locked', !rightUnlocked);
-      document.getElementById('rightBagRuleHint').textContent = rightUnlocked
-        ? '✅ Linke Tasche voll (10) – bereit!'
-        : '🔒 Erst öffnen, wenn links voll (10) ist!';
+      const unlocked = leftSum === 10;
+      rightBagEl.classList.toggle('bag-locked', !unlocked);
+      document.getElementById('rightLockHint').textContent = unlocked
+        ? '✅ Linke Tasche voll (10) – Überlauf offen!'
+        : '🔒 Erst öffnen, wenn links randvoll (10) ist!';
 
-      document.getElementById('rightPieces').innerHTML = state.rightBag.map(val => `
-        <div class="loaded-piece val-${val}">${val}er</div>
+      document.getElementById('rightBagPieces').innerHTML = state.rightBag.map(v => `
+        <div class="cargo-block block-${v}">${v === 1 ? config.license.icon : v + 'er'}</div>
       `).join('');
     }
 
-    const canUnbundleLeft = state.leftBag.includes(10) && state.actionsUsed < 2;
-    const canUnbundleRight = state.rightBag.includes(10) && state.actionsUsed < 2;
-    document.getElementById('btnUnbundleLeft').style.display = state.leftBag.includes(10) ? 'inline-block' : 'none';
-    document.getElementById('btnUnbundleLeft').disabled = !canUnbundleLeft;
+    // Basar-Tausch Buttons (Entbündeln)
+    const canSwapLeft = state.leftBag.includes(10) && state.actionsUsed < 2;
+    const canSwapRight = state.rightBag.includes(10) && state.actionsUsed < 2;
+    const btnL = document.getElementById('swapBtnLeft');
+    const btnR = document.getElementById('swapBtnRight');
 
-    document.getElementById('btnUnbundleRight').style.display = state.rightBag.includes(10) ? 'inline-block' : 'none';
-    document.getElementById('btnUnbundleRight').disabled = !canUnbundleRight;
+    btnL.style.display = state.leftBag.includes(10) ? 'inline-block' : 'none';
+    btnL.disabled = !canSwapLeft;
+
+    btnR.style.display = state.rightBag.includes(10) ? 'inline-block' : 'none';
+    btnR.disabled = !canSwapRight;
   }
 
-  initSetupUI();
+  renderSetupModal();
   render();
 </script>
 </body>
