@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>KNACKEVOLL! – Passt, wackelt und hat Fracht!</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<div class="app-shell">
+  <!-- Holz-Kopfzeile -->
+  <header class="game-header">
+    <div class="brand-title">
+      <h1>🐪 KNACKEVOLL!</h1>
+      <p>Passt, wackelt und hat Fracht! – Modul 1: Aufbruch der Karawane</p>
+    </div>
+    <div class="header-actions">
+      <div class="trophy-pill" title="Erfülle 3 Aufträge für den Sieg!">
+        <span>Lieferungen:</span>
+        <span class="star-slot" id="star1">⭐</span>
+        <span class="star-slot" id="star2">⭐</span>
+        <span class="star-slot" id="star3">⭐</span>
+      </div>
+      <button class="btn" onclick="openSetupModal()">⚙️ Karawanen-Setup</button>
+      <button class="btn" onclick="resetGame()">🔄 Neustart</button>
+    </div>
+  </header>
+
+  <!-- Zug- & Aktionsleiste -->
+  <section class="turn-hud">
+    <div class="turn-left">
+      <div class="turn-counter" id="turnBadge">Zug 1</div>
+      <div class="action-token ready" id="actionPill1">⚡ Aktion 1: Frei</div>
+      <div class="action-token ready" id="actionPill2">⚡ Aktion 2: Frei</div>
+      <div class="action-token grabbing" id="grabSubPill" style="display:none;"></div>
+    </div>
+    <div style="display:flex; gap:10px;">
+      <button class="btn" id="btnUndo" onclick="undoStep()" disabled>↩️ Rückgängig</button>
+      <button class="btn btn-primary" onclick="nextTurn()">⏭️ Zug beenden</button>
+    </div>
+  </section>
+
+  <!-- Oasen-Basar: Aktiver Auftrag (links) & Dienes-Frachtmarkt (rechts) -->
+  <section class="bazaar-grid">
+    <!-- Aktiver Auftrag (Einzel-Slot) -->
+    <div class="board-panel">
+      <h3 class="panel-heading">
+        <span>📜 Aktueller Auftrag</span>
+        <small style="font-weight:700; color:#15803d;" id="orderLockLabel">Freie Wahl (0 Akt.)</small>
+      </h3>
+      <div class="order-slot-box" id="activeOrderSlot"></div>
+    </div>
+
+    <!-- Offener Fracht-Markt -->
+    <div class="board-panel">
+<h3 class="panel-heading">
+        <span>🏪 Offener Fracht-Markt</span>
+        <small style="font-weight:700; color:#78716c;">1 Teil einladen = 1 Aktion | 1 Teil auspacken = 1 Aktion</small>
+      </h3>
+      <div class="market-depots">
+        <!-- 10er-Kiste Blau -->
+        <div class="depot-card" id="depot10" onclick="takeCargo(10)">
+          <div class="depot-title">10er-Kiste (Blau)</div>
+          <div class="dienes-preview-10">
+            <span></span><span></span><span></span><span></span><span></span>
+            <span></span><span></span><span></span><span></span><span></span>
+          </div>
+          <div class="depot-sub">Füllt 1 ganze Tasche sofort (10)</div>
+        </div>
+
+        <!-- 5er-Sack Gelb -->
+        <div class="depot-card" id="depot5" onclick="takeCargo(5)">
+          <div class="depot-title">5er-Sack (Gelb)</div>
+          <div class="dienes-preview-5">
+            <span></span><span></span><span></span><span></span><span></span>
+          </div>
+          <div class="depot-sub">Halbe Tasche bis zur Naht (5)</div>
+        </div>
+
+        <!-- 1er-Einheit Rot -->
+        <div class="depot-card" id="depot1" onclick="takeCargo(1)">
+          <div class="depot-title">1er-Einheit (Rot)</div>
+          <div class="dienes-preview-1" id="unitDepotIcon">🍎</div>
+          <div class="depot-sub">Einzelnes Frachtstück (1)</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Packtier-Tableau -->
+  <section class="animal-tableau">
+    <div class="tableau-top">
+      <!-- Offizieller Frachtbrief oben links -->
+      <div class="waybill-plaque">
+        <div class="waybill-seal" id="waybillEmoji">✨</div>
+        <div class="waybill-meta">
+          <small>Offizieller Frachtbrief</small>
+          <strong id="waybillTitle">Königliche Feenstaub-Lizenz</strong>
+          <span id="waybillSentence">„Ich bin der Raptor und fahre heute eine offizielle Feenstaub-Lieferung!“</span>
+        </div>
+      </div>
+
+      <!-- Ladeanzeige rechts oben -->
+      <div class="animal-hero">
+        <div class="capacity-meter">
+          <small id="animalBoardName">Raptor-Tableau (Vogelperspektive)</small>
+          <strong id="totalLoadText">0 / 20 geladen</strong>
+        </div>
+      </div>
+    </div>
+
+    <!-- Satteltaschen links & rechts mit Top-Down Packtier in der Mitte -->
+    <div class="saddlebags-container" id="saddlebagsGrid">
+      <!-- Linke Satteltasche (Zehnerstelle) -->
+      <div class="leather-bag" id="bagLeft">
+        <div class="bag-title-row">
+          <span>👈 Linke Satteltasche (10er-Tasche)</span>
+          <span class="bag-pill-count" id="leftBagCounter">0 / 10</span>
+        </div>
+        <div class="bag-track-10">
+          <div class="unit-cell">1</div><div class="unit-cell">2</div><div class="unit-cell">3</div><div class="unit-cell">4</div><div class="unit-cell">5</div>
+          <div class="unit-cell">6</div><div class="unit-cell">7</div><div class="unit-cell">8</div><div class="unit-cell">9</div><div class="unit-cell">10</div>
+          <div class="cargo-pieces-overlay" id="leftBagPieces"></div>
+        </div>
+        <div class="bag-footer">
+          <span>💡 Klick auf Frachtstück = Auspacken (1 Akt.)</span>
+          <button class="btn-bazaar-swap" id="swapBtnLeft" onclick="unbundleTen('left')" style="display:none;">
+            🔄 10er ➔ 2× 5er (1 Akt.)
+          </button>
+        </div>
+      </div>
+
+      <!-- Top-Down Packtier zwischen den Taschen -->
+      <div class="topdown-mount">
+        <div class="topdown-svg-wrap" id="topDownAnimalSVG"></div>
+        <div class="mount-caption" id="mountCaptionLabel">🦖 Raptor</div>
+      </div>
+
+      <!-- Rechte Satteltasche (Einer-/Überlauf-Tasche) -->
+      <div class="leather-bag" id="bagRight">
+        <div class="bag-title-row">
+          <span>👉 Rechte Satteltasche (Überlauf-Tasche)</span>
+          <span class="bag-pill-count" id="rightBagCounter">0 / 10</span>
+        </div>
+        <div class="bag-track-10">
+          <div class="unit-cell">11</div><div class="unit-cell">12</div><div class="unit-cell">13</div><div class="unit-cell">14</div><div class="unit-cell">15</div>
+          <div class="unit-cell">16</div><div class="unit-cell">17</div><div class="unit-cell">18</div><div class="unit-cell">19</div><div class="unit-cell">20</div>
+          <div class="cargo-pieces-overlay" id="rightBagPieces"></div>
+        </div>
+        <div class="bag-footer">
+          <span id="rightLockHint">🔒 Erst links vollpacken (10)!</span>
+          <button class="btn-bazaar-swap" id="swapBtnRight" onclick="unbundleTen('right')" style="display:none;">
+            🔄 10er ➔ 2× 5er (1 Akt.)
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Feedback-Spruchband -->
+    <div class="camel-speech" id="speechBanner">
+      <span id="speechText">Willkommen bei der Karawane!</span>
+    </div>
+  </section>
+</div>
+
+<!-- POP-UP 1: Karawanen-Setup (öffnet direkt beim Spielstart) -->
+<div class="modal-backdrop" id="setupModal">
+  <div class="modal-dialog">
+    <div class="modal-header-banner">
+      <h2>⛺ Karawanen-Setup vor der Runde</h2>
+      <p>Wähle dein Packtier-Tableau, deine offizielle Fracht-Lizenz und den Zahlenraum!</p>
+    </div>
+
+    <label class="setup-section-label">1. Wähle dein Packtier-Tableau:</label>
+    <div class="selection-grid" id="setupAnimals"></div>
+
+    <label class="setup-section-label">2. Wähle deine offizielle Fracht-Lizenz:</label>
+    <div class="selection-grid" id="setupLicenses"></div>
+
+    <label class="setup-section-label">3. Didaktische Stellschraube (Zahlenraum):</label>
+    <div class="selection-grid" style="grid-template-columns: 1fr 1fr;">
+      <div class="tile-option" id="lvlTile1" onclick="setLevel(1)">
+        <div style="font-size:1.3rem; font-weight:900;">Stufe 1: ZR bis 10</div>
+        <small>Nur linke Satteltasche (1. Halbjahr)</small>
+      </div>
+      <div class="tile-option active-tile" id="lvlTile2" onclick="setLevel(2)">
+        <div style="font-size:1.3rem; font-weight:900;">Stufe 2: ZR bis 20</div>
+        <small>Beide Satteltaschen (20er-Feld)</small>
+      </div>
+    </div>
+
+    <div class="motto-scroll" id="setupMottoBox"></div>
+
+    <div style="text-align:right;">
+      <button class="btn btn-oasis" onclick="startFromSetup()" style="font-size:1.05rem; padding:11px 24px;">
+        🚀 Karawane starten!
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- POP-UP 2: Auftrag auswählen (kostenlos, 3 Karten zur Wahl, danach gesperrt) -->
+<div class="modal-backdrop hidden" id="orderModal">
+  <div class="modal-dialog">
+    <div class="modal-header-banner">
+      <h2>📜 Auftrag wählen (kostenlos)</h2>
+      <p>Such dir 1 Auftragskarte aus der offenen Auslage aus. Das Auswählen kostet keine Aktion – danach bleibt der Auftrag bis zur Lieferung fest eingeloggt!</p>
+    </div>
+
+    <div class="popup-orders-grid" id="popupOrdersList"></div>
+
+    <div style="text-align:right;">
+      <button class="btn" onclick="closeOrderModal()">Später wählen</button>
+    </div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
