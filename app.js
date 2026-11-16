@@ -566,7 +566,7 @@ function render() {
   document.getElementById('topDownAnimalSVG').innerHTML = getTopDownAnimalSVG(config.animal.id);
   document.getElementById('mountCaptionLabel').textContent = `${config.animal.icon} ${config.animal.name}`;
 
-  // Einzel-Slot für den aktuellen Auftrag (inkl. Profi-Packer-Ziel)
+  // Einzel-Slot für den aktuellen Auftrag (Breitformat mit prominentem Profi-Packer-Ziel)
   const slot = document.getElementById('activeOrderSlot');
   const lockLabel = document.getElementById('orderLockLabel');
   if (state.activeOrder === null) {
@@ -585,15 +585,41 @@ function render() {
     const currentPieces = state.leftBag.length + state.rightBag.length;
     const isWithinProLimit = currentPieces <= opt.minPieces;
 
+    // Visuelle Kisten-Slots bauen (zeigt, wie viele Kisten für Profi-Packer ideal sind)
+    const totalPips = Math.max(opt.minPieces, currentPieces);
+    let pipsHTML = '';
+    for (let i = 1; i <= totalPips; i++) {
+      if (i <= currentPieces) {
+        const cls = i <= opt.minPieces ? 'used-ok' : 'used-extra';
+        pipsHTML += `<span class="crate-pip ${cls}" title="Geladenes Frachtstück ${i}">📦</span>`;
+      } else {
+        pipsHTML += `<span class="crate-pip" title="Freier Profi-Slot">▫️</span>`;
+      }
+    }
+
     slot.className = 'order-slot-box locked-order';
     lockLabel.textContent = '🔒 Aktiv bis zur Lieferung';
     slot.innerHTML = `
-      <div class="order-badge-num">${state.activeOrder}</div>
-      <div class="order-cargo-title">${config.license.icon} ${config.license.name}</div>
-      ${renderTwentyStrip(state.activeOrder)}
-      <div class="tempo-badge ${isWithinProLimit ? 'on-track' : 'over-par'}">
-        🏅 Profi-Packer-Ziel: <strong>${opt.minPieces} ${opt.minPieces === 1 ? 'Frachtstück' : 'Frachtstücke'}</strong><br>
-        📦 Aktuell im Sattel: <strong>${currentPieces} ${currentPieces === 1 ? 'Stück' : 'Stücke'}</strong>
+      <div class="order-main-info">
+        <div class="order-badge-num">${state.activeOrder}</div>
+        <div class="order-cargo-title">${config.license.icon} ${config.license.name}</div>
+        ${renderTwentyStrip(state.activeOrder)}
+      </div>
+
+      <div class="pro-goal-showcase ${isWithinProLimit ? 'on-track' : 'over-par'}">
+        <div class="pro-goal-left">
+          <div class="pro-medal-icon">${isWithinProLimit ? '🏅' : '💡'}</div>
+          <div class="pro-goal-text">
+            <small>Optimales Packziel (Profi-Packer)</small>
+            <strong>Schaffe es mit nur ${opt.minPieces} ${opt.minPieces === 1 ? 'Frachtstück' : 'Frachtstücken'}!</strong>
+          </div>
+        </div>
+        <div class="pro-goal-slots">
+          <div class="crate-slots-row">${pipsHTML}</div>
+          <span class="pro-counter-pill">
+            Im Sattel: ${currentPieces} von optimal ${opt.minPieces} ${opt.minPieces === 1 ? 'Stück' : 'Stücken'}
+          </span>
+        </div>
       </div>
     `;
   }
