@@ -21,13 +21,205 @@ let config = {
 
 let state = {
   score: 0,
-  proPackerCount: 0,     // Wie viele Aufträge mit der minimalen Kistenanzahl gelöst wurden
+  proPackerCount: 0,     // Profi-Packer in der aktuellen 3er-Runde
   activeOrder: null,
   activeOrderIdx: null,
   availableOrders: [],
   leftBag: [],           // Array aus Zahlenwerten: [10, 5, 1, ...]
   rightBag: []
 };
+
+/* ============================================================================
+   SPIELER-MANAGEMENT & STATISTIKEN (IndexedDB)
+   ============================================================================ */
+const DB_NAME = 'KnackevollDB';
+const DB_VERSION = 1;
+const STORE_PROFILES = 'profiles';
+
+let dbInstance = null;
+let profiles = [];
+let activeProfile = null;
+
+function openGameDB() {
+  return new Promise((resolve, reject) => {
+    if (dbInstance) {
+      resolve(dbInstance);
+      return;
+    }
+    const request = indexedDB.open(DB_NAME, DB_VERSION);
+
+    request.onupgradeneeded = (event) => {
+      const db = event.target.result;
+      if (!db.objectStoreNames.contains(STORE_PROFILES)) {
+        db.createObjectStore(STORE_PROFILES, { keyPath: 'id' });
+      }
+    };
+
+    request.onsuccess = (event) => {
+      dbInstance = event.target.result;
+      resolve(dbInstance);
+    };
+
+    request.onerror = (event) => {
+      console.error('IndexedDB Fehler:', event.target.error);
+      reject(event.target.error);
+    };
+  });
+}
+
+async function dbGetAllProfiles() {
+  const db = await openGameDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_PROFILES, 'readonly');
+    const store = tx.objectStore(STORE_PROFILES);
+    const req = store.getAll();
+    req.onsuccess = () => resolve(req.result || []);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function dbSaveProfile(profile) {
+  const db = await openGameDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_PROFILES, 'readwrite');
+    const store = tx.objectStore(STORE_PROFILES);
+    const req = store.put(profile);
+    req.onsuccess = () => resolve(profile);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function dbDeleteProfile(id) {
+  const db = await openGameDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_PROFILES, 'readwrite');
+    const store = tx.objectStore(STORE_PROFILES);
+    const req = store.delete(id);
+    req.onsuccess = () => resolve();
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function initPlayerManagement() {
+  try {
+    profiles = await dbGetAllProfiles();
+    if (profiles.length === 0) {
+      // Standard-Profil beim allerersten Start anlegen
+      const defaultProfile = {
+        id: 'player_' + Date.now(),
+        name: 'Karawanen-Kind',
+        animalId: 'raptor',
+        licenseId: 'fairy',
+        level: 2,
+        stats: {
+          roundsPlayed: 0,   // Abgeschlossene Runden (je 3 Aufträge)
+          packedAnimals: 0,  // Gelieferte Tiere / Aufträge insgesamt
+          proPackers: 0      // Davon optimal als Profi-Packer gepackt
+        },
+        createdAt: Date.now()
+      };
+      await dbSaveProfile(defaultProfile);
+      profiles = [defaultProfile];
+    }
+
+    // Zuletzt aktives Profil aus localStorage wiederherstellen (oder erstes nehmen)
+    const lastId = localStorage.getItem('knackevoll_activeProfileId');
+    const found = profiles.find(p => p.id === lastId) || profiles[0];
+    await selectProfile(found.id, false);
+  } catch (err) {
+    console.error('Fehler beim Initialisieren der Profile:', err);
+  }
+}
+
+async function selectProfile(profileId, shouldRenderSetup = true) {
+  const target = profiles.find(p => p.id === profileId);
+  if (!target) return;
+
+  activeProfile = target;
+  localStorage.setItem('knackevoll_activeProfileId', target.id);
+
+  // Gespeicherte Vorlieben des Profils übernehmen
+  config.animal = ANIMALS.find(a => a.id === target.animalId) || ANIMALS[1];
+  config.license = LICENSES.find(l => l.id === target.licenseId) || LICENSES[0];
+  config.level = target.level || 2;
+
+  if (shouldRenderSetup) {
+    renderSetupModal();
+  }
+  render();
+}
+
+async function createNewProfile() {
+  const input = document.getElementById('newProfileNameInput');
+  const rawName = (input.value || '').trim();
+  if (!rawName) {
+    input.focus();
+    return;
+  }
+
+  const newProfile = {
+    id: 'player_' + Date.now() + '_' + Math.floor(Math.random() * 1000),
+    name: rawName,
+    animalId: config.animal.id,
+    licenseId: config.license.id,
+    level: config.level,
+    stats: {
+      roundsPlayed: 0,
+      packedAnimals: 0,
+      proPackers: 0
+    },
+    createdAt: Date.now()
+  };
+
+  await dbSaveProfile(newProfile);
+  profiles.push(newProfile);
+  input.value = '';
+  await selectProfile(newProfile.id, true);
+}
+
+async function removeProfile(event, profileId) {
+  event.stopPropagation();
+  if (profiles.length <= 1) {
+    alert('Mindestens ein Spieler-Profil muss bestehen bleiben!');
+    return;
+  }
+
+  const target = profiles.find(p => p.id === profileId);
+  if (!target) return;
+
+  await dbDeleteProfile(profileId);
+  profiles = profiles.filter(p => p.id !== profileId);
+
+  if (activeProfile && activeProfile.id === profileId) {
+    await selectProfile(profiles[0].id, true);
+  } else {
+    renderSetupModal();
+  }
+}
+
+async function saveActiveProfilePreferences() {
+  if (!activeProfile) return;
+  activeProfile.animalId = config.animal.id;
+  activeProfile.licenseId = config.license.id;
+  activeProfile.level = config.level;
+  await dbSaveProfile(activeProfile);
+}
+
+async function recordDeliveryStats(isProPacker, isRoundCompleted) {
+  if (!activeProfile) return;
+  activeProfile.stats.packedAnimals += 1;
+  if (isProPacker) {
+    activeProfile.stats.proPackers += 1;
+  }
+  if (isRoundCompleted) {
+    activeProfile.stats.roundsPlayed += 1;
+  }
+  await dbSaveProfile(activeProfile);
+}
+
+/* ============================================================================
+   SPIELLOGIK & DARSTELLUNG
+   ============================================================================ */
 
 /* Berechnet die minimale Kistenanzahl durch optimales Bündeln (10er -> 5er -> 1er) */
 function getOptimalPacking(target) {
@@ -51,7 +243,7 @@ function getOptimalPacking(target) {
   };
 }
 
-/* Top-Down SVG Illustrationen der 5 Packtiere (Blick von oben auf Rücken, Sattel & Gurte) */
+/* Top-Down SVG Illustrationen der 5 Packtiere */
 function getTopDownAnimalSVG(animalId) {
   const strapsAndSaddle = `
     <rect x="4" y="76" width="152" height="12" rx="4" fill="#6e381b" stroke="#3e2411" stroke-width="2"/>
@@ -170,6 +362,54 @@ function getTopDownAnimalSVG(animalId) {
 }
 
 function renderSetupModal() {
+  // 0. Spieler-Profile & Statistik rendern
+  const listEl = document.getElementById('profileListContainer');
+  if (listEl) {
+    listEl.innerHTML = profiles.map(p => {
+      const pAnimal = ANIMALS.find(a => a.id === p.animalId) || ANIMALS[1];
+      const isSelected = activeProfile && p.id === activeProfile.id;
+      return `
+        <div class="profile-card ${isSelected ? 'active-profile' : ''}" onclick="selectProfile('${p.id}', true)">
+          <div class="profile-card-info">
+            <span class="profile-card-avatar">${pAnimal.icon}</span>
+            <span class="profile-card-name" title="${p.name}">${p.name}</span>
+          </div>
+          ${profiles.length > 1 ? `<button class="btn-delete-profile" onclick="removeProfile(event, '${p.id}')" title="Profil löschen">✖</button>` : ''}
+        </div>
+      `;
+    }).join('');
+  }
+
+  const statsEl = document.getElementById('activeProfileStatsBanner');
+  if (statsEl && activeProfile) {
+    const st = activeProfile.stats || { roundsPlayed: 0, packedAnimals: 0, proPackers: 0 };
+    const rate = st.packedAnimals > 0 ? Math.round((st.proPackers / st.packedAnimals) * 100) : 0;
+    statsEl.innerHTML = `
+      <div class="p-stat-item">
+        <span class="p-stat-icon">🏁</span>
+        <div class="p-stat-text">
+          <small>Gespielte Runden</small>
+          <strong>${st.roundsPlayed}</strong>
+        </div>
+      </div>
+      <div class="p-stat-item">
+        <span class="p-stat-icon">🐪</span>
+        <div class="p-stat-text">
+          <small>Gepackte Tiere</small>
+          <strong>${st.packedAnimals}</strong>
+        </div>
+      </div>
+      <div class="p-stat-item">
+        <span class="p-stat-icon">🏅</span>
+        <div class="p-stat-text">
+          <small>Profi-Packer</small>
+          <strong>${st.proPackers} <span style="font-size:0.8rem; font-weight:700; color:#15803d;">(${rate}%)</span></strong>
+        </div>
+      </div>
+    `;
+  }
+
+  // 1. Packtiere
   document.getElementById('setupAnimals').innerHTML = ANIMALS.map(a => `
     <div class="tile-option ${a.id === config.animal.id ? 'active-tile' : ''}" onclick="chooseAnimal('${a.id}')">
       <div style="font-size:2.1rem;">${a.icon}</div>
@@ -177,6 +417,7 @@ function renderSetupModal() {
     </div>
   `).join('');
 
+  // 2. Lizenzen
   document.getElementById('setupLicenses').innerHTML = LICENSES.map(l => `
     <div class="tile-option ${l.id === config.license.id ? 'active-tile' : ''}" onclick="chooseLicense('${l.id}')">
       <div style="font-size:2.1rem;">${l.icon}</div>
@@ -184,25 +425,30 @@ function renderSetupModal() {
     </div>
   `).join('');
 
+  // 3. Zahlenraum
   document.getElementById('lvlTile1').classList.toggle('active-tile', config.level === 1);
   document.getElementById('lvlTile2').classList.toggle('active-tile', config.level === 2);
 
+  const playerName = activeProfile ? activeProfile.name : 'Karawanen-Kind';
   document.getElementById('setupMottoBox').textContent =
-    `„Ich bin ${config.animal.article} und fahre heute eine offizielle ${config.license.name}-Lieferung!“`;
+    `${playerName}: „Ich bin ${config.animal.article} und fahre heute eine offizielle ${config.license.name}-Lieferung!“`;
 }
 
 function chooseAnimal(id) {
   config.animal = ANIMALS.find(a => a.id === id);
+  saveActiveProfilePreferences();
   renderSetupModal();
 }
 
 function chooseLicense(id) {
   config.license = LICENSES.find(l => l.id === id);
+  saveActiveProfilePreferences();
   renderSetupModal();
 }
 
 function setLevel(lvl) {
   config.level = lvl;
+  saveActiveProfilePreferences();
   renderSetupModal();
 }
 
@@ -212,6 +458,7 @@ function openSetupModal() {
 }
 
 function startFromSetup() {
+  saveActiveProfilePreferences();
   document.getElementById('setupModal').classList.add('hidden');
   resetGame();
 }
@@ -299,7 +546,7 @@ function pickOrderCard(index) {
 // Frachtstück einladen
 function takeCargo(val) {
   if (state.activeOrder === null) {
-    setSpeech('Bitte wähle zuerst links einen Auftrag aus, bevor du Fracht einlädst!', 'error');
+    setSpeech('Bitte wähle zuerst oben einen Auftrag aus, bevor du Fracht einlädst!', 'error');
     return;
   }
 
@@ -307,7 +554,6 @@ function takeCargo(val) {
   const rightSum = sumArray(state.rightBag);
   const totalSum = leftSum + rightSum;
 
-  // Prüfen, ob über den Auftragswert geladen würde
   if (totalSum + val > state.activeOrder) {
     wobbleBag(leftSum < 10 ? 'bagLeft' : 'bagRight');
     setSpeech(`⚠️ Wackel-Regel! Dein Auftrag braucht genau ${state.activeOrder}. Mit +${val} wärst du bei ${totalSum + val}!`, 'error');
@@ -358,10 +604,8 @@ function takeCargo(val) {
   render();
 }
 
-// Frachtstück wieder auspacken (jederzeit unter Beachtung der Spiegelregel)
+// Frachtstück wieder auspacken
 function unpackCargo(side, index) {
-  // Spiegelregel zur „Erst links, dann rechts“-Regel:
-  // Solange rechts noch Fracht liegt, muss zuerst rechts ausgepackt werden.
   if (side === 'left' && state.rightBag.length > 0) {
     wobbleBag('bagLeft');
     setSpeech('⚠️ Spiegelregel beim Auspacken: Räume zuerst die rechte Überlauf-Tasche leer, bevor du links auspackst!', 'error');
@@ -405,8 +649,8 @@ function launchConfetti(count = 45) {
   }
 }
 
-/* Großes Feier-Pop-up bei abgeschlossener Lieferung */
-function finishOrderDelivery() {
+/* Großes Feier-Pop-up bei abgeschlossener Lieferung + IndexedDB Statistik-Update */
+async function finishOrderDelivery() {
   state.score += 1;
   const deliveredOrder = state.activeOrder;
   const packedPieces = [...state.leftBag, ...state.rightBag];
@@ -419,8 +663,13 @@ function finishOrderDelivery() {
     state.proPackerCount += 1;
   }
 
+  const isGameWon = state.score >= 3;
+
+  // In IndexedDB persistieren
+  await recordDeliveryStats(isProPacker, isGameWon);
+
   // Konfetti starten
-  launchConfetti(state.score >= 3 ? 80 : 45);
+  launchConfetti(isGameWon ? 80 : 45);
 
   const userChipsHTML = packedPieces.map(v => `
     <span class="mini-cargo-chip chip-${v}">${v} mal ${config.license.icon}</span>
@@ -446,7 +695,14 @@ function finishOrderDelivery() {
     `;
   }
 
-  const isGameWon = state.score >= 3;
+  // Aktuelle Gesamtstatistik des Spielers für das Feier-Modal aufbereiten
+  const pStats = activeProfile ? activeProfile.stats : { roundsPlayed: 0, packedAnimals: 0, proPackers: 0 };
+  const playerStatLine = activeProfile
+    ? `<div style="margin-top:12px; padding:8px 12px; background:#fff; border:2px dashed #cbb69b; border-radius:10px; font-size:0.84rem; font-weight:800; color:#57412f;">
+         👤 <strong>${activeProfile.name}s Bilanz:</strong> 🏁 ${pStats.roundsPlayed} Runden &nbsp;|&nbsp; 🐪 ${pStats.packedAnimals} gepackte Tiere &nbsp;|&nbsp; 🏅 ${pStats.proPackers}× Profi-Packer
+       </div>`
+    : '';
+
   const dialog = document.getElementById('celebrationDialog');
 
   dialog.innerHTML = `
@@ -473,6 +729,7 @@ function finishOrderDelivery() {
     </div>
 
     ${ratingBadge}
+    ${playerStatLine}
 
     <div style="margin-top:18px;">
       ${
@@ -550,6 +807,12 @@ function renderTwentyStrip(target) {
 }
 
 function render() {
+  // Aktiver Spieler im Header
+  const headerNameEl = document.getElementById('activePlayerHeaderName');
+  if (headerNameEl && activeProfile) {
+    headerNameEl.textContent = activeProfile.name;
+  }
+
   // Sterne
   for (let s = 1; s <= 3; s++) {
     document.getElementById(`star${s}`).classList.toggle('earned', state.score >= s);
@@ -561,6 +824,8 @@ function render() {
   document.getElementById('waybillSentence').textContent =
     `„Ich bin ${config.animal.article} und fahre heute eine offizielle ${config.license.name}-Lieferung!“`;
   document.getElementById('animalBoardName').textContent = `${config.animal.name}-Tableau (Top-Down)`;
+
+  // Markt-Vorschau-Steine
   document.getElementById('depot10Label').textContent = `10 mal ${config.license.icon}`;
   document.getElementById('depot5Label').textContent = `5 mal ${config.license.icon}`;
   document.getElementById('unitDepotIcon').textContent = `1 mal ${config.license.icon}`;
@@ -587,7 +852,6 @@ function render() {
     const currentPieces = state.leftBag.length + state.rightBag.length;
     const isWithinProLimit = currentPieces <= opt.minPieces;
 
-    // Visuelle Kisten-Slots bauen (zeigt, wie viele Kisten für Profi-Packer ideal sind)
     const totalPips = Math.max(opt.minPieces, currentPieces);
     let pipsHTML = '';
     for (let i = 1; i <= totalPips; i++) {
@@ -626,7 +890,7 @@ function render() {
     `;
   }
 
-  // Markt-Depots aktivieren/deaktivieren (sobald ein Auftrag aktiv ist, darf frei geladen werden)
+  // Markt-Depots aktivieren/deaktivieren
   const canGrab = state.activeOrder !== null;
   ['depot10', 'depot5', 'depot1'].forEach(id => {
     document.getElementById(id).classList.toggle('disabled', !canGrab);
@@ -645,17 +909,16 @@ function render() {
   document.getElementById('leftBagCounter').textContent = `${leftSum} / 10`;
   document.getElementById('rightBagCounter').textContent = `${rightSum} / 10`;
 
-  // Frachtstücke rendern
   const formatPieceLabel = (val) =>
-  val === 1
-    ? `<span class="piece-count-sm">1 mal</span><span class="piece-icon-sm">${config.license.icon}</span>`
-    : `${val} mal ${config.license.icon}`;
+    val === 1
+      ? `<span class="piece-count-sm">1 mal</span><span class="piece-icon-sm">${config.license.icon}</span>`
+      : `${val} mal ${config.license.icon}`;
 
   // Frachtstücke links rendern
   document.getElementById('leftBagPieces').innerHTML = state.leftBag.map((val, idx) => `
     <div class="cargo-block block-${val}"
-        onclick="unpackCargo('left', ${idx})"
-        title="Klicken zum Auspacken">
+         onclick="unpackCargo('left', ${idx})"
+         title="Klicken zum Auspacken">
       ${formatPieceLabel(val)}
     </div>
   `).join('');
@@ -676,14 +939,14 @@ function render() {
 
     document.getElementById('rightBagPieces').innerHTML = state.rightBag.map((val, idx) => `
       <div class="cargo-block block-${val}"
-          onclick="unpackCargo('right', ${idx})"
-          title="Klicken zum Auspacken">
+           onclick="unpackCargo('right', ${idx})"
+           title="Klicken zum Auspacken">
         ${formatPieceLabel(val)}
       </div>
     `).join('');
   }
 
-  // Basar-Tausch Buttons (Entbündeln jederzeit möglich, wenn eine 10er-Kiste liegt)
+  // Basar-Tausch Buttons
   const hasTenLeft = state.leftBag.includes(10);
   const hasTenRight = state.rightBag.includes(10);
   const btnL = document.getElementById('swapBtnLeft');
@@ -696,6 +959,8 @@ function render() {
   btnR.disabled = false;
 }
 
-// Initialisierung beim Laden
-renderSetupModal();
-render();
+// Initialisierung beim Laden (startet IndexedDB und rendert dann Setup + Spiel)
+initPlayerManagement().then(() => {
+  renderSetupModal();
+  render();
+});

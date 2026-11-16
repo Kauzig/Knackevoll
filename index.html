@@ -16,14 +16,17 @@
       <p>Passt, wackelt und hat Fracht! – Modul 1: Aufbruch der Karawane</p>
     </div>
     <div class="header-actions">
-      <div class="trophy-pill" title="Erfülle 3 Aufträge für den Sieg!">
-        <span>Lieferungen:</span>
-        <span class="star-slot" id="star1">⭐</span>
-        <span class="star-slot" id="star2">⭐</span>
-        <span class="star-slot" id="star3">⭐</span>
-      </div>
-      <button class="btn" onclick="openSetupModal()">⚙️ Karawanen-Setup</button>
-      <button class="btn" onclick="resetGame()">🔄 Neustart</button>
+        <button class="btn player-QuickBtn" onclick="openSetupModal()" title="Spieler wechseln & Statistiken ansehen">
+            👤 <span id="activePlayerHeaderName">Gast</span>
+        </button>
+        <div class="trophy-pill" title="Erfülle 3 Aufträge für den Sieg!">
+            <span>Lieferungen:</span>
+            <span class="star-slot" id="star1">⭐</span>
+            <span class="star-slot" id="star2">⭐</span>
+            <span class="star-slot" id="star3">⭐</span>
+        </div>
+        <button class="btn" onclick="openSetupModal()">⚙️ Setup & Profile</button>
+        <button class="btn" onclick="resetGame()">🔄 Neustart</button>
     </div>
   </header>
 
@@ -150,6 +153,24 @@
     <div class="modal-header-banner">
       <h2>⛺ Karawanen-Setup vor der Runde</h2>
       <p>Wähle dein Packtier-Tableau, deine offizielle Fracht-Lizenz und den Zahlenraum!</p>
+    </div>
+
+    <!-- NEU: Spieler-Management & Statistiken (IndexedDB) -->
+    <div class="profile-manager-box">
+      <div class="profile-manager-header">
+        <label class="setup-section-label" style="margin:0;">👤 Spieler-Profil & Karawanen-Statistik:</label>
+        <div class="profile-create-row">
+          <input type="text" id="newProfileNameInput" class="profile-input" placeholder="Neuer Name..." maxlength="18" onkeydown="if(event.key==='Enter') createNewProfile()" />
+          <button class="btn btn-oasis" onclick="createNewProfile()" style="padding:6px 12px; font-size:0.85rem;">➕ Anlegen</button>
+        </div>
+      </div>
+
+      <div class="profile-list-grid" id="profileListContainer">
+        <!-- Wird dynamisch aus der IndexedDB geladen -->
+      </div>
+
+      <!-- Statistik-Banner für das ausgewählte Profil -->
+      <div class="profile-stats-banner" id="activeProfileStatsBanner"></div>
     </div>
 
     <label class="setup-section-label">1. Wähle dein Packtier-Tableau:</label>
