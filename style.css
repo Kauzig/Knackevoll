@@ -1487,3 +1487,26 @@ body {
   border-radius: 999px;
   animation: gentlePulse 1s infinite;
 }
+
+/* Dezenter Lizenz-Footer */
+.game-footer {
+  margin-top: 20px;
+  padding: 10px 16px;
+  text-align: center;
+  font-size: 0.82rem;
+  color: #6b5344;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px 18px;
+}
+
+.game-footer a {
+  color: var(--wood-dark);
+  font-weight: 800;
+  text-decoration: underline;
+}
+
+.game-footer a:hover {
+  color: #b45309;
+}
