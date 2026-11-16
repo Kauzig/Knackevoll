@@ -514,7 +514,7 @@
       font-style: italic;
     }
 
-    /* Packtier Avatar & Gesamtkapazität */
+    /* Gesamtkapazität rechts oben */
     .animal-hero {
       display: flex;
       align-items: center;
@@ -528,25 +528,13 @@
       }
     }
 
-    .animal-avatar-circle {
-      width: 68px;
-      height: 68px;
-      border-radius: 50%;
-      background: radial-gradient(circle, #fef3c7 0%, #f59e0b 100%);
-      border: 4px solid var(--wood-dark);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 2.5rem;
-      box-shadow: 0 5px 0 rgba(62, 36, 17, 0.3);
-    }
-
     .capacity-meter {
       background: var(--wood-dark);
       color: #fff;
-      padding: 10px 16px;
+      padding: 10px 18px;
       border-radius: 14px;
       border: 3px solid #3e2411;
+      text-align: right;
     }
 
     .capacity-meter small {
@@ -560,19 +548,59 @@
       font-size: 1.35rem;
     }
 
-    /* Leather Saddlebags (Zwanzigerfeld) */
+    /* 3-Spalten-Layout: Linke Tasche | Top-Down Packtier | Rechte Tasche */
     .saddlebags-container {
       display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 22px;
+      grid-template-columns: 1fr 165px 1fr;
+      gap: 16px;
+      align-items: center;
     }
 
-    @media (max-width: 760px) {
-      .saddlebags-container {
+    .saddlebags-container.level-1-layout {
+      grid-template-columns: 1fr 165px;
+    }
+
+    @media (max-width: 920px) {
+      .saddlebags-container,
+      .saddlebags-container.level-1-layout {
         grid-template-columns: 1fr;
       }
     }
 
+    /* Top-Down Packtier in der Mitte */
+    .topdown-mount {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      padding: 4px 0;
+    }
+
+    .topdown-svg-wrap {
+      width: 155px;
+      height: 195px;
+      filter: drop-shadow(0 6px 8px rgba(62, 36, 17, 0.35));
+      transition: transform 0.25s;
+    }
+
+    .topdown-svg-wrap:hover {
+      transform: scale(1.03);
+    }
+
+    .mount-caption {
+      margin-top: 4px;
+      background: #fef3c7;
+      border: 2px solid var(--wood-mid);
+      color: var(--wood-dark);
+      font-weight: 900;
+      font-size: 0.82rem;
+      padding: 3px 12px;
+      border-radius: 999px;
+      box-shadow: 0 2px 0 rgba(92, 58, 33, 0.25);
+    }
+
+    /* Leather Saddlebags (Zwanzigerfeld) */
     .leather-bag {
       background: linear-gradient(180deg, #b86b3f 0%, var(--leather) 60%, #8a4824 100%);
       border: 4px solid var(--leather-dark);
@@ -1000,18 +1028,17 @@
         </div>
       </div>
 
-      <!-- Tier-Avatar & Ladeanzeige -->
+      <!-- Ladeanzeige rechts oben -->
       <div class="animal-hero">
-        <div class="animal-avatar-circle" id="animalAvatar">🦖</div>
         <div class="capacity-meter">
-          <small id="animalBoardName">Raptor-Tableau</small>
+          <small id="animalBoardName">Raptor-Tableau (Vogelperspektive)</small>
           <strong id="totalLoadText">0 / 20 geladen</strong>
         </div>
       </div>
     </div>
 
-    <!-- Zwei Satteltaschen (Zwanzigerfeld) -->
-    <div class="saddlebags-container">
+    <!-- Satteltaschen links & rechts mit Top-Down Packtier in der Mitte -->
+    <div class="saddlebags-container" id="saddlebagsGrid">
       <!-- Linke Satteltasche (Zehnerstelle) -->
       <div class="leather-bag" id="bagLeft">
         <div class="bag-title-row">
@@ -1024,11 +1051,17 @@
           <div class="cargo-pieces-overlay" id="leftBagPieces"></div>
         </div>
         <div class="bag-footer">
-          <span>✨ Goldene 5er-Ziernaht in der Mitte</span>
+          <span>💡 Klick auf Frachtstück = Auspacken (1 Akt.)</span>
           <button class="btn-bazaar-swap" id="swapBtnLeft" onclick="unbundleTen('left')" style="display:none;">
-            🔄 Tauschen: 10er ➔ 2× 5er (1 Aktion)
+            🔄 10er ➔ 2× 5er (1 Akt.)
           </button>
         </div>
+      </div>
+
+      <!-- Top-Down Packtier zwischen den Taschen -->
+      <div class="topdown-mount">
+        <div class="topdown-svg-wrap" id="topDownAnimalSVG"></div>
+        <div class="mount-caption" id="mountCaptionLabel">🦖 Raptor</div>
       </div>
 
       <!-- Rechte Satteltasche (Einer-/Überlauf-Tasche) -->
@@ -1144,6 +1177,155 @@
     rightBag: [],
     history: []
   };
+
+  /* Top-Down SVG Illustrationen der 5 Packtiere (Blick von oben auf Rücken, Sattel & Gurte) */
+  function getTopDownAnimalSVG(animalId) {
+    const strapsAndSaddle = `
+      <!-- Lederriemen zu den linken und rechten Satteltaschen -->
+      <rect x="4" y="76" width="152" height="12" rx="4" fill="#6e381b" stroke="#3e2411" stroke-width="2"/>
+      <rect x="4" y="114" width="152" height="12" rx="4" fill="#6e381b" stroke="#3e2411" stroke-width="2"/>
+      <!-- Schnallen links & rechts -->
+      <rect x="10" y="74" width="10" height="16" rx="2" fill="#fbbf24" stroke="#78350f" stroke-width="1.5"/>
+      <rect x="140" y="74" width="10" height="16" rx="2" fill="#fbbf24" stroke="#78350f" stroke-width="1.5"/>
+      <rect x="10" y="112" width="10" height="16" rx="2" fill="#fbbf24" stroke="#78350f" stroke-width="1.5"/>
+      <rect x="140" y="112" width="10" height="16" rx="2" fill="#fbbf24" stroke="#78350f" stroke-width="1.5"/>
+      <!-- Satteldecke & Sitz von oben -->
+      <rect x="44" y="64" width="72" height="72" rx="14" fill="#b91c1c" stroke="#fbbf24" stroke-width="2.5" stroke-dasharray="5 3"/>
+      <ellipse cx="80" cy="100" rx="25" ry="28" fill="#8b5a2b" stroke="#3e2411" stroke-width="2.5"/>
+      <ellipse cx="80" cy="100" rx="16" ry="18" fill="#a45a32"/>
+    `;
+
+    switch (animalId) {
+      case 'unicorn':
+        return `
+          <svg viewBox="0 0 160 200" width="100%" height="100%">
+            <!-- Regenbogen-Schweif unten -->
+            <path d="M80 155 C62 175, 68 195, 80 198 C92 195, 98 175, 80 155 Z" fill="#ec4899" stroke="#831843" stroke-width="2"/>
+            <path d="M80 160 C72 175, 75 190, 80 194 C85 190, 88 175, 80 160 Z" fill="#38bdf8"/>
+            <!-- Weißer Körper von oben -->
+            <ellipse cx="80" cy="105" rx="38" ry="56" fill="#ffffff" stroke="#cbd5e1" stroke-width="3"/>
+            ${strapsAndSaddle}
+            <!-- Hals & Kopf oben -->
+            <ellipse cx="80" cy="44" rx="20" ry="26" fill="#ffffff" stroke="#cbd5e1" stroke-width="2.5"/>
+            <!-- Regenbogen-Mähne auf dem Nacken -->
+            <ellipse cx="80" cy="52" rx="7" ry="16" fill="#f472b6"/>
+            <ellipse cx="80" cy="52" rx="4" ry="12" fill="#facc15"/>
+            <!-- Ohren -->
+            <polygon points="62,32 54,18 68,24" fill="#ffffff" stroke="#94a3b8" stroke-width="2"/>
+            <polygon points="98,32 106,18 92,24" fill="#ffffff" stroke="#94a3b8" stroke-width="2"/>
+            <!-- Augen -->
+            <circle cx="69" cy="28" r="3" fill="#1e293b"/>
+            <circle cx="91" cy="28" r="3" fill="#1e293b"/>
+            <!-- Goldenes Horn nach vorn -->
+            <polygon points="74,20 80,2 86,20" fill="#facc15" stroke="#b45309" stroke-width="2"/>
+          </svg>
+        `;
+
+      case 'raptor':
+        return `
+          <svg viewBox="0 0 160 200" width="100%" height="100%">
+            <!-- Kräftiger Dino-Schwanz nach unten -->
+            <path d="M68 148 L80 198 L92 148 Z" fill="#15803d" stroke="#14532d" stroke-width="3"/>
+            <!-- Kurze Vorderarme seitlich -->
+            <path d="M45 64 Q30 58 28 48" stroke="#16a34a" stroke-width="7" stroke-linecap="round" fill="none"/>
+            <path d="M115 64 Q130 58 132 48" stroke="#16a34a" stroke-width="7" stroke-linecap="round" fill="none"/>
+            <!-- Geschuppter Körper von oben -->
+            <ellipse cx="80" cy="104" rx="40" ry="52" fill="#22c55e" stroke="#14532d" stroke-width="3"/>
+            ${strapsAndSaddle}
+            <!-- Raptor-Kopf nach oben -->
+            <path d="M62 52 C60 20, 70 8, 80 8 C90 8, 100 20, 98 52 Z" fill="#16a34a" stroke="#14532d" stroke-width="2.5"/>
+            <!-- Rückenkamm / Schuppen -->
+            <circle cx="80" cy="44" r="4" fill="#facc15"/>
+            <circle cx="80" cy="54" r="4" fill="#facc15"/>
+            <circle cx="80" cy="158" r="4" fill="#facc15"/>
+            <circle cx="80" cy="172" r="3.5" fill="#facc15"/>
+            <!-- Gelbe Reptilienaugen -->
+            <circle cx="67" cy="26" r="4" fill="#fde047" stroke="#14532d" stroke-width="1.5"/>
+            <circle cx="93" cy="26" r="4" fill="#fde047" stroke="#14532d" stroke-width="1.5"/>
+            <line x1="67" y1="23" x2="67" y2="29" stroke="#000" stroke-width="1.5"/>
+            <line x1="93" y1="23" x2="93" y2="29" stroke="#000" stroke-width="1.5"/>
+          </svg>
+        `;
+
+      case 'bear':
+        return `
+          <svg viewBox="0 0 160 200" width="100%" height="100%">
+            <!-- Tatzen von oben sichtbar -->
+            <ellipse cx="38" cy="64" rx="12" ry="9" fill="#78350f" stroke="#451a03" stroke-width="2"/>
+            <ellipse cx="122" cy="64" rx="12" ry="9" fill="#78350f" stroke="#451a03" stroke-width="2"/>
+            <ellipse cx="40" cy="144" rx="12" ry="9" fill="#78350f" stroke="#451a03" stroke-width="2"/>
+            <ellipse cx="120" cy="144" rx="12" ry="9" fill="#78350f" stroke="#451a03" stroke-width="2"/>
+            <!-- Stummelschwanz -->
+            <circle cx="80" cy="166" r="10" fill="#78350f" stroke="#451a03" stroke-width="2.5"/>
+            <!-- Breiter Bärenrücken -->
+            <ellipse cx="80" cy="105" rx="46" ry="56" fill="#92400e" stroke="#451a03" stroke-width="3"/>
+            ${strapsAndSaddle}
+            <!-- Bärenkopf mit runden Ohren -->
+            <circle cx="58" cy="36" r="10" fill="#78350f" stroke="#451a03" stroke-width="2.5"/>
+            <circle cx="102" cy="36" r="10" fill="#78350f" stroke="#451a03" stroke-width="2.5"/>
+            <circle cx="80" cy="40" r="24" fill="#92400e" stroke="#451a03" stroke-width="2.5"/>
+            <!-- Schnauze nach oben -->
+            <ellipse cx="80" cy="22" rx="11" ry="9" fill="#d97706"/>
+            <ellipse cx="80" cy="17" rx="5" ry="3.5" fill="#1c1917"/>
+            <circle cx="70" cy="32" r="3" fill="#1c1917"/>
+            <circle cx="90" cy="32" r="3" fill="#1c1917"/>
+          </svg>
+        `;
+
+      case 'cat':
+        return `
+          <svg viewBox="0 0 160 200" width="100%" height="100%">
+            <!-- Geschwungener Katzenschwanz -->
+            <path d="M80 156 Q82 188 108 190" stroke="#ea580c" stroke-width="11" stroke-linecap="round" fill="none"/>
+            <path d="M80 156 Q82 188 108 190" stroke="#fb923c" stroke-width="7" stroke-linecap="round" fill="none"/>
+            <!-- Pfoten -->
+            <circle cx="46" cy="60" r="8" fill="#fed7aa" stroke="#9a3412" stroke-width="2"/>
+            <circle cx="114" cy="60" r="8" fill="#fed7aa" stroke="#9a3412" stroke-width="2"/>
+            <!-- Geschmeidiger Katzenrücken mit Tigerstreifen -->
+            <ellipse cx="80" cy="104" rx="37" ry="54" fill="#fb923c" stroke="#9a3412" stroke-width="3"/>
+            <path d="M48 88 Q80 82 112 88" stroke="#c2410c" stroke-width="4" fill="none"/>
+            <path d="M48 122 Q80 128 112 122" stroke="#c2410c" stroke-width="4" fill="none"/>
+            ${strapsAndSaddle}
+            <!-- Katzenkopf & spitze Ohren -->
+            <polygon points="56,42 50,16 70,28" fill="#fb923c" stroke="#9a3412" stroke-width="2.5"/>
+            <polygon points="104,42 110,16 90,28" fill="#fb923c" stroke="#9a3412" stroke-width="2.5"/>
+            <circle cx="80" cy="38" r="21" fill="#fb923c" stroke="#9a3412" stroke-width="2.5"/>
+            <!-- Schnurrhaare links & rechts -->
+            <line x1="58" y1="30" x2="36" y2="26" stroke="#431407" stroke-width="1.8"/>
+            <line x1="58" y1="35" x2="36" y2="35" stroke="#431407" stroke-width="1.8"/>
+            <line x1="102" y1="30" x2="124" y2="26" stroke="#431407" stroke-width="1.8"/>
+            <line x1="102" y1="35" x2="124" y2="35" stroke="#431407" stroke-width="1.8"/>
+            <!-- Grüne Katzenaugen & rosa Nase -->
+            <circle cx="71" cy="32" r="3.5" fill="#22c55e" stroke="#14532d" stroke-width="1"/>
+            <circle cx="89" cy="32" r="3.5" fill="#22c55e" stroke="#14532d" stroke-width="1"/>
+            <polygon points="77,23 83,23 80,27" fill="#f43f5e"/>
+          </svg>
+        `;
+
+      case 'camel':
+      default:
+        return `
+          <svg viewBox="0 0 160 200" width="100%" height="100%">
+            <!-- Kamelschwanz mit Quaste -->
+            <line x1="80" y1="158" x2="80" y2="186" stroke="#b45309" stroke-width="5" stroke-linecap="round"/>
+            <circle cx="80" cy="190" r="6" fill="#78350f"/>
+            <!-- Kamel-Körper von oben -->
+            <ellipse cx="80" cy="105" rx="42" ry="56" fill="#d97706" stroke="#78350f" stroke-width="3"/>
+            ${strapsAndSaddle}
+            <!-- Vorderer & hinterer Höcker schauen unter dem Sattel hervor -->
+            <circle cx="80" cy="68" r="14" fill="#b45309" stroke="#78350f" stroke-width="2"/>
+            <circle cx="80" cy="132" r="14" fill="#b45309" stroke="#78350f" stroke-width="2"/>
+            <!-- Langer Kamelhals & Kopf von oben -->
+            <rect x="69" y="26" width="22" height="32" rx="10" fill="#d97706" stroke="#78350f" stroke-width="2.5"/>
+            <ellipse cx="80" cy="22" rx="16" ry="14" fill="#f59e0b" stroke="#78350f" stroke-width="2.5"/>
+            <circle cx="63" cy="24" r="5" fill="#b45309" stroke="#78350f" stroke-width="2"/>
+            <circle cx="97" cy="24" r="5" fill="#b45309" stroke="#78350f" stroke-width="2"/>
+            <circle cx="73" cy="17" r="2.8" fill="#1c1917"/>
+            <circle cx="87" cy="17" r="2.8" fill="#1c1917"/>
+          </svg>
+        `;
+    }
+  }
 
   function renderSetupModal() {
     document.getElementById('setupAnimals').innerHTML = ANIMALS.map(a => `
@@ -1459,14 +1641,16 @@
       document.getElementById(`star${s}`).classList.toggle('earned', state.score >= s);
     }
 
-    // Frachtbrief & Packtier
+    // Frachtbrief & Top-Down Packtier zwischen den Taschen
     document.getElementById('waybillEmoji').textContent = config.license.icon;
     document.getElementById('waybillTitle').textContent = config.license.title;
     document.getElementById('waybillSentence').textContent =
       `„Ich bin ${config.animal.article} und fahre heute eine offizielle ${config.license.name}-Lieferung!“`;
-    document.getElementById('animalAvatar').textContent = config.animal.icon;
-    document.getElementById('animalBoardName').textContent = `${config.animal.name}-Tableau`;
+    document.getElementById('animalBoardName').textContent = `${config.animal.name}-Tableau (Top-Down)`;
     document.getElementById('unitDepotIcon').textContent = config.license.icon;
+
+    document.getElementById('topDownAnimalSVG').innerHTML = getTopDownAnimalSVG(config.animal.id);
+    document.getElementById('mountCaptionLabel').textContent = `${config.animal.icon} ${config.animal.name}`;
 
     // Zug & Aktionen
     document.getElementById('turnBadge').textContent = `Zug ${state.turn}`;
@@ -1536,7 +1720,7 @@
       document.getElementById(id).classList.toggle('disabled', !canGrab);
     });
 
-    // Satteltaschen rendern
+    // Satteltaschen & Top-Down Grid
     const leftSum = sumArray(state.leftBag);
     const rightSum = sumArray(state.rightBag);
     const maxCap = config.level === 1 ? 10 : 20;
