@@ -423,11 +423,11 @@ function finishOrderDelivery() {
   launchConfetti(state.score >= 3 ? 80 : 45);
 
   const userChipsHTML = packedPieces.map(v => `
-    <span class="mini-cargo-chip chip-${v}">${v === 1 ? '1er ' + config.license.icon : v + 'er'}</span>
+    <span class="mini-cargo-chip chip-${v}">${v} mal ${config.license.icon}</span>
   `).join('');
 
   const optChipsHTML = opt.pieces.map(v => `
-    <span class="mini-cargo-chip chip-${v}">${v === 1 ? '1er ' + config.license.icon : v + 'er'}</span>
+    <span class="mini-cargo-chip chip-${v}">${v} mal ${config.license.icon}</span>
   `).join('');
 
   let ratingBadge = '';
@@ -561,7 +561,9 @@ function render() {
   document.getElementById('waybillSentence').textContent =
     `„Ich bin ${config.animal.article} und fahre heute eine offizielle ${config.license.name}-Lieferung!“`;
   document.getElementById('animalBoardName').textContent = `${config.animal.name}-Tableau (Top-Down)`;
-  document.getElementById('unitDepotIcon').textContent = config.license.icon;
+  document.getElementById('depot10Label').textContent = `10 mal ${config.license.icon}`;
+  document.getElementById('depot5Label').textContent = `5 mal ${config.license.icon}`;
+  document.getElementById('unitDepotIcon').textContent = `1 mal ${config.license.icon}`;
 
   document.getElementById('topDownAnimalSVG').innerHTML = getTopDownAnimalSVG(config.animal.id);
   document.getElementById('mountCaptionLabel').textContent = `${config.animal.icon} ${config.animal.name}`;
@@ -644,11 +646,17 @@ function render() {
   document.getElementById('rightBagCounter').textContent = `${rightSum} / 10`;
 
   // Frachtstücke rendern
+  const formatPieceLabel = (val) =>
+  val === 1
+    ? `<span class="piece-count-sm">1 mal</span><span class="piece-icon-sm">${config.license.icon}</span>`
+    : `${val} mal ${config.license.icon}`;
+
+  // Frachtstücke links rendern
   document.getElementById('leftBagPieces').innerHTML = state.leftBag.map((val, idx) => `
     <div class="cargo-block block-${val}"
-         onclick="unpackCargo('left', ${idx})"
-         title="Klicken zum Auspacken">
-      ${val === 1 ? config.license.icon : val + 'er'}
+        onclick="unpackCargo('left', ${idx})"
+        title="Klicken zum Auspacken">
+      ${formatPieceLabel(val)}
     </div>
   `).join('');
 
@@ -668,9 +676,9 @@ function render() {
 
     document.getElementById('rightBagPieces').innerHTML = state.rightBag.map((val, idx) => `
       <div class="cargo-block block-${val}"
-           onclick="unpackCargo('right', ${idx})"
-           title="Klicken zum Auspacken">
-        ${val === 1 ? config.license.icon : val + 'er'}
+          onclick="unpackCargo('right', ${idx})"
+          title="Klicken zum Auspacken">
+        ${formatPieceLabel(val)}
       </div>
     `).join('');
   }

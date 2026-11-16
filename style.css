@@ -533,64 +533,47 @@ body {
   text-align: center;
 }
 
-/* Physical Dienes Block Visuals */
-.dienes-preview-10 {
-  width: 100%;
-  max-width: 170px;
-  height: 36px;
-  background: linear-gradient(180deg, #3b82f6 0%, var(--dienes-blue) 100%);
-  border: 3px solid var(--dienes-blue-dark);
-  border-radius: 8px;
-  box-shadow: 0 4px 0 #1e3a8a, inset 0 2px 0 rgba(255,255,255,0.35);
-  position: relative;
-  display: grid;
-  grid-template-columns: repeat(10, 1fr);
-}
-
-.dienes-preview-10 span {
-  border-right: 1px dashed rgba(255,255,255,0.35);
-}
-
-.dienes-preview-10 span:nth-child(5) {
-  border-right: 3px solid #fde047;
-}
-
-.dienes-preview-10 span:last-child {
-  border-right: none;
-}
-
-.dienes-preview-5 {
-  width: 55%;
-  min-width: 90px;
-  height: 36px;
-  background: linear-gradient(180deg, #fde047 0%, var(--dienes-yellow) 100%);
-  border: 3px solid var(--dienes-yellow-dark);
-  border-radius: 8px;
-  box-shadow: 0 4px 0 #a16207, inset 0 2px 0 rgba(255,255,255,0.5);
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-}
-
-.dienes-preview-5 span {
-  border-right: 1px dashed rgba(161, 98, 7, 0.45);
-}
-
-.dienes-preview-5 span:last-child {
-  border-right: none;
-}
-
+/* Physical Dienes Block Visuals (Einheitliches Kisten-Design im Markt) */
+.dienes-preview-10,
+.dienes-preview-5,
 .dienes-preview-1 {
-  width: 34px;
-  height: 36px;
-  background: linear-gradient(180deg, #f87171 0%, var(--dienes-red) 100%);
-  border: 3px solid var(--dienes-red-dark);
+  height: 40px;
   border-radius: 8px;
-  box-shadow: 0 4px 0 #7f1d1d, inset 0 2px 0 rgba(255,255,255,0.4);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #fff;
+  font-weight: 900;
   font-size: 0.95rem;
+  padding: 0 10px;
+  white-space: nowrap;
+}
+
+.dienes-preview-10 {
+  width: 100%;
+  max-width: 180px;
+  background: linear-gradient(180deg, #3b82f6 0%, var(--dienes-blue) 100%);
+  color: #fff;
+  border: 2px solid #93c5fd;
+  box-shadow: 0 4px 0 #1e3a8a, inset 0 2px 0 rgba(255, 255, 255, 0.35);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+}
+
+.dienes-preview-5 {
+  width: 65%;
+  min-width: 115px;
+  background: linear-gradient(180deg, #fde047 0%, var(--dienes-yellow) 100%);
+  color: #422006;
+  border: 2px solid #fef08a;
+  box-shadow: 0 4px 0 #a16207, inset 0 2px 0 rgba(255, 255, 255, 0.55);
+}
+
+.dienes-preview-1 {
+  width: 76px;
+  background: linear-gradient(180deg, #f87171 0%, var(--dienes-red) 100%);
+  color: #fff;
+  border: 2px solid #fecaca;
+  box-shadow: 0 4px 0 #7f1d1d, inset 0 2px 0 rgba(255, 255, 255, 0.4);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
 }
 
 /* Packtier-Tableau */
@@ -885,14 +868,9 @@ body {
   background: linear-gradient(180deg, #3b82f6 0%, var(--dienes-blue) 100%);
   color: #fff;
   border: 2px solid #93c5fd;
-  box-shadow: inset 0 -4px 0 #1e3a8a;
-  background-image: linear-gradient(
-    to right,
-    transparent calc(50% - 2px),
-    rgba(253, 224, 71, 0.85) calc(50% - 2px),
-    rgba(253, 224, 71, 0.85) calc(50% + 2px),
-    transparent calc(50% + 2px)
-  );
+  box-shadow: inset 0 -4px 0 #1e3a8a, inset 0 2px 0 rgba(255, 255, 255, 0.35);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+  font-size: 1.05rem;
 }
 
 .cargo-block.block-5 {
@@ -900,14 +878,8 @@ body {
   background: linear-gradient(180deg, #fde047 0%, var(--dienes-yellow) 100%);
   color: #422006;
   border: 2px solid #fef08a;
-  box-shadow: inset 0 -4px 0 #a16207;
-  background-image: repeating-linear-gradient(
-    to right,
-    transparent,
-    transparent calc(20% - 2px),
-    rgba(161, 98, 7, 0.35) calc(20% - 2px),
-    rgba(161, 98, 7, 0.35) 20%
-  );
+  box-shadow: inset 0 -4px 0 #a16207, inset 0 2px 0 rgba(255, 255, 255, 0.55);
+  font-size: 1rem;
 }
 
 .cargo-block.block-1 {
@@ -915,8 +887,21 @@ body {
   background: linear-gradient(180deg, #f87171 0%, var(--dienes-red) 100%);
   color: #fff;
   border: 2px solid #fecaca;
-  box-shadow: inset 0 -4px 0 #7f1d1d;
-  font-size: 0.8rem;
+  box-shadow: inset 0 -4px 0 #7f1d1d, inset 0 2px 0 rgba(255, 255, 255, 0.4);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+  flex-direction: column;
+  line-height: 1.05;
+  padding: 2px;
+}
+
+.cargo-block.block-1 .piece-count-sm {
+  font-size: 0.65rem;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.cargo-block.block-1 .piece-icon-sm {
+  font-size: 0.95rem;
 }
 
 .bag-footer {
