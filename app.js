@@ -166,7 +166,8 @@ async function createNewProfile() {
     stats: {
       totalCargoSent: 0,
       packedAnimals: 0,
-      proPackers: 0
+      proPackers: 0,
+      foxOutsmarted: 0
     },
     createdAt: Date.now()
   };
@@ -206,19 +207,22 @@ async function saveActiveProfilePreferences() {
   await dbSaveProfile(activeProfile);
 }
 
-async function recordDeliveryStats(deliveredAmount, isProPacker) {
+async function recordDeliveryStats(deliveredAmount, isProPacker, wasFoxOutsmarted) {
   if (!activeProfile) return;
   if (!activeProfile.stats) {
-    activeProfile.stats = { totalCargoSent: 0, packedAnimals: 0, proPackers: 0 };
+    activeProfile.stats = { totalCargoSent: 0, packedAnimals: 0, proPackers: 0, foxOutsmarted: 0 };
   }
-  if (typeof activeProfile.stats.totalCargoSent !== 'number') {
-    activeProfile.stats.totalCargoSent = 0;
-  }
+  // Abwärtskompatibilität für bestehende Profile
+  if (typeof activeProfile.stats.totalCargoSent !== 'number') activeProfile.stats.totalCargoSent = 0;
+  if (typeof activeProfile.stats.foxOutsmarted !== 'number') activeProfile.stats.foxOutsmarted = 0;
 
   activeProfile.stats.totalCargoSent += deliveredAmount;
   activeProfile.stats.packedAnimals += 1;
   if (isProPacker) {
     activeProfile.stats.proPackers += 1;
+  }
+  if (wasFoxOutsmarted) {
+    activeProfile.stats.foxOutsmarted += 1;
   }
   await dbSaveProfile(activeProfile);
 }
@@ -411,34 +415,42 @@ function renderSetupModal() {
   }
 
   const statsEl = document.getElementById('activeProfileStatsBanner');
-  if (statsEl && activeProfile) {
-    const st = activeProfile.stats || { totalCargoSent: 0, packedAnimals: 0, proPackers: 0 };
-    const cargoTotal = st.totalCargoSent || 0;
-    const rate = st.packedAnimals > 0 ? Math.round((st.proPackers / st.packedAnimals) * 100) : 0;
-    statsEl.innerHTML = `
-      <div class="p-stat-item">
-        <span class="p-stat-icon">📦</span>
-        <div class="p-stat-text">
-          <small>Verschickte Fracht</small>
-          <strong>${cargoTotal} Einh.</strong>
+    if (statsEl && activeProfile) {
+      const st = activeProfile.stats || { totalCargoSent: 0, packedAnimals: 0, proPackers: 0, foxOutsmarted: 0 };
+      const cargoTotal = st.totalCargoSent || 0;
+      const foxTotal = st.foxOutsmarted || 0;
+      const rate = st.packedAnimals > 0 ? Math.round((st.proPackers / st.packedAnimals) * 100) : 0;
+      statsEl.innerHTML = `
+        <div class="p-stat-item">
+          <span class="p-stat-icon">📦</span>
+          <div class="p-stat-text">
+            <small>Verschickte Fracht</small>
+            <strong>${cargoTotal} Einh.</strong>
+          </div>
         </div>
-      </div>
-      <div class="p-stat-item">
-        <span class="p-stat-icon">🐪</span>
-        <div class="p-stat-text">
-          <small>Gepackte Tiere</small>
-          <strong>${st.packedAnimals}</strong>
+        <div class="p-stat-item">
+          <span class="p-stat-icon">🐪</span>
+          <div class="p-stat-text">
+            <small>Gepackte Tiere</small>
+            <strong>${st.packedAnimals}</strong>
+          </div>
         </div>
-      </div>
-      <div class="p-stat-item">
-        <span class="p-stat-icon">🏅</span>
-        <div class="p-stat-text">
-          <small>Profi-Packer</small>
-          <strong>${st.proPackers} <span style="font-size:0.8rem; font-weight:700; color:#15803d;">(${rate}%)</span></strong>
+        <div class="p-stat-item">
+          <span class="p-stat-icon">🏅</span>
+          <div class="p-stat-text">
+            <small>Profi-Packer</small>
+            <strong>${st.proPackers} <span style="font-size:0.8rem; font-weight:700; color:#15803d;">(${rate}%)</span></strong>
+          </div>
         </div>
-      </div>
-    `;
-  }
+        <div class="p-stat-item">
+          <span class="p-stat-icon">🦊</span>
+          <div class="p-stat-text">
+            <small>Schlauer als Fuchs</small>
+            <strong>${foxTotal}×</strong>
+          </div>
+        </div>
+      `;
+    }
 
   // 1. Packtiere
   document.getElementById('setupAnimals').innerHTML = ANIMALS.map(a => `
@@ -777,7 +789,7 @@ async function finishOrderDelivery() {
   const opt = getOptimalPacking(deliveredOrder, foxWasActive);
   const isProPacker = usedPiecesCount <= opt.minPieces;
 
-  await recordDeliveryStats(deliveredOrder, isProPacker);
+  await recordDeliveryStats(deliveredOrder, isProPacker, Boolean(foxWasActive));
   launchConfetti(isProPacker ? 65 : 40);
 
   const userChipsHTML = packedPieces.map(v => `
@@ -810,10 +822,10 @@ async function finishOrderDelivery() {
     `;
   }
 
-  const pStats = activeProfile ? activeProfile.stats : { totalCargoSent: 0, packedAnimals: 0, proPackers: 0 };
+  const pStats = activeProfile ? activeProfile.stats : { totalCargoSent: 0, packedAnimals: 0, proPackers: 0, foxOutsmarted: 0 };
   const playerStatLine = activeProfile
     ? `<div style="margin-top:12px; padding:8px 12px; background:#fff; border:2px dashed #cbb69b; border-radius:10px; font-size:0.84rem; font-weight:800; color:#57412f;">
-         👤 <strong>${activeProfile.name}s Gesamtbilanz:</strong> 📦 ${pStats.totalCargoSent || 0} Fracht verschickt &nbsp;|&nbsp; 🐪 ${pStats.packedAnimals} Tiere &nbsp;|&nbsp; 🏅 ${pStats.proPackers}× Profi-Packer
+         👤 <strong>${activeProfile.name}s Gesamtbilanz:</strong> 📦 ${pStats.totalCargoSent || 0} Fracht &nbsp;|&nbsp; 🐪 ${pStats.packedAnimals} Tiere &nbsp;|&nbsp; 🏅 ${pStats.proPackers}× Profi &nbsp;|&nbsp; 🦊 ${pStats.foxOutsmarted || 0}× Fuchs ausgetrickst
        </div>`
     : '';
 
@@ -926,9 +938,11 @@ function render() {
   const hCargo = document.getElementById('headerCargoCount');
   const hAnimal = document.getElementById('headerAnimalCount');
   const hPro = document.getElementById('headerProCount');
+  const hFox = document.getElementById('headerFoxCount');
   if (hCargo) hCargo.textContent = pStats.totalCargoSent || 0;
   if (hAnimal) hAnimal.textContent = pStats.packedAnimals || 0;
   if (hPro) hPro.textContent = pStats.proPackers || 0;
+  if (hFox) hFox.textContent = pStats.foxOutsmarted || 0;
 
   // Frachtbrief & Top-Down Packtier zwischen den Taschen
   document.getElementById('waybillEmoji').textContent = config.license.icon;

@@ -1359,10 +1359,10 @@ body {
   color: #dc2626;
 }
 
-/* Statistik-Leiste des gewählten Spielers */
+/* Statistik-Leiste des gewählten Spielers (4 Kennzahlen) */
 .profile-stats-banner {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 10px;
   background: #fffdf9;
   border: 2px dashed var(--wood-light);
@@ -1370,9 +1370,9 @@ body {
   padding: 10px;
 }
 
-@media (max-width: 560px) {
+@media (max-width: 680px) {
   .profile-stats-banner {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, 1fr);
   }
 }
 
