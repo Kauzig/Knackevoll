@@ -1,0 +1,1501 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KNACKEVOLL! – Passt, wackelt und hat Fracht!</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Nunito', sans-serif;
+            background: linear-gradient(180deg, #FEF3C7 0%, #FDE68A 45%, #FCD34D 100%);
+            min-height: 100vh;
+            user-select: none;
+            overflow-x: hidden;
+        }
+        h1, h2, h3, .font-title {
+            font-family: 'Fredoka', sans-serif;
+        }
+
+        /* Wackel-Animation für die "Wackel-Regel" */
+        @keyframes shake {
+            0%, 100% { transform: translateX(0) rotate(0deg); }
+            15% { transform: translateX(-10px) rotate(-2deg); }
+            30% { transform: translateX(10px) rotate(2deg); }
+            45% { transform: translateX(-8px) rotate(-1.5deg); }
+            60% { transform: translateX(8px) rotate(1.5deg); }
+            75% { transform: translateX(-4px) rotate(-0.5deg); }
+        }
+        .animate-shake {
+            animation: shake 0.55s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+        }
+
+        /* Pop-In Animation für Frachtstücke */
+        @keyframes popIn {
+            0% { transform: scale(0.6); opacity: 0; }
+            70% { transform: scale(1.06); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .animate-pop {
+            animation: popIn 0.28s ease-out forwards;
+        }
+
+        /* Sanftes Schweben für das Packtier */
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-5px); }
+        }
+        .animate-float {
+            animation: float 3.2s ease-in-out infinite;
+        }
+
+        /* Satteltaschen-Design */
+        .saddlebag {
+            background: #78350F;
+            border: 4px solid #451A03;
+            box-shadow: inset 0 4px 10px rgba(0,0,0,0.45), 0 6px 0 #451A03;
+            position: relative;
+        }
+        .saddlebag-slot-grid {
+            display: grid;
+            grid-template-columns: repeat(10, minmax(0, 1fr));
+            gap: 2px;
+        }
+
+        /* Die optische Mittelmarkierung (Ziernaht bei 5) */
+        .seam-5 {
+            position: absolute;
+            left: 50%;
+            top: -8px;
+            bottom: -8px;
+            width: 4px;
+            background: repeating-linear-gradient(
+                to bottom,
+                #F59E0B,
+                #F59E0B 6px,
+                transparent 6px,
+                transparent 10px
+            );
+            transform: translateX(-50%);
+            z-index: 25;
+            pointer-events: none;
+            filter: drop-shadow(0 1px 2px rgba(0,0,0,0.6));
+        }
+        .seam-badge {
+            position: absolute;
+            left: 50%;
+            top: -18px;
+            transform: translateX(-50%);
+            background: #F59E0B;
+            color: #451A03;
+            font-size: 0.7rem;
+            font-weight: 800;
+            padding: 1px 6px;
+            border-radius: 999px;
+            border: 2px solid #451A03;
+            z-index: 26;
+            white-space: nowrap;
+        }
+
+        /* Didaktische Dienes-Farben & Struktur */
+        .piece-10 {
+            background: linear-gradient(180deg, #3B82F6 0%, #1D4ED8 100%);
+            border: 3px solid #1E3A8A;
+            box-shadow: inset 0 2px 0 rgba(255,255,255,0.35), 0 4px 0 #1E3A8A;
+            color: white;
+        }
+        .piece-5 {
+            background: linear-gradient(180deg, #FACC15 0%, #EAB308 100%);
+            border: 3px solid #854D0E;
+            box-shadow: inset 0 2px 0 rgba(255,255,255,0.5), 0 4px 0 #854D0E;
+            color: #422006;
+        }
+        .piece-1 {
+            background: linear-gradient(180deg, #EF4444 0%, #DC2626 100%);
+            border: 3px solid #7F1D1D;
+            box-shadow: inset 0 2px 0 rgba(255,255,255,0.35), 0 4px 0 #7F1D1D;
+            color: white;
+        }
+
+        /* 3D Button Effekt */
+        .btn-3d {
+            transition: all 0.12s ease;
+        }
+        .btn-3d:active:not(:disabled) {
+            transform: translateY(4px);
+        }
+    </style>
+</head>
+<body class="text-amber-950 pb-12">
+
+    <!-- TOP NAVIGATION & PERSONALISIERUNGS-LEISTE -->
+    <header class="bg-amber-900 text-amber-50 shadow-lg border-b-4 border-amber-950 sticky top-0 z-40">
+        <div class="max-w-6xl mx-auto px-3 py-2.5 flex flex-wrap items-center justify-between gap-2">
+            <!-- Logo & Titel -->
+            <div class="flex items-center gap-3">
+                <div class="bg-amber-400 text-amber-950 font-title font-bold text-xl sm:text-2xl px-3 py-1 rounded-xl border-2 border-amber-950 shadow-sm flex items-center gap-2">
+                    <span>🐪</span> KNACKEVOLL!
+                </div>
+                <span class="hidden md:inline-block text-amber-200 text-sm font-semibold">
+                    Modul 1: Aufbruch der Karawane
+                </span>
+            </div>
+
+            <!-- Didaktische Stellschraube & Setup-Buttons -->
+            <div class="flex flex-wrap items-center gap-2">
+                <!-- Zahlenraum Umschalter -->
+                <div class="bg-amber-950/80 p-1 rounded-xl flex items-center border border-amber-700" title="Didaktische Stellschraube: Zahlenraum wählen">
+                    <button id="btn-level-1" onclick="setLevel(1)" class="px-2.5 py-1 rounded-lg text-xs sm:text-sm font-bold transition-all bg-amber-400 text-amber-950 shadow">
+                        Stufe 1 (bis 10)
+                    </button>
+                    <button id="btn-level-2" onclick="setLevel(2)" class="px-2.5 py-1 rounded-lg text-xs sm:text-sm font-bold transition-all text-amber-200 hover:text-white">
+                        Stufe 2 (bis 20)
+                    </button>
+                </div>
+
+                <!-- Packtier & Lizenz Anpassen Button -->
+                <button onclick="openSetupModal()" class="bg-amber-700 hover:bg-amber-600 text-white px-3 py-1.5 rounded-xl text-xs sm:text-sm font-bold border-2 border-amber-950 flex items-center gap-1.5 shadow">
+                    <span id="header-animal-icon">🦄</span>
+                    <span id="header-license-icon">✨</span>
+                    <span class="hidden sm:inline">Anpassen</span>
+                    <span class="text-amber-300">⚙️</span>
+                </button>
+
+                <!-- Spielregeln Hilfe -->
+                <button onclick="openRulesModal()" class="bg-amber-800 hover:bg-amber-700 text-amber-100 px-2.5 py-1.5 rounded-xl text-xs sm:text-sm font-bold border-2 border-amber-950" title="Spielregeln & Didaktik">
+                    ❓ Regeln
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- HAUPTBEREICH -->
+    <main class="max-w-6xl mx-auto px-3 sm:px-4 pt-4 space-y-5">
+
+        <!-- FORTSCHRITTS- & AUFTRAGSLEISTE -->
+        <section class="grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch">
+            
+            <!-- Siegpunkte / Erfüllte Aufträge (3 Sterne zum Sieg) -->
+            <div class="lg:col-span-4 bg-white/90 backdrop-blur rounded-2xl p-4 border-4 border-amber-800 shadow-md flex flex-col justify-between">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <span class="text-xs font-extrabold uppercase tracking-wider text-amber-700 block">Oasen-Rennen</span>
+                        <h2 class="font-title text-xl font-bold text-amber-950">Deine Lieferungen</h2>
+                    </div>
+                    <div id="stars-container" class="flex items-center gap-1.5 bg-amber-100 px-3 py-1.5 rounded-xl border-2 border-amber-300">
+                        <!-- Sterne werden per JS gerendert -->
+                    </div>
+                </div>
+
+                <div class="mt-3 pt-3 border-t-2 border-amber-100 flex items-center justify-between text-sm">
+                    <div class="flex items-center gap-2">
+                        <span class="bg-amber-200 text-amber-900 font-extrabold px-2.5 py-1 rounded-lg border border-amber-400">
+                            Zug #<span id="turn-counter">1</span>
+                        </span>
+                        <span class="text-amber-800 font-semibold text-xs sm:text-sm">
+                            für diesen Auftrag
+                        </span>
+                    </div>
+                    <div class="text-xs font-bold text-emerald-800 bg-emerald-100 px-2.5 py-1 rounded-lg border border-emerald-300" title="So viele Züge braucht man mit optimalem Bündeln">
+                        💡 Profi-Ziel: <span id="optimal-turns-badge">1</span> Zug
+                    </div>
+                </div>
+            </div>
+
+            <!-- Offene Auftragskarten (3 zur Auswahl) -->
+            <div class="lg:col-span-8 bg-amber-100/90 rounded-2xl p-3.5 border-4 border-amber-800 shadow-md flex flex-col justify-between">
+                <div class="flex items-center justify-between mb-2 px-1">
+                    <div class="flex items-center gap-2">
+                        <span class="text-lg">📜</span>
+                        <h2 class="font-title text-base sm:text-lg font-bold text-amber-950">
+                            Offene Aufträge <span class="text-xs font-normal text-amber-800">(Wähle einen Auftrag für deine Karawane)</span>
+                        </h2>
+                    </div>
+                    <button onclick="refreshOrders()" class="text-xs bg-amber-200 hover:bg-amber-300 text-amber-900 font-bold px-2.5 py-1 rounded-lg border border-amber-400 transition">
+                        🔄 Neue Karten
+                    </button>
+                </div>
+
+                <!-- 3 Karten Grid -->
+                <div id="orders-grid" class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                    <!-- Auftragskarten werden per JS gerendert -->
+                </div>
+            </div>
+        </section>
+
+        <!-- FEEDBACK-BANNER (Wackel-Regel, Tipps & Hinweise) -->
+        <div id="feedback-box" class="rounded-2xl p-3.5 border-4 transition-all duration-300 flex items-center justify-between gap-3 bg-sky-100 border-sky-600 text-sky-950 shadow-sm">
+            <div class="flex items-center gap-3">
+                <span id="feedback-icon" class="text-2xl sm:text-3xl shrink-0">🐪</span>
+                <div>
+                    <div id="feedback-title" class="font-title font-bold text-base sm:text-lg leading-tight">
+                        Bereit zum Beladen!
+                    </div>
+                    <p id="feedback-text" class="text-xs sm:text-sm font-semibold opacity-90">
+                        Nimm bis zu 2 Frachtstücke aus dem Markt unten, um deinen Auftrag genau zu erfüllen.
+                    </p>
+                </div>
+            </div>
+            <div id="feedback-action"></div>
+        </div>
+
+        <!-- DAS PACKTIER-TABLEAU -->
+        <section id="tableau-section" class="bg-gradient-to-b from-amber-200 via-amber-100 to-amber-200 rounded-3xl p-4 sm:p-6 border-4 border-amber-900 shadow-xl relative overflow-hidden">
+            
+            <!-- Dekorative Wüsten-Elemente im Hintergrund -->
+            <div class="absolute -right-6 -bottom-6 text-8xl opacity-10 pointer-events-none select-none">🌴</div>
+            <div class="absolute -left-4 -bottom-6 text-7xl opacity-10 pointer-events-none select-none">🌵</div>
+
+            <!-- Tableau Header: Offizieller Frachtbrief (links) + Packtier-Avatar (Mitte) + Ladestand (rechts) -->
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-center mb-6 relative z-10">
+                
+                <!-- Oben Links: Offizieller Frachtbrief (Lizenz-Plakette) -->
+                <div class="md:col-span-5 flex items-center">
+                    <div onclick="openSetupModal()" class="cursor-pointer group bg-amber-50 hover:bg-white p-3 rounded-2xl border-4 border-amber-800 shadow-md flex items-center gap-3.5 w-full transition transform hover:-translate-y-0.5" title="Klicken zum Wechseln der Lizenz">
+                        <div id="plaque-icon" class="w-14 h-14 rounded-xl bg-amber-200 border-2 border-amber-600 flex items-center justify-center text-3xl shrink-0 shadow-inner group-hover:scale-105 transition">
+                            ✨
+                        </div>
+                        <div class="min-w-0 flex-1">
+                            <div class="flex items-center gap-1.5">
+                                <span class="text-[10px] font-extrabold uppercase tracking-wider bg-amber-800 text-amber-100 px-2 py-0.5 rounded">
+                                    Offizieller Frachtbrief
+                                </span>
+                            </div>
+                            <div id="plaque-title" class="font-title font-bold text-base sm:text-lg text-amber-950 truncate mt-0.5">
+                                Königliche Feenstaub-Lizenz
+                            </div>
+                            <div id="plaque-sub" class="text-xs text-amber-700 font-semibold">
+                                Spezial-Transport • Klicken zum Ändern
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Mitte: Das gewählte Packtier -->
+                <div class="md:col-span-3 flex flex-col items-center justify-center text-center">
+                    <div id="animal-avatar-box" onclick="openSetupModal()" class="cursor-pointer relative group">
+                        <div class="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-amber-300/80 border-4 border-amber-900 shadow-lg flex items-center justify-center text-5xl sm:text-6xl animate-float">
+                            <span id="tableau-animal-emoji">🦄</span>
+                        </div>
+                        <span id="tableau-animal-name" class="mt-1 inline-block bg-amber-900 text-amber-50 font-title font-bold text-xs sm:text-sm px-3 py-0.5 rounded-full border-2 border-amber-950 shadow">
+                            Pack-Einhorn
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Rechts: Aktuelle Ladung vs. Zielwert -->
+                <div class="md:col-span-4 flex flex-col items-end justify-center">
+                    <div class="bg-white/95 p-3.5 rounded-2xl border-4 border-amber-800 shadow-md w-full flex items-center justify-between">
+                        <div>
+                            <div class="text-xs font-extrabold uppercase text-amber-700">Geladene Fracht</div>
+                            <div class="text-xs font-semibold text-amber-900 mt-0.5">
+                                Zielauftrag: <strong id="target-number-inline" class="text-amber-950 underline">14</strong> Einheiten
+                            </div>
+                        </div>
+                        <div class="flex items-baseline gap-1 bg-amber-100 px-3.5 py-1.5 rounded-xl border-2 border-amber-400">
+                            <span id="current-total-load" class="font-title font-bold text-3xl sm:text-4xl text-amber-950">0</span>
+                            <span class="text-amber-700 font-bold text-lg">/</span>
+                            <span id="target-total-load" class="font-title font-bold text-2xl text-amber-700">14</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- DIE BEIDEN SATTELTASCHEN -->
+            <div id="saddlebags-wrapper" class="grid grid-cols-1 lg:grid-cols-2 gap-6 relative z-10 mt-2">
+                
+                <!-- LINKE TASCHE (10er-Tasche / Zehnerstelle) -->
+                <div id="left-bag-card" class="bg-amber-950/10 rounded-2xl p-3.5 sm:p-4 border-2 border-amber-800/40 transition-all">
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="flex items-center gap-2">
+                            <span class="bg-amber-900 text-amber-100 font-title font-bold text-xs sm:text-sm px-2.5 py-1 rounded-lg">
+                                1. Linke Satteltasche
+                            </span>
+                            <span class="text-xs font-extrabold text-amber-900 hidden sm:inline">
+                                (Zehner-Tasche • Erst hier vollpacken!)
+                            </span>
+                        </div>
+                        <span id="left-bag-counter" class="font-title font-bold text-sm sm:text-base bg-amber-100 px-2.5 py-0.5 rounded-lg border-2 border-amber-800 text-amber-950">
+                            0 / 10
+                        </span>
+                    </div>
+
+                    <!-- Die Tasche (10 Längeneinheiten mit Mittelnaht bei 5) -->
+                    <div id="left-bag-container" class="saddlebag rounded-2xl p-2.5 h-24 sm:h-28 flex items-center relative">
+                        <!-- Ziernaht bei 5 -->
+                        <div class="seam-badge">5er-Naht</div>
+                        <div class="seam-5"></div>
+
+                        <!-- Hintergrund-Rasterslots (1 bis 10) -->
+                        <div class="saddlebag-slot-grid w-full h-full absolute inset-0 p-2.5 pointer-events-none">
+                            <div class="border border-amber-500/25 rounded-l-lg bg-amber-950/30 flex items-end justify-center pb-1 text-[10px] font-bold text-amber-400/50">1</div>
+                            <div class="border border-amber-500/25 bg-amber-950/30 flex items-end justify-center pb-1 text-[10px] font-bold text-amber-400/50">2</div>
+                            <div class="border border-amber-500/25 bg-amber-950/30 flex items-end justify-center pb-1 text-[10px] font-bold text-amber-400/50">3</div>
+                            <div class="border border-amber-500/25 bg-amber-950/30 flex items-end justify-center pb-1 text-[10px] font-bold text-amber-400/50">4</div>
+                            <div class="border border-amber-500/25 bg-amber-950/30 flex items-end justify-center pb-1 text-[10px] font-bold text-amber-400/70">5</div>
+                            <div class="border border-amber-500/25 bg-amber-950/30 flex items-end justify-center pb-1 text-[10px] font-bold text-amber-400/50">6</div>
+                            <div class="border border-amber-500/25 bg-amber-950/30 flex items-end justify-center pb-1 text-[10px] font-bold text-amber-400/50">7</div>
+                            <div class="border border-amber-500/25 bg-amber-950/30 flex items-end justify-center pb-1 text-[10px] font-bold text-amber-400/50">8</div>
+                            <div class="border border-amber-500/25 bg-amber-950/30 flex items-end justify-center pb-1 text-[10px] font-bold text-amber-400/50">9</div>
+                            <div class="border border-amber-500/25 rounded-r-lg bg-amber-950/30 flex items-end justify-center pb-1 text-[10px] font-bold text-amber-400/70">10</div>
+                        </div>
+
+                        <!-- Geladene Frachtstücke (dynamisch) -->
+                        <div id="left-bag-items" class="saddlebag-slot-grid w-full h-full relative z-10">
+                            <!-- Wird per JS gefüllt -->
+                        </div>
+                    </div>
+
+                    <div class="mt-2 flex items-center justify-between text-xs font-bold text-amber-900 px-1">
+                        <span id="left-bag-status">Noch 10 Plätze frei</span>
+                        <span class="text-amber-700">Klicke auf ein Stück in der Tasche zum Zurücklegen</span>
+                    </div>
+                </div>
+
+                <!-- RECHTE TASCHE (Überlauf-Tasche / Einerstelle - in Stufe 2 aktiv) -->
+                <div id="right-bag-card" class="bg-amber-950/10 rounded-2xl p-3.5 sm:p-4 border-2 border-amber-800/40 transition-all relative">
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="flex items-center gap-2">
+                            <span class="bg-amber-900 text-amber-100 font-title font-bold text-xs sm:text-sm px-2.5 py-1 rounded-lg">
+                                2. Rechte Satteltasche
+                            </span>
+                            <span id="right-bag-subtitle" class="text-xs font-extrabold text-amber-900 hidden sm:inline">
+                                (Überlauf-Tasche • Öffnet erst, wenn links = 10!)
+                            </span>
+                        </div>
+                        <span id="right-bag-counter" class="font-title font-bold text-sm sm:text-base bg-amber-100 px-2.5 py-0.5 rounded-lg border-2 border-amber-800 text-amber-950">
+                            0 / 10
+                        </span>
+                    </div>
+
+                    <!-- Die Tasche (10 Längeneinheiten mit Mittelnaht bei 5) -->
+                    <div id="right-bag-container" class="saddlebag rounded-2xl p-2.5 h-24 sm:h-28 flex items-center relative">
+                        <!-- Ziernaht bei 5 -->
+                        <div class="seam-badge">5er-Naht</div>
+                        <div class="seam-5"></div>
+
+                        <!-- Hintergrund-Rasterslots (11 bis 20) -->
+                        <div class="saddlebag-slot-grid w-full h-full absolute inset-0 p-2.5 pointer-events-none">
+                            <div class="border border-amber-500/25 rounded-l-lg bg-amber-950/30 flex items-end justify-center pb-1 text-[10px] font-bold text-amber-400/50">11</div>
+                            <div class="border border-amber-500/25 bg-amber-950/30 flex items-end justify-center pb-1 text-[10px] font-bold text-amber-400/50">12</div>
+                            <div class="border border-amber-500/25 bg-amber-950/30 flex items-end justify-center pb-1 text-[10px] font-bold text-amber-400/50">13</div>
+                            <div class="border border-amber-500/25 bg-amber-950/30 flex items-end justify-center pb-1 text-[10px] font-bold text-amber-400/50">14</div>
+                            <div class="border border-amber-500/25 bg-amber-950/30 flex items-end justify-center pb-1 text-[10px] font-bold text-amber-400/70">15</div>
+                            <div class="border border-amber-500/25 bg-amber-950/30 flex items-end justify-center pb-1 text-[10px] font-bold text-amber-400/50">16</div>
+                            <div class="border border-amber-500/25 bg-amber-950/30 flex items-end justify-center pb-1 text-[10px] font-bold text-amber-400/50">17</div>
+                            <div class="border border-amber-500/25 bg-amber-950/30 flex items-end justify-center pb-1 text-[10px] font-bold text-amber-400/50">18</div>
+                            <div class="border border-amber-500/25 bg-amber-950/30 flex items-end justify-center pb-1 text-[10px] font-bold text-amber-400/50">19</div>
+                            <div class="border border-amber-500/25 rounded-r-lg bg-amber-950/30 flex items-end justify-center pb-1 text-[10px] font-bold text-amber-400/70">20</div>
+                        </div>
+
+                        <!-- Geladene Frachtstücke (dynamisch) -->
+                        <div id="right-bag-items" class="saddlebag-slot-grid w-full h-full relative z-10">
+                            <!-- Wird per JS gefüllt -->
+                        </div>
+
+                        <!-- Sperr-Overlay falls linke Tasche noch nicht voll (oder Stufe 1 aktiv) -->
+                        <div id="right-bag-lock" class="absolute inset-0 bg-amber-950/80 backdrop-blur-[2px] rounded-xl z-30 flex items-center justify-center p-3 text-center transition-opacity">
+                            <div class="flex items-center gap-2.5 text-amber-100">
+                                <span id="right-bag-lock-icon" class="text-2xl">🔒</span>
+                                <span id="right-bag-lock-text" class="text-xs sm:text-sm font-bold leading-snug">
+                                    „Erst links, dann rechts!“<br>
+                                    <span class="text-amber-300 font-normal">Mach erst die linke Tasche randvoll (10).</span>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-2 flex items-center justify-between text-xs font-bold text-amber-900 px-1">
+                        <span id="right-bag-status">Wartet auf volle linke Tasche</span>
+                        <span id="right-bag-hint" class="text-amber-700">Zehnerübergang</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- WERKZEUGLEISTE AM TABLEAU (Entbündeln / Tauschen & Komplett leeren) -->
+            <div class="mt-4 pt-3 border-t-2 border-amber-800/20 flex flex-wrap items-center justify-between gap-2 relative z-10">
+                <div class="flex flex-wrap items-center gap-2">
+                    <button id="btn-unbundle-10" onclick="unbundleTenToFives()" class="bg-amber-50 hover:bg-white text-amber-950 font-bold text-xs sm:text-sm px-3 py-2 rounded-xl border-2 border-amber-800 shadow-sm flex items-center gap-1.5 transition disabled:opacity-40 disabled:pointer-events-none">
+                        <span>🔄</span>
+                        <span>Basar-Tausch: <strong>10er-Kiste ➔ zwei 5er-Säcke</strong> (Entbündeln)</span>
+                    </button>
+                </div>
+
+                <button onclick="clearAllCargo()" class="text-xs sm:text-sm font-bold text-red-800 hover:text-red-950 bg-red-100 hover:bg-red-200 px-3 py-1.5 rounded-xl border-2 border-red-300 transition flex items-center gap-1">
+                    <span>🗑️</span> Taschen komplett ausleeren
+                </button>
+            </div>
+        </section>
+
+        <!-- DER OFFENE MARKT & AKTIONSÖKONOMIE (2-TEILE-LIMIT) -->
+        <section class="bg-white/95 rounded-3xl p-4 sm:p-6 border-4 border-amber-900 shadow-xl">
+            
+            <!-- Markt-Kopfzeile mit Aktions-Anzeige (2 Griffe pro Zug) -->
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 mb-5 border-b-2 border-amber-200">
+                <div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-2xl">🏪</span>
+                        <h2 class="font-title text-xl sm:text-2xl font-bold text-amber-950">
+                            Der Offene Fracht-Markt
+                        </h2>
+                    </div>
+                    <p class="text-xs sm:text-sm text-amber-800 font-semibold mt-0.5">
+                        <strong>Aktions-Regel:</strong> Du darfst pro Zug <strong>maximal 2 Frachtstücke</strong> nehmen! Wer schlau bündelt, ist viel schneller am Ziel.
+                    </p>
+                </div>
+
+                <!-- Aktions-Slots & Zug Beenden Button -->
+                <div class="flex flex-wrap items-center gap-3 bg-amber-100 p-3 rounded-2xl border-2 border-amber-400">
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs font-extrabold uppercase text-amber-900">Deine 2 Griffe im Zug:</span>
+                        <div id="action-pips" class="flex items-center gap-1.5">
+                            <!-- 2 Hand-Slots -->
+                        </div>
+                    </div>
+
+                    <button id="btn-next-turn" onclick="nextTurn()" class="btn-3d bg-emerald-600 hover:bg-emerald-500 text-white font-title font-bold text-sm sm:text-base px-4 py-2 rounded-xl border-b-4 border-emerald-800 shadow flex items-center gap-1.5">
+                        <span>⏭️</span> Nächster Zug (+2 Griffe)
+                    </button>
+                </div>
+            </div>
+
+            <!-- DIE 3 FRACHT-TYPEN NACH DIENES-FARBLOGIK -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                
+                <!-- 1. BLAUE 10er-KISTE -->
+                <div class="bg-blue-50/70 rounded-2xl p-4 border-2 border-blue-200 flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="font-title font-bold text-lg text-blue-950 flex items-center gap-1.5">
+                                <span class="w-4 h-4 rounded bg-blue-600 inline-block border border-blue-900"></span>
+                                10er-Kiste
+                            </span>
+                            <span class="text-xs font-extrabold bg-blue-200 text-blue-900 px-2 py-0.5 rounded-full">
+                                10 Einheiten
+                            </span>
+                        </div>
+                        <p class="text-xs text-blue-900/80 font-semibold mb-3">
+                            Füllt eine komplette Satteltasche auf einen Schlag! (2 × 5er-Segmente)
+                        </p>
+                    </div>
+
+                    <!-- Klickbares 10er-Stück -->
+                    <button id="market-btn-10" onclick="pickCargo(10)" class="btn-3d piece-10 w-full h-16 rounded-xl relative flex items-center justify-center group hover:brightness-105 transition cursor-pointer overflow-hidden">
+                        <!-- Dezente 1er-Unterteilung + deutliche 5er-Kerbe -->
+                        <div class="absolute inset-0 grid grid-cols-10 pointer-events-none">
+                            <div class="border-r border-white/15"></div>
+                            <div class="border-r border-white/15"></div>
+                            <div class="border-r border-white/15"></div>
+                            <div class="border-r border-white/15"></div>
+                            <div class="border-r-4 border-blue-950/60"></div>
+                            <div class="border-r border-white/15"></div>
+                            <div class="border-r border-white/15"></div>
+                            <div class="border-r border-white/15"></div>
+                            <div class="border-r border-white/15"></div>
+                            <div></div>
+                        </div>
+                        <div class="relative z-10 flex items-center gap-2 font-title font-bold text-xl tracking-wide drop-shadow">
+                            <span class="cargo-license-emoji">✨</span>
+                            <span>10er-Kiste</span>
+                        </div>
+                    </button>
+                </div>
+
+                <!-- 2. GELBER 5er-SACK -->
+                <div class="bg-yellow-50/80 rounded-2xl p-4 border-2 border-yellow-300 flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="font-title font-bold text-lg text-yellow-950 flex items-center gap-1.5">
+                                <span class="w-4 h-4 rounded bg-yellow-400 inline-block border border-yellow-800"></span>
+                                5er-Sack
+                            </span>
+                            <span class="text-xs font-extrabold bg-yellow-200 text-yellow-950 px-2 py-0.5 rounded-full">
+                                5 Einheiten
+                            </span>
+                        </div>
+                        <p class="text-xs text-yellow-950/80 font-semibold mb-3">
+                            Genau eine halbe Tasche bis zur Ziernaht! Zwei davon ergeben 10.
+                        </p>
+                    </div>
+
+                    <!-- Klickbares 5er-Stück (optisch halb so breit dargestellt) -->
+                    <div class="flex justify-center">
+                        <button id="market-btn-5" onclick="pickCargo(5)" class="btn-3d piece-5 w-3/4 h-16 rounded-xl relative flex items-center justify-center group hover:brightness-105 transition cursor-pointer overflow-hidden">
+                            <!-- 5 angedeutete 1er-Felder -->
+                            <div class="absolute inset-0 grid grid-cols-5 pointer-events-none">
+                                <div class="border-r border-yellow-900/25"></div>
+                                <div class="border-r border-yellow-900/25"></div>
+                                <div class="border-r border-yellow-900/25"></div>
+                                <div class="border-r border-yellow-900/25"></div>
+                                <div></div>
+                            </div>
+                            <div class="relative z-10 flex items-center gap-1.5 font-title font-bold text-xl drop-shadow-sm">
+                                <span class="cargo-license-emoji">✨</span>
+                                <span>5er-Sack</span>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 3. ROTE 1er-EINHEIT -->
+                <div class="bg-red-50/70 rounded-2xl p-4 border-2 border-red-200 flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="font-title font-bold text-lg text-red-950 flex items-center gap-1.5">
+                                <span class="w-4 h-4 rounded bg-red-500 inline-block border border-red-900"></span>
+                                1er-Frachtstück
+                            </span>
+                            <span class="text-xs font-extrabold bg-red-200 text-red-900 px-2 py-0.5 rounded-full">
+                                1 Einheit
+                            </span>
+                        </div>
+                        <p class="text-xs text-red-900/80 font-semibold mb-3">
+                            Einzelnes kleines Stück für genaue Restlücken. Vorsicht: Nicht einzeln abzählen!
+                        </p>
+                    </div>
+
+                    <!-- Klickbares 1er-Stück -->
+                    <div class="flex justify-center">
+                        <button id="market-btn-1" onclick="pickCargo(1)" class="btn-3d piece-1 w-24 h-16 rounded-xl relative flex items-center justify-center group hover:brightness-105 transition cursor-pointer">
+                            <div class="relative z-10 flex items-center gap-1 font-title font-bold text-xl drop-shadow">
+                                <span class="cargo-license-emoji">✨</span>
+                                <span>1er</span>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+    </main>
+
+    <!-- MODAL 1: PERSONALISIERUNG (Packtier, Lizenz & Zahlenraum) -->
+    <div id="setup-modal" class="fixed inset-0 bg-amber-950/75 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+        <div class="bg-amber-50 rounded-3xl max-w-2xl w-full p-5 sm:p-7 border-4 border-amber-900 shadow-2xl max-h-[92vh] overflow-y-auto">
+            <div class="flex items-center justify-between pb-3 border-b-2 border-amber-200">
+                <div class="flex items-center gap-2.5">
+                    <span class="text-3xl">⛺</span>
+                    <div>
+                        <h2 class="font-title text-2xl font-bold text-amber-950">Karawanen-Setup</h2>
+                        <p class="text-xs sm:text-sm text-amber-800 font-semibold">Wähle dein Packtier, deine Fracht-Lizenz und die Klassenstufe!</p>
+                    </div>
+                </div>
+                <button onclick="closeSetupModal()" class="w-9 h-9 rounded-xl bg-amber-200 hover:bg-amber-300 text-amber-950 font-bold text-lg">✕</button>
+            </div>
+
+            <div class="space-y-5 my-5">
+                <!-- 1. Packtier wählen -->
+                <div>
+                    <label class="block font-title font-bold text-base text-amber-950 mb-2">
+                        1. Wähle dein Packtier-Tableau:
+                    </label>
+                    <div id="setup-animals-grid" class="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
+                        <!-- Wird per JS gefüllt -->
+                    </div>
+                </div>
+
+                <!-- 2. Fracht-Lizenz wählen -->
+                <div>
+                    <label class="block font-title font-bold text-base text-amber-950 mb-2">
+                        2. Wähle deinen „Offiziellen Frachtbrief“ (Lizenz-Plakette):
+                    </label>
+                    <div id="setup-licenses-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                        <!-- Wird per JS gefüllt -->
+                    </div>
+                </div>
+
+                <!-- 3. Didaktische Stellschraube -->
+                <div>
+                    <label class="block font-title font-bold text-base text-amber-950 mb-2">
+                        3. Didaktische Stellschraube (Zahlenraum):
+                    </label>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <button id="modal-lvl-1" onclick="setLevel(1)" class="p-3.5 rounded-2xl border-4 text-left transition flex items-start gap-3">
+                            <span class="text-2xl">1️⃣</span>
+                            <div>
+                                <div class="font-title font-bold text-base">Stufe 1: Zahlenraum bis 10</div>
+                                <p class="text-xs opacity-85 mt-0.5">Ideal für den Schuleingang. Nur 1 Satteltasche (Kapazität 10).</p>
+                            </div>
+                        </button>
+                        <button id="modal-lvl-2" onclick="setLevel(2)" class="p-3.5 rounded-2xl border-4 text-left transition flex items-start gap-3">
+                            <span class="text-2xl">2️⃣</span>
+                            <div>
+                                <div class="font-title font-bold text-base">Stufe 2: Zahlenraum bis 20</div>
+                                <p class="text-xs opacity-85 mt-0.5">Beide Satteltaschen (2 × 10 = 20). Mit Zehnerübergang („Erst links, dann rechts!“).</p>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex justify-end pt-3 border-t-2 border-amber-200">
+                <button onclick="closeSetupModal()" class="btn-3d bg-emerald-600 hover:bg-emerald-500 text-white font-title font-bold text-lg px-6 py-2.5 rounded-2xl border-b-4 border-emerald-800 shadow">
+                    🚀 Karawane starten!
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 2: LIEFERUNG ERFOLGREICH / RUNDENSIEG -->
+    <div id="celebration-modal" class="fixed inset-0 bg-amber-950/75 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+        <div class="bg-amber-50 rounded-3xl max-w-md w-full p-6 border-4 border-amber-900 shadow-2xl text-center animate-pop">
+            <div id="celeb-emoji" class="text-6xl mb-2">🎉</div>
+            <h2 id="celeb-title" class="font-title text-2xl sm:text-3xl font-bold text-amber-950">
+                Lieferung abgeschlossen!
+            </h2>
+            <p id="celeb-subtitle" class="text-sm sm:text-base text-amber-800 font-semibold mt-1">
+                Dein Packtier hat genau die richtige Menge geliefert!
+            </p>
+
+            <!-- Auswertung des Bündelns -->
+            <div id="celeb-stats-box" class="my-5 bg-white p-4 rounded-2xl border-2 border-amber-300 text-left space-y-2">
+                <!-- Dynamisch per JS -->
+            </div>
+
+            <button id="celeb-btn" onclick="closeCelebrationModal()" class="btn-3d w-full bg-emerald-600 hover:bg-emerald-500 text-white font-title font-bold text-lg py-3 rounded-2xl border-b-4 border-emerald-800 shadow">
+                Nächsten Auftrag packen! ➔
+            </button>
+        </div>
+    </div>
+
+    <!-- MODAL 3: SPIELREGELN & DIDAKTIK -->
+    <div id="rules-modal" class="fixed inset-0 bg-amber-950/75 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+        <div class="bg-amber-50 rounded-3xl max-w-xl w-full p-5 sm:p-6 border-4 border-amber-900 shadow-2xl max-h-[90vh] overflow-y-auto">
+            <div class="flex items-center justify-between pb-3 border-b-2 border-amber-200">
+                <h2 class="font-title text-2xl font-bold text-amber-950">📖 Spielregeln: KNACKEVOLL!</h2>
+                <button onclick="closeRulesModal()" class="w-9 h-9 rounded-xl bg-amber-200 hover:bg-amber-300 font-bold">✕</button>
+            </div>
+            <div class="space-y-3 my-4 text-sm text-amber-950 leading-relaxed">
+                <div class="bg-white p-3.5 rounded-2xl border-2 border-amber-200">
+                    <h3 class="font-title font-bold text-base text-amber-900">1. Das Ziel</h3>
+                    <p>Erfülle <strong>3 Auftragskarten</strong>, indem du die Satteltaschen deines Packtiers exakt bis zur gesuchten Zielzahl belädst.</p>
+                </div>
+                <div class="bg-white p-3.5 rounded-2xl border-2 border-amber-200">
+                    <h3 class="font-title font-bold text-base text-amber-900">2. Warum Bündeln gewinnt (2-Teile-Limit)</h3>
+                    <p>Du darfst pro Zug <strong>höchstens 2 Frachtstücke</strong> aus dem Markt nehmen. Wer 7 Einheiten einzeln mit roten 1ern zählt, braucht 4 Züge. Wer klug bündelt (ein <strong>5er-Sack</strong> + zwei <strong>1er</strong>), schafft es in nur 2 Zügen!</p>
+                </div>
+                <div class="bg-white p-3.5 rounded-2xl border-2 border-amber-200">
+                    <h3 class="font-title font-bold text-base text-amber-900">3. Die „Wackel-Regel“</h3>
+                    <p>Eine Tasche fasst exakt <strong>10 Einheiten</strong>. Ein Stück darf niemals überstehen! Sind in einer Tasche nur noch 3 Plätze frei, passt kein 5er-Sack mehr hinein – es wackelt!</p>
+                </div>
+                <div class="bg-white p-3.5 rounded-2xl border-2 border-amber-200">
+                    <h3 class="font-title font-bold text-base text-amber-900">4. „Erst links, dann rechts!“ (Zehnerübergang)</h3>
+                    <p>In Stufe 2 (bis 20) darf die rechte Überlauf-Tasche erst beladen werden, wenn die linke 10er-Tasche <strong>randvoll (10)</strong> ist. So erkennst du jede Zahl über 10 sofort als <em>10 + Einer</em>!</p>
+                </div>
+            </div>
+            <button onclick="closeRulesModal()" class="btn-3d w-full bg-amber-800 hover:bg-amber-700 text-white font-title font-bold py-2.5 rounded-xl">
+                Verstanden!
+            </button>
+        </div>
+    </div>
+
+    <script>
+        /********************************************************************
+         * DATEN & KONFIGURATION (Packtiere & Lizenzen)
+         ********************************************************************/
+        const ANIMALS = [
+            { id: 'unicorn', name: 'Pack-Einhorn', emoji: '🦄' },
+            { id: 'raptor',  name: 'Lasten-Raptor', emoji: '🦖' },
+            { id: 'bear',    name: 'Karawanen-Bär', emoji: '🐻' },
+            { id: 'cat',     name: 'Wüsten-Katze',  emoji: '🐱' },
+            { id: 'camel',   name: 'Wüsten-Kamel',  emoji: '🐪' }
+        ];
+
+        const LICENSES = [
+            {
+                id: 'fairy',
+                name: 'Königliche Feenstaub-Lizenz',
+                shortCargo: 'Feenstaub',
+                emoji: '✨',
+                orderText: (n) => `Die Fee bestellt ${n} Einheiten Glitzer-Feenstaub!`
+            },
+            {
+                id: 'dino',
+                name: 'Große Dino-Knochen-Lizenz',
+                shortCargo: 'Dino-Knochen',
+                emoji: '🍖',
+                orderText: (n) => `Das Urzeit-Lager braucht ${n} Dino-Knochen!`
+            },
+            {
+                id: 'honey',
+                name: 'Meister-Honig-Lizenz',
+                shortCargo: 'Meister-Honig',
+                emoji: '🍯',
+                orderText: (n) => `Die Bärenhöhle bestellt ${n} Töpfe Meister-Honig!`
+            },
+            {
+                id: 'fish',
+                name: 'Edel-Stinkefisch-Lizenz',
+                shortCargo: 'Edel-Stinkefisch',
+                emoji: '🐟',
+                orderText: (n) => `Der Kratzbaum-Palast verlangt ${n} Edel-Stinkefische!`
+            }
+        ];
+
+        /********************************************************************
+         * SPIELZUSTAND (STATE)
+         ********************************************************************/
+        const state = {
+            level: 2,                   // 1 = ZR bis 10 (1 Tasche), 2 = ZR bis 20 (2 Taschen)
+            animal: ANIMALS[0],         // Gewähltes Packtier
+            license: LICENSES[0],       // Gewählte Fracht-Lizenz
+            
+            orders: [],                 // 3 offene Auftragskarten (Zahlen)
+            selectedOrderIndex: 0,      // Aktuell aktiver Auftrag (0..2)
+            
+            leftBag: [],                // Array aus Frachtgrößen z.B. [10] oder [5, 1, 1]
+            rightBag: [],               // Array aus Frachtgrößen in der rechten Tasche
+            
+            picksThisTurn: 0,           // Max 2 Frachtstücke pro Zug
+            maxPicksPerTurn: 2,
+            currentTurn: 1,             // Zählt die Züge für den aktuellen Auftrag
+            totalPiecesPicked: 0,       // Statistik für Bündel-Auswertung
+            
+            completedOrders: 0,         // Bei 3 erfüllten Aufträgen ist das Spiel gewonnen
+            turnHistoryStats: []        // Speichert { target, turnsUsed, optimalTurns }
+        };
+
+        /********************************************************************
+         * HILFSFUNKTIONEN FÜR MATHEMATIK & DIDAKTIK
+         ********************************************************************/
+        function sumArray(arr) {
+            return arr.reduce((a, b) => a + b, 0);
+        }
+
+        function getLeftTotal() {
+            return sumArray(state.leftBag);
+        }
+
+        function getRightTotal() {
+            return sumArray(state.rightBag);
+        }
+
+        function getTotalLoad() {
+            return getLeftTotal() + getRightTotal();
+        }
+
+        function getActiveTarget() {
+            return state.orders[state.selectedOrderIndex] || 10;
+        }
+
+        // Berechnet die minimale Anzahl an Stücken (10er, 5er, 1er) und optimalen Zügen (bei 2 Teilen/Zug)
+        function getOptimalBundleInfo(target) {
+            let rem = target;
+            const pieces = [];
+            while (rem >= 10) { pieces.push(10); rem -= 10; }
+            while (rem >= 5)  { pieces.push(5);  rem -= 5; }
+            while (rem >= 1)  { pieces.push(1);  rem -= 1; }
+            const minTurns = Math.ceil(pieces.length / 2);
+            return { pieces, minPieces: pieces.length, minTurns };
+        }
+
+        // Erzeugt 3 unterschiedliche Zufalls-Auftragszahlen passend zur Stufe
+        function generateOrders() {
+            const minVal = state.level === 1 ? 2 : 6;
+            const maxVal = state.level === 1 ? 10 : 20;
+            const pool = [];
+            for (let i = minVal; i <= maxVal; i++) {
+                pool.push(i);
+            }
+            // Mischen
+            pool.sort(() => Math.random() - 0.5);
+            
+            // In Stufe 2 stellen wir sicher, dass mindestens 2 Zahlen > 10 dabei sind (Zehnerübergang)
+            if (state.level === 2) {
+                const overTen = pool.filter(n => n > 10);
+                const underOrTen = pool.filter(n => n <= 10);
+                state.orders = [overTen[0], overTen[1], underOrTen[0] || overTen[2]].sort((a, b) => a - b);
+            } else {
+                state.orders = pool.slice(0, 3).sort((a, b) => a - b);
+            }
+
+            if (state.selectedOrderIndex >= state.orders.length) {
+                state.selectedOrderIndex = 0;
+            }
+        }
+
+        /********************************************************************
+         * SPIELAKTIONEN: FRACHT NEHMEN, PRÜFEN (WACKEL-REGEL & ERST LINKS)
+         ********************************************************************/
+        function pickCargo(size) {
+            // 1. Prüfen: Sind in diesem Zug noch Griffe frei (Aktionsökonomie: max 2 Teile)?
+            if (state.picksThisTurn >= state.maxPicksPerTurn) {
+                triggerShake('btn-next-turn');
+                setFeedback(
+                    'warn',
+                    '✋ Halt! Nur 2 Frachtstücke pro Zug!',
+                    'Du hast in diesem Zug schon 2 Teile genommen. Klicke rechts auf „Nächster Zug“, um weiterzupacken!'
+                );
+                return;
+            }
+
+            const leftLoad = getLeftTotal();
+            const rightLoad = getRightTotal();
+
+            // 2. Welche Tasche ist gerade an der Reihe? ("Erst links, dann rechts"-Regel)
+            if (leftLoad < 10) {
+                const freeLeft = 10 - leftLoad;
+                if (size > freeLeft) {
+                    // WACKEL-REGEL greift!
+                    triggerShake('left-bag-container');
+                    const hintPiece = freeLeft >= 5 ? 'einen 5er-Sack oder 1er' : `höchstens ${freeLeft} einzelne 1er`;
+                    setFeedback(
+                        'error',
+                        `💥 Wackelt! Das ${size}er-Stück ist zu groß für links!`,
+                        `In der linken Tasche sind nur noch ${freeLeft} Plätze frei. Die Tasche muss erst genau auf 10 gefüllt werden (nimm ${hintPiece})!`
+                    );
+                    return;
+                }
+
+                // Passt in die linke Tasche!
+                state.leftBag.push(size);
+                state.picksThisTurn++;
+                state.totalPiecesPicked++;
+
+                const newLeftLoad = getLeftTotal();
+                if (newLeftLoad === 10 && state.level === 2 && getActiveTarget() > 10) {
+                    setFeedback(
+                        'success',
+                        '🎉 Linke 10er-Tasche ist randvoll (10)!',
+                        'Super! Jetzt ist die rechte Überlauf-Tasche freigeschaltet – packe dort den Rest bis zum Zielwert!'
+                    );
+                } else {
+                    setFeedback(
+                        'info',
+                        `${size}er-Frachtstück links eingeladen!`,
+                        `In diesem Zug kannst du noch ${state.maxPicksPerTurn - state.picksThisTurn} Teil(e) nehmen.`
+                    );
+                }
+            } else {
+                // Linke Tasche ist voll (10). Prüfen ob Stufe 2 aktiv ist:
+                if (state.level === 1) {
+                    triggerShake('left-bag-container');
+                    setFeedback(
+                        'warn',
+                        'Satteltasche ist bereits voll (10)!',
+                        'In Stufe 1 spielst du nur mit einer Satteltasche bis 10.'
+                    );
+                    return;
+                }
+
+                const freeRight = 10 - rightLoad;
+                if (size > freeRight) {
+                    // WACKEL-REGEL in der rechten Tasche!
+                    triggerShake('right-bag-container');
+                    setFeedback(
+                        'error',
+                        `💥 Wackelt! Das ${size}er-Stück passt rechts nicht mehr rein!`,
+                        `In der rechten Tasche sind nur noch ${freeRight} Plätze frei – es darf nichts überstehen!`
+                    );
+                    return;
+                }
+
+                // Passt in die rechte Tasche!
+                state.rightBag.push(size);
+                state.picksThisTurn++;
+                state.totalPiecesPicked++;
+
+                setFeedback(
+                    'info',
+                    `${size}er-Frachtstück in die rechte Tasche gepackt!`,
+                    `Du hast jetzt ${getTotalLoad()} von ${getActiveTarget()} Einheiten geladen.`
+                );
+            }
+
+            renderAll();
+            checkOrderCompletion();
+        }
+
+        // Ein geladenes Frachtstück durch Anklicken wieder zurück in den Markt legen
+        function removeCargoFromBag(bagName, index) {
+            if (bagName === 'left') {
+                // Wenn rechts schon Fracht liegt, darf links nicht geleert werden ("Erst links, dann rechts")
+                if (state.rightBag.length > 0) {
+                    triggerShake('right-bag-container');
+                    setFeedback(
+                        'warn',
+                        'Erst rechts abladen!',
+                        'Solange Fracht in der rechten Überlauf-Tasche liegt, muss die linke 10er-Tasche voll bleiben.'
+                    );
+                    return;
+                }
+                const removed = state.leftBag.splice(index, 1)[0];
+                if (state.picksThisTurn > 0) state.picksThisTurn--;
+                setFeedback('info', `${removed}er-Stück zurückgelegt.`, 'Du kannst jetzt ein anderes passendes Frachtstück wählen.');
+            } else {
+                const removed = state.rightBag.splice(index, 1)[0];
+                if (state.picksThisTurn > 0) state.picksThisTurn--;
+                setFeedback('info', `${removed}er-Stück aus der rechten Tasche entfernt.`, 'Wähle ein passendes Stück aus dem Markt.');
+            }
+            renderAll();
+        }
+
+        // Optionales Entbündeln: Eine 10er-Kiste in zwei 5er-Säcke tauschen
+        function unbundleTenToFives() {
+            const rightIdx = state.rightBag.indexOf(10);
+            const leftIdx = state.leftBag.indexOf(10);
+
+            if (rightIdx !== -1) {
+                state.rightBag.splice(rightIdx, 1, 5, 5);
+                setFeedback('success', '🔄 Basar-Tausch durchgeführt!', 'Deine 10er-Kiste in der rechten Tasche wurde in zwei 5er-Säcke (5 + 5) entbündelt.');
+            } else if (leftIdx !== -1) {
+                state.leftBag.splice(leftIdx, 1, 5, 5);
+                setFeedback('success', '🔄 Basar-Tausch durchgeführt!', 'Deine 10er-Kiste in der linken Tasche wurde in zwei 5er-Säcke (5 + 5) entbündelt.');
+            } else {
+                setFeedback('warn', 'Keine 10er-Kiste geladen!', 'Du musst erst eine blaue 10er-Kiste auf deinem Tier haben, um sie in zwei 5er zu tauschen.');
+                return;
+            }
+            renderAll();
+        }
+
+        function clearAllCargo() {
+            state.leftBag = [];
+            state.rightBag = [];
+            state.picksThisTurn = 0;
+            state.currentTurn = 1;
+            state.totalPiecesPicked = 0;
+            setFeedback('info', 'Taschen ausgeleert!', 'Starte frisch mit Zug #1 für diesen Auftrag.');
+            renderAll();
+        }
+
+        function nextTurn() {
+            if (state.picksThisTurn === 0) {
+                setFeedback('info', 'Du hast noch 2 Griffe frei!', 'Nimm zuerst 1 oder 2 Frachtstücke aus dem Markt unten.');
+                return;
+            }
+            state.currentTurn++;
+            state.picksThisTurn = 0;
+            setFeedback(
+                'info',
+                `⏭️ Zug #${state.currentTurn} startet!`,
+                'Du darfst wieder bis zu 2 Frachtstücke aus dem Markt greifen.'
+            );
+            renderAll();
+        }
+
+        function selectOrder(index) {
+            if (index === state.selectedOrderIndex) return;
+            state.selectedOrderIndex = index;
+            // Wenn gewechselt wird, prüfen ob aktuelle Ladung schon passt
+            setFeedback(
+                'info',
+                `📜 Neuer Auftrag gewählt: Zielzahl ${getActiveTarget()}!`,
+                state.license.orderText(getActiveTarget())
+            );
+            renderAll();
+            checkOrderCompletion();
+        }
+
+        function refreshOrders() {
+            generateOrders();
+            clearAllCargo();
+            setFeedback('info', '🔄 Neue Auftragskarten ausgelegt!', 'Such dir eine Karte aus und belade dein Packtier.');
+            renderAll();
+        }
+
+        /********************************************************************
+         * PRÜFUNG AUF AUFTRAGSERFÜLLUNG & SIEG
+         ********************************************************************/
+        function checkOrderCompletion() {
+            const total = getTotalLoad();
+            const target = getActiveTarget();
+
+            if (total === target) {
+                // Exakt erreicht!
+                const opt = getOptimalBundleInfo(target);
+                const turnsUsed = state.currentTurn;
+                state.completedOrders++;
+                state.turnHistoryStats.push({
+                    target,
+                    turnsUsed,
+                    optimalTurns: opt.minTurns
+                });
+
+                showCelebrationModal(target, turnsUsed, opt);
+            } else if (total > target) {
+                // Zu viel geladen!
+                setFeedback(
+                    'warn',
+                    `⚠️ Zu viel geladen (${total} statt ${target})!`,
+                    `Klicke auf ein Frachtstück in der Satteltasche, um ${total - target} Einheit(en) wieder abzuladen.`
+                );
+            }
+        }
+
+        function showCelebrationModal(target, turnsUsed, opt) {
+            const modal = document.getElementById('celebration-modal');
+            const emojiEl = document.getElementById('celeb-emoji');
+            const titleEl = document.getElementById('celeb-title');
+            const subEl = document.getElementById('celeb-subtitle');
+            const statsBox = document.getElementById('celeb-stats-box');
+            const btnEl = document.getElementById('celeb-btn');
+
+            const isGameWon = state.completedOrders >= 3;
+            const isPerfectBundle = turnsUsed <= opt.minTurns;
+
+            const decompositionStr = state.leftBag.concat(state.rightBag).join(' + ');
+
+            if (isGameWon) {
+                emojiEl.textContent = '🏆';
+                titleEl.textContent = 'KNACKEVOLL! Du hast gewonnen!';
+                subEl.textContent = `Alle 3 Lieferungen (${state.license.shortCargo}) sind sicher in der Oase angekommen!`;
+                btnEl.textContent = '🎉 Neue Runde starten!';
+            } else {
+                emojiEl.textContent = isPerfectBundle ? '🌟' : '🎉';
+                titleEl.textContent = `Lieferung (${target}) geschafft!`;
+                subEl.textContent = `${state.animal.emoji} Dein ${state.animal.name} bringt die Fracht ins Lager!`;
+                btnEl.textContent = 'Nächsten Auftrag packen! ➔';
+            }
+
+            statsBox.innerHTML = `
+                <div class="flex items-center justify-between text-sm border-b border-amber-200 pb-2">
+                    <span class="font-bold text-amber-800">Deine Zerlegung:</span>
+                    <span class="font-title font-bold text-base bg-amber-100 px-2.5 py-0.5 rounded-lg border border-amber-300">
+                        ${decompositionStr} = ${target}
+                    </span>
+                </div>
+                <div class="flex items-center justify-between text-sm border-b border-amber-200 pb-2">
+                    <span class="font-bold text-amber-800">Benötigte Züge:</span>
+                    <span class="font-extrabold ${isPerfectBundle ? 'text-emerald-700' : 'text-amber-900'}">
+                        ${turnsUsed} ${turnsUsed === 1 ? 'Zug' : 'Züge'} (Profi-Bündelung: ${opt.minTurns})
+                    </span>
+                </div>
+                <div class="text-xs font-bold p-2.5 rounded-xl ${isPerfectBundle ? 'bg-emerald-100 text-emerald-900 border border-emerald-300' : 'bg-amber-100 text-amber-900 border border-amber-300'}">
+                    ${isPerfectBundle 
+                        ? '✨ Meisterhaft gebündelt! Du hast die größten Kisten und Säcke optimal genutzt!' 
+                        : `💡 Bündel-Tipp: Mit [${opt.pieces.join(' + ')}] schafft man die ${target} sogar in nur ${opt.minTurns} ${opt.minTurns === 1 ? 'Zug' : 'Zügen'}!`}
+                </div>
+            `;
+
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            renderAll();
+        }
+
+        function closeCelebrationModal() {
+            const modal = document.getElementById('celebration-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+
+            if (state.completedOrders >= 3) {
+                // Komplett neue Runde
+                state.completedOrders = 0;
+                state.turnHistoryStats = [];
+                generateOrders();
+            } else {
+                // Erfüllte Karte durch eine neue ersetzen
+                const usedNumbers = new Set(state.orders);
+                const minVal = state.level === 1 ? 2 : 6;
+                const maxVal = state.level === 1 ? 10 : 20;
+                const candidates = [];
+                for (let i = minVal; i <= maxVal; i++) {
+                    if (!usedNumbers.has(i)) candidates.push(i);
+                }
+                const replacement = candidates[Math.floor(Math.random() * candidates.length)] || 12;
+                state.orders[state.selectedOrderIndex] = replacement;
+            }
+
+            // Taschen leeren für nächsten Auftrag
+            state.leftBag = [];
+            state.rightBag = [];
+            state.picksThisTurn = 0;
+            state.currentTurn = 1;
+            state.totalPiecesPicked = 0;
+
+            setFeedback(
+                'info',
+                `Neuer Auftrag bereit: Liefere ${getActiveTarget()} Einheiten!`,
+                state.license.orderText(getActiveTarget())
+            );
+            renderAll();
+        }
+
+        /********************************************************************
+         * UI-HILFSFUNKTIONEN & FEEDBACK
+         ********************************************************************/
+        function setFeedback(type, title, text) {
+            const box = document.getElementById('feedback-box');
+            const icon = document.getElementById('feedback-icon');
+            const titleEl = document.getElementById('feedback-title');
+            const textEl = document.getElementById('feedback-text');
+
+            box.className = 'rounded-2xl p-3.5 border-4 transition-all duration-300 flex items-center justify-between gap-3 shadow-sm ';
+
+            if (type === 'error') {
+                box.className += 'bg-red-100 border-red-600 text-red-950';
+                icon.textContent = '⚠️';
+                triggerShake('feedback-box');
+            } else if (type === 'warn') {
+                box.className += 'bg-amber-200 border-amber-600 text-amber-950';
+                icon.textContent = '✋';
+            } else if (type === 'success') {
+                box.className += 'bg-emerald-100 border-emerald-600 text-emerald-950';
+                icon.textContent = '🌟';
+            } else {
+                box.className += 'bg-sky-100 border-sky-600 text-sky-950';
+                icon.textContent = state.animal.emoji;
+            }
+
+            titleEl.textContent = title;
+            textEl.textContent = text;
+        }
+
+        function triggerShake(elementId) {
+            const el = document.getElementById(elementId);
+            if (!el) return;
+            el.classList.remove('animate-shake');
+            void el.offsetWidth; // Reflow erzwingen
+            el.classList.add('animate-shake');
+        }
+
+        /********************************************************************
+         * RENDERING (Komplette Synchronisation von State -> DOM)
+         ********************************************************************/
+        // Erzeugt die visuelle 10er-/20er-Streifen-Struktur auf einer Auftragskarte
+        function createVisualStripHTML(targetNumber) {
+            const maxBars = state.level === 1 ? 1 : 2;
+            let html = '<div class="space-y-1 mt-2">';
+
+            for (let bar = 0; bar < maxBars; bar++) {
+                const startUnit = bar * 10 + 1;
+                html += `<div class="grid grid-cols-10 gap-0.5 bg-amber-950/20 p-1 rounded-lg border border-amber-900/30 relative">`;
+                for (let i = 0; i < 10; i++) {
+                    const unitIndex = startUnit + i;
+                    const isFilled = unitIndex <= targetNumber;
+                    const isFiveDivider = i === 4 ? 'mr-1' : '';
+                    const colorClass = isFilled 
+                        ? (bar === 0 && targetNumber >= 10 ? 'bg-blue-600' : 'bg-amber-500') 
+                        : 'bg-white/60';
+                    html += `<div class="h-2.5 rounded-sm ${colorClass} ${isFiveDivider} border border-black/10"></div>`;
+                }
+                html += `</div>`;
+            }
+            html += '</div>';
+            return html;
+        }
+
+        // Rendert die Frachtblöcke innerhalb einer Satteltasche (proportional über grid-column: span X)
+        function renderBagItems(containerId, bagArray, bagName) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = '';
+
+            bagArray.forEach((size, idx) => {
+                const piece = document.createElement('button');
+                piece.type = 'button';
+                piece.style.gridColumn = `span ${size} / span ${size}`;
+                piece.onclick = () => removeCargoFromBag(bagName, idx);
+                piece.title = `${size}er-Frachtstück (Klicken zum Zurücklegen)`;
+
+                let styleClass = 'piece-1';
+                if (size === 10) styleClass = 'piece-10';
+                if (size === 5) styleClass = 'piece-5';
+
+                piece.className = `${styleClass} h-full rounded-xl relative flex items-center justify-center font-title font-bold animate-pop cursor-pointer hover:brightness-110 transition overflow-hidden group`;
+
+                // Interne Struktur-Striche für 10er (2x5) und 5er (5x1)
+                let innerSegments = '';
+                if (size === 10) {
+                    innerSegments = `
+                        <div class="absolute inset-0 grid grid-cols-10 pointer-events-none">
+                            <div class="border-r border-white/15"></div>
+                            <div class="border-r border-white/15"></div>
+                            <div class="border-r border-white/15"></div>
+                            <div class="border-r border-white/15"></div>
+                            <div class="border-r-4 border-blue-950/60"></div>
+                            <div class="border-r border-white/15"></div>
+                            <div class="border-r border-white/15"></div>
+                            <div class="border-r border-white/15"></div>
+                            <div class="border-r border-white/15"></div>
+                            <div></div>
+                        </div>
+                    `;
+                } else if (size === 5) {
+                    innerSegments = `
+                        <div class="absolute inset-0 grid grid-cols-5 pointer-events-none">
+                            <div class="border-r border-yellow-900/25"></div>
+                            <div class="border-r border-yellow-900/25"></div>
+                            <div class="border-r border-yellow-900/25"></div>
+                            <div class="border-r border-yellow-900/25"></div>
+                            <div></div>
+                        </div>
+                    `;
+                }
+
+                piece.innerHTML = `
+                    ${innerSegments}
+                    <div class="relative z-10 flex items-center gap-1 text-sm sm:text-lg leading-none select-none">
+                        <span>${size === 1 ? '1' : size + 'er'}</span>
+                        <span class="hidden sm:inline text-xs opacity-85">${state.license.emoji}</span>
+                    </div>
+                `;
+
+                container.appendChild(piece);
+            });
+        }
+
+        function renderAll() {
+            const leftLoad = getLeftTotal();
+            const rightLoad = getRightTotal();
+            const totalLoad = getTotalLoad();
+            const target = getActiveTarget();
+            const opt = getOptimalBundleInfo(target);
+
+            // 1. Header Icons & Level-Umschalter
+            document.getElementById('header-animal-icon').textContent = state.animal.emoji;
+            document.getElementById('header-license-icon').textContent = state.license.emoji;
+
+            const lvl1Btn = document.getElementById('btn-level-1');
+            const lvl2Btn = document.getElementById('btn-level-2');
+            if (state.level === 1) {
+                lvl1Btn.className = 'px-2.5 py-1 rounded-lg text-xs sm:text-sm font-bold transition-all bg-amber-400 text-amber-950 shadow';
+                lvl2Btn.className = 'px-2.5 py-1 rounded-lg text-xs sm:text-sm font-bold transition-all text-amber-200 hover:text-white';
+            } else {
+                lvl2Btn.className = 'px-2.5 py-1 rounded-lg text-xs sm:text-sm font-bold transition-all bg-amber-400 text-amber-950 shadow';
+                lvl1Btn.className = 'px-2.5 py-1 rounded-lg text-xs sm:text-sm font-bold transition-all text-amber-200 hover:text-white';
+            }
+
+            // 2. Sterne (3 Lieferungen) & Zugzähler
+            const starsContainer = document.getElementById('stars-container');
+            starsContainer.innerHTML = '';
+            for (let i = 1; i <= 3; i++) {
+                const earned = i <= state.completedOrders;
+                starsContainer.innerHTML += `
+                    <span class="text-2xl sm:text-3xl transition-transform ${earned ? 'scale-110 drop-shadow' : 'opacity-25 grayscale'}">
+                        ⭐
+                    </span>
+                `;
+            }
+            document.getElementById('turn-counter').textContent = state.currentTurn;
+            document.getElementById('optimal-turns-badge').textContent = opt.minTurns;
+
+            // 3. Offene Auftragskarten (3 Stück)
+            const ordersGrid = document.getElementById('orders-grid');
+            ordersGrid.innerHTML = '';
+            state.orders.forEach((num, idx) => {
+                const isSelected = idx === state.selectedOrderIndex;
+                const card = document.createElement('button');
+                card.type = 'button';
+                card.onclick = () => selectOrder(idx);
+                card.className = `text-left p-3 rounded-xl border-4 transition-all flex flex-col justify-between ${
+                    isSelected 
+                        ? 'bg-white border-amber-900 shadow-md -translate-y-0.5 ring-2 ring-amber-400' 
+                        : 'bg-amber-50/70 border-amber-300 hover:bg-white hover:border-amber-600 opacity-85'
+                }`;
+
+                card.innerHTML = `
+                    <div class="flex items-start justify-between gap-2">
+                        <div>
+                            <span class="text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded ${isSelected ? 'bg-amber-900 text-amber-50' : 'bg-amber-200 text-amber-900'}">
+                                ${isSelected ? '★ Aktiver Auftrag' : 'Auftrag wählen'}
+                            </span>
+                            <p class="text-xs font-bold text-amber-900 mt-1 line-clamp-2">
+                                ${state.license.emoji} ${state.license.orderText(num)}
+                            </p>
+                        </div>
+                        <div class="font-title font-bold text-3xl sm:text-4xl text-amber-950 bg-amber-200/80 px-2.5 py-1 rounded-xl border-2 border-amber-700 shrink-0 leading-none">
+                            ${num}
+                        </div>
+                    </div>
+                    ${createVisualStripHTML(num)}
+                `;
+                ordersGrid.appendChild(card);
+            });
+
+            // 4. Packtier-Tableau & Lizenz-Plakette
+            document.getElementById('plaque-icon').textContent = state.license.emoji;
+            document.getElementById('plaque-title').textContent = state.license.name;
+            document.getElementById('tableau-animal-emoji').textContent = state.animal.emoji;
+            document.getElementById('tableau-animal-name').textContent = state.animal.name;
+
+            document.getElementById('target-number-inline').textContent = target;
+            document.getElementById('current-total-load').textContent = totalLoad;
+            document.getElementById('target-total-load').textContent = target;
+
+            // 5. Satteltaschen (Links & Rechts)
+            document.getElementById('left-bag-counter').textContent = `${leftLoad} / 10`;
+            document.getElementById('left-bag-status').textContent = leftLoad === 10 
+                ? '✅ Linke Tasche ist randvoll (10)!' 
+                : `Noch ${10 - leftLoad} Plätze bis zur 10 frei`;
+            renderBagItems('left-bag-items', state.leftBag, 'left');
+
+            // Rechte Tasche & Lock-Status
+            const rightBagCard = document.getElementById('right-bag-card');
+            const rightBagLock = document.getElementById('right-bag-lock');
+            const rightLockIcon = document.getElementById('right-bag-lock-icon');
+            const rightLockText = document.getElementById('right-bag-lock-text');
+
+            document.getElementById('right-bag-counter').textContent = `${rightLoad} / 10`;
+            renderBagItems('right-bag-items', state.rightBag, 'right');
+
+            if (state.level === 1) {
+                rightBagCard.classList.add('opacity-60');
+                rightBagLock.classList.remove('hidden');
+                rightLockIcon.textContent = '🎒';
+                rightLockText.innerHTML = `<strong>Stufe 1 (Zahlenraum bis 10)</strong><br><span class="text-amber-300 font-normal">Gespielt wird nur mit der linken 10er-Satteltasche.</span>`;
+                document.getElementById('right-bag-status').textContent = 'In Stufe 2 (bis 20) aktiv';
+            } else {
+                rightBagCard.classList.remove('opacity-60');
+                if (leftLoad < 10) {
+                    rightBagLock.classList.remove('hidden');
+                    rightLockIcon.textContent = '🔒';
+                    rightLockText.innerHTML = `<strong>„Erst links, dann rechts!“</strong><br><span class="text-amber-300 font-normal">Packe erst die linke Tasche voll (${leftLoad}/10), bevor du rechts weiterpackst.</span>`;
+                    document.getElementById('right-bag-status').textContent = 'Wartet auf volle linke Tasche (10)';
+                } else {
+                    rightBagLock.classList.add('hidden');
+                    document.getElementById('right-bag-status').textContent = rightLoad === 10
+                        ? '🎉 KNACKEVOLL! Beide Taschen (20) voll!'
+                        : `Überlauf-Tasche offen: Noch ${10 - rightLoad} Plätze frei`;
+                }
+            }
+
+            // Entbündeln-Button nur aktiv, wenn eine 10er-Kiste geladen ist
+            const hasTenLoaded = state.leftBag.includes(10) || state.rightBag.includes(10);
+            document.getElementById('btn-unbundle-10').disabled = !hasTenLoaded;
+
+            // 6. Markt & Aktionsökonomie (2 Griffe pro Zug)
+            document.querySelectorAll('.cargo-license-emoji').forEach(el => {
+                el.textContent = state.license.emoji;
+            });
+
+            const actionPips = document.getElementById('action-pips');
+            actionPips.innerHTML = '';
+            for (let i = 0; i < state.maxPicksPerTurn; i++) {
+                const isAvailable = i < (state.maxPicksPerTurn - state.picksThisTurn);
+                actionPips.innerHTML += `
+                    <div class="px-2.5 py-1 rounded-lg border-2 font-bold text-xs flex items-center gap-1 transition-all ${
+                        isAvailable 
+                            ? 'bg-emerald-500 text-white border-emerald-800 shadow-sm' 
+                            : 'bg-amber-200/60 text-amber-800/50 border-amber-400/50 line-through'
+                    }">
+                        <span>✋</span> Griff ${i + 1}
+                    </div>
+                `;
+            }
+
+            // Wenn 2 Teile genommen wurden, Nächster-Zug-Button hervorheben
+            const nextTurnBtn = document.getElementById('btn-next-turn');
+            if (state.picksThisTurn >= state.maxPicksPerTurn) {
+                nextTurnBtn.classList.add('ring-4', 'ring-emerald-300', 'animate-pulse');
+            } else {
+                nextTurnBtn.classList.remove('ring-4', 'ring-emerald-300', 'animate-pulse');
+            }
+        }
+
+        /********************************************************************
+         * SETUP- UND REGEL-MODALS
+         ********************************************************************/
+        function setLevel(lvl) {
+            state.level = lvl;
+            state.leftBag = [];
+            state.rightBag = [];
+            state.picksThisTurn = 0;
+            state.currentTurn = 1;
+            generateOrders();
+            setFeedback(
+                'info',
+                lvl === 1 ? 'Stufe 1 aktiviert (Zahlenraum bis 10)' : 'Stufe 2 aktiviert (Zahlenraum bis 20)',
+                lvl === 1 ? 'Du spielst jetzt mit einer Satteltasche (Kapazität 10).' : 'Beide Satteltaschen sind aktiv (Kapazität 20). Denk an „Erst links, dann rechts!“'
+            );
+            renderSetupModalOptions();
+            renderAll();
+        }
+
+        function selectAnimal(animalId) {
+            const found = ANIMALS.find(a => a.id === animalId);
+            if (found) {
+                state.animal = found;
+                renderSetupModalOptions();
+                renderAll();
+            }
+        }
+
+        function selectLicense(licenseId) {
+            const found = LICENSES.find(l => l.id === licenseId);
+            if (found) {
+                state.license = found;
+                renderSetupModalOptions();
+                renderAll();
+            }
+        }
+
+        function renderSetupModalOptions() {
+            // Packtiere
+            const animalsGrid = document.getElementById('setup-animals-grid');
+            animalsGrid.innerHTML = '';
+            ANIMALS.forEach(a => {
+                const active = a.id === state.animal.id;
+                animalsGrid.innerHTML += `
+                    <button type="button" onclick="selectAnimal('${a.id}')" class="p-3 rounded-2xl border-4 text-center transition flex flex-col items-center gap-1 ${
+                        active ? 'bg-amber-200 border-amber-900 shadow-md scale-105' : 'bg-white border-amber-200 hover:border-amber-500'
+                    }">
+                        <span class="text-4xl">${a.emoji}</span>
+                        <span class="font-title font-bold text-xs sm:text-sm text-amber-950">${a.name}</span>
+                    </button>
+                `;
+            });
+
+            // Lizenzen
+            const licensesGrid = document.getElementById('setup-licenses-grid');
+            licensesGrid.innerHTML = '';
+            LICENSES.forEach(l => {
+                const active = l.id === state.license.id;
+                licensesGrid.innerHTML += `
+                    <button type="button" onclick="selectLicense('${l.id}')" class="p-3 rounded-2xl border-4 text-left transition flex items-center gap-3 ${
+                        active ? 'bg-amber-200 border-amber-900 shadow-md' : 'bg-white border-amber-200 hover:border-amber-500'
+                    }">
+                        <span class="text-3xl bg-amber-100 w-12 h-12 rounded-xl flex items-center justify-center border border-amber-300 shrink-0">${l.emoji}</span>
+                        <div>
+                            <div class="font-title font-bold text-sm sm:text-base text-amber-950">${l.name}</div>
+                            <div class="text-xs text-amber-800 font-semibold">Frachtgut: ${l.shortCargo}</div>
+                        </div>
+                    </button>
+                `;
+            });
+
+            // Stufen-Buttons im Modal
+            const m1 = document.getElementById('modal-lvl-1');
+            const m2 = document.getElementById('modal-lvl-2');
+            if (state.level === 1) {
+                m1.className = 'p-3.5 rounded-2xl border-4 text-left transition flex items-start gap-3 bg-amber-200 border-amber-900 shadow-md';
+                m2.className = 'p-3.5 rounded-2xl border-4 text-left transition flex items-start gap-3 bg-white border-amber-200 hover:border-amber-500';
+            } else {
+                m2.className = 'p-3.5 rounded-2xl border-4 text-left transition flex items-start gap-3 bg-amber-200 border-amber-900 shadow-md';
+                m1.className = 'p-3.5 rounded-2xl border-4 text-left transition flex items-start gap-3 bg-white border-amber-200 hover:border-amber-500';
+            }
+        }
+
+        function openSetupModal() {
+            renderSetupModalOptions();
+            const modal = document.getElementById('setup-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeSetupModal() {
+            const modal = document.getElementById('setup-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function openRulesModal() {
+            const modal = document.getElementById('rules-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeRulesModal() {
+            const modal = document.getElementById('rules-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        // Initialisierung beim Laden
+        window.onload = function () {
+            generateOrders();
+            renderAll();
+        };
+    </script>
+</body>
+</html>
