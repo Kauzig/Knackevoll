@@ -19,11 +19,12 @@
         <button class="btn player-QuickBtn" onclick="openSetupModal()" title="Spieler wechseln & Statistiken ansehen">
             👤 <span id="activePlayerHeaderName">Gast</span>
         </button>
-        <div class="trophy-pill" title="Erfülle 3 Aufträge für den Sieg!">
-            <span>Lieferungen:</span>
-            <span class="star-slot" id="star1">⭐</span>
-            <span class="star-slot" id="star2">⭐</span>
-            <span class="star-slot" id="star3">⭐</span>
+        <div class="trophy-pill" id="headerStatsPill" title="Deine Gesamtbilanz">
+            <span>📦 Fracht: <strong id="headerCargoCount">0</strong></span>
+            <span style="opacity:0.4;">|</span>
+            <span>🐪 Tiere: <strong id="headerAnimalCount">0</strong></span>
+            <span style="opacity:0.4;">|</span>
+            <span>🏅 Profi: <strong id="headerProCount">0</strong></span>
         </div>
         <button class="btn" onclick="openSetupModal()">⚙️ Setup & Profile</button>
         <button class="btn" onclick="resetGame()">🔄 Neustart</button>

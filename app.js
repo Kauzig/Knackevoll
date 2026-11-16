@@ -20,8 +20,6 @@ let config = {
 };
 
 let state = {
-  score: 0,
-  proPackerCount: 0,     // Profi-Packer in der aktuellen 3er-Runde
   activeOrder: null,
   activeOrderIdx: null,
   availableOrders: [],
@@ -112,7 +110,7 @@ async function initPlayerManagement() {
         licenseId: 'fairy',
         level: 2,
         stats: {
-          roundsPlayed: 0,   // Abgeschlossene Runden (je 3 Aufträge)
+          totalCargoSent: 0, // Insgesamt verschickte Frachteinheiten
           packedAnimals: 0,  // Gelieferte Tiere / Aufträge insgesamt
           proPackers: 0      // Davon optimal als Profi-Packer gepackt
         },
@@ -164,7 +162,7 @@ async function createNewProfile() {
     licenseId: config.license.id,
     level: config.level,
     stats: {
-      roundsPlayed: 0,
+      totalCargoSent: 0,
       packedAnimals: 0,
       proPackers: 0
     },
@@ -205,14 +203,20 @@ async function saveActiveProfilePreferences() {
   await dbSaveProfile(activeProfile);
 }
 
-async function recordDeliveryStats(isProPacker, isRoundCompleted) {
+async function recordDeliveryStats(deliveredAmount, isProPacker) {
   if (!activeProfile) return;
+  if (!activeProfile.stats) {
+    activeProfile.stats = { totalCargoSent: 0, packedAnimals: 0, proPackers: 0 };
+  }
+  // Abwärtskompatibilität für ältere Profile
+  if (typeof activeProfile.stats.totalCargoSent !== 'number') {
+    activeProfile.stats.totalCargoSent = 0;
+  }
+
+  activeProfile.stats.totalCargoSent += deliveredAmount;
   activeProfile.stats.packedAnimals += 1;
   if (isProPacker) {
     activeProfile.stats.proPackers += 1;
-  }
-  if (isRoundCompleted) {
-    activeProfile.stats.roundsPlayed += 1;
   }
   await dbSaveProfile(activeProfile);
 }
@@ -382,14 +386,15 @@ function renderSetupModal() {
 
   const statsEl = document.getElementById('activeProfileStatsBanner');
   if (statsEl && activeProfile) {
-    const st = activeProfile.stats || { roundsPlayed: 0, packedAnimals: 0, proPackers: 0 };
+    const st = activeProfile.stats || { totalCargoSent: 0, packedAnimals: 0, proPackers: 0 };
+    const cargoTotal = st.totalCargoSent || 0;
     const rate = st.packedAnimals > 0 ? Math.round((st.proPackers / st.packedAnimals) * 100) : 0;
     statsEl.innerHTML = `
       <div class="p-stat-item">
-        <span class="p-stat-icon">🏁</span>
+        <span class="p-stat-icon">📦</span>
         <div class="p-stat-text">
-          <small>Gespielte Runden</small>
-          <strong>${st.roundsPlayed}</strong>
+          <small>Verschickte Fracht</small>
+          <strong>${cargoTotal} Einh.</strong>
         </div>
       </div>
       <div class="p-stat-item">
@@ -512,15 +517,13 @@ function generateReplacementOrder() {
 }
 
 function resetGame() {
-  state.score = 0;
-  state.proPackerCount = 0;
   state.activeOrder = null;
   state.activeOrderIdx = null;
   state.availableOrders = generateOrders();
   state.leftBag = [];
   state.rightBag = [];
   document.getElementById('celebrationModal').classList.add('hidden');
-  setSpeech('Wähle deinen ersten Auftrag für die Karawane aus!', '');
+  setSpeech('Wähle deinen nächsten Auftrag für die Karawane aus!', '');
   render();
   if (document.getElementById('setupModal').classList.contains('hidden')) {
     openOrderModal();
@@ -598,7 +601,7 @@ function takeCargo(val) {
 
   const totalPieces = state.leftBag.length + state.rightBag.length;
   setSpeech(
-    `✅ ${val}er-Frachtstück eingeladen! Aktuell liegen ${totalPieces} ${totalPieces === 1 ? 'Stück' : 'Stücke'} (${newTotal} / ${state.activeOrder}) in den Taschen.`,
+    `✅ ${val} mal ${config.license.icon} eingeladen! Aktuell liegen ${totalPieces} ${totalPieces === 1 ? 'Stück' : 'Stücke'} (${newTotal} / ${state.activeOrder}) in den Taschen.`,
     ''
   );
   render();
@@ -616,7 +619,7 @@ function unpackCargo(side, index) {
   if (index < 0 || index >= bag.length) return;
 
   const removedVal = bag.splice(index, 1)[0];
-  setSpeech(`↩️ ${removedVal}er-Frachtstück wieder ausgepackt und in den Markt zurückgelegt.`, '');
+  setSpeech(`↩️ ${removedVal} mal ${config.license.icon} wieder ausgepackt und in den Markt zurückgelegt.`, '');
   render();
 }
 
@@ -649,9 +652,8 @@ function launchConfetti(count = 45) {
   }
 }
 
-/* Großes Feier-Pop-up bei abgeschlossener Lieferung + IndexedDB Statistik-Update */
+/* Großes Feier-Pop-up bei abgeschlossener Lieferung (Endlos-Modus) */
 async function finishOrderDelivery() {
-  state.score += 1;
   const deliveredOrder = state.activeOrder;
   const packedPieces = [...state.leftBag, ...state.rightBag];
   const usedPiecesCount = packedPieces.length;
@@ -659,17 +661,11 @@ async function finishOrderDelivery() {
   const opt = getOptimalPacking(deliveredOrder);
   const isProPacker = usedPiecesCount === opt.minPieces;
 
-  if (isProPacker) {
-    state.proPackerCount += 1;
-  }
-
-  const isGameWon = state.score >= 3;
-
-  // In IndexedDB persistieren
-  await recordDeliveryStats(isProPacker, isGameWon);
+  // In IndexedDB persistieren (Frachtmenge + Gepacktes Tier + ggf. Profi-Packer)
+  await recordDeliveryStats(deliveredOrder, isProPacker);
 
   // Konfetti starten
-  launchConfetti(isGameWon ? 80 : 45);
+  launchConfetti(isProPacker ? 65 : 40);
 
   const userChipsHTML = packedPieces.map(v => `
     <span class="mini-cargo-chip chip-${v}">${v} mal ${config.license.icon}</span>
@@ -695,20 +691,19 @@ async function finishOrderDelivery() {
     `;
   }
 
-  // Aktuelle Gesamtstatistik des Spielers für das Feier-Modal aufbereiten
-  const pStats = activeProfile ? activeProfile.stats : { roundsPlayed: 0, packedAnimals: 0, proPackers: 0 };
+  const pStats = activeProfile ? activeProfile.stats : { totalCargoSent: 0, packedAnimals: 0, proPackers: 0 };
   const playerStatLine = activeProfile
     ? `<div style="margin-top:12px; padding:8px 12px; background:#fff; border:2px dashed #cbb69b; border-radius:10px; font-size:0.84rem; font-weight:800; color:#57412f;">
-         👤 <strong>${activeProfile.name}s Bilanz:</strong> 🏁 ${pStats.roundsPlayed} Runden &nbsp;|&nbsp; 🐪 ${pStats.packedAnimals} gepackte Tiere &nbsp;|&nbsp; 🏅 ${pStats.proPackers}× Profi-Packer
+         👤 <strong>${activeProfile.name}s Gesamtbilanz:</strong> 📦 ${pStats.totalCargoSent || 0} Fracht verschickt &nbsp;|&nbsp; 🐪 ${pStats.packedAnimals} Tiere &nbsp;|&nbsp; 🏅 ${pStats.proPackers}× Profi-Packer
        </div>`
     : '';
 
   const dialog = document.getElementById('celebrationDialog');
 
   dialog.innerHTML = `
-    <div class="celebration-trophy">${isGameWon ? '🏆🎉🐪' : (isProPacker ? '🏅⭐📦' : '🎉📦')}</div>
+    <div class="celebration-trophy">${isProPacker ? '🏅⭐📦' : '🎉🐪📦'}</div>
     <h2 style="margin:0; font-size:1.75rem; color:var(--wood-dark);">
-      ${isGameWon ? 'KARAWANEN-SIEG!' : `Lieferung ${state.score} von 3 geschafft!`}
+      Lieferung geschafft! (+${deliveredOrder} ${config.license.icon})
     </h2>
     <p style="margin:6px 0 12px; font-weight:800; color:#6b5344; font-size:1.05rem;">
       ${config.animal.icon} Dein ${config.animal.name} hat genau <strong>${deliveredOrder}× ${config.license.name}</strong> in die Oase geliefert!
@@ -732,22 +727,13 @@ async function finishOrderDelivery() {
     ${playerStatLine}
 
     <div style="margin-top:18px;">
-      ${
-        isGameWon
-          ? `<p style="font-weight:900; color:#15803d; margin-bottom:12px;">
-               Du hast alle 3 Oasen-Aufträge erfüllt – davon <strong>${state.proPackerCount} von 3</strong> als echter 🏅 Profi-Packer!
-             </p>
-             <button class="btn btn-oasis" onclick="resetGame()" style="font-size:1.05rem; padding:12px 24px;">
-               🔄 Neue Karawane starten
-             </button>`
-          : `<button class="btn btn-oasis" onclick="acknowledgeCelebration()" style="font-size:1.05rem; padding:12px 24px;">
-               📜 Weiter zum nächsten Auftrag!
-             </button>`
-      }
+      <button class="btn btn-oasis" onclick="acknowledgeCelebration()" style="font-size:1.05rem; padding:12px 24px;">
+        📜 Nächsten Auftrag wählen!
+      </button>
     </div>
   `;
 
-  // Taschen leeren und Auftrag abschließen
+  // Taschen leeren und Auftrag durch neuen ersetzen
   state.leftBag = [];
   state.rightBag = [];
   state.activeOrder = null;
@@ -761,9 +747,7 @@ async function finishOrderDelivery() {
 
 function acknowledgeCelebration() {
   document.getElementById('celebrationModal').classList.add('hidden');
-  if (state.score < 3) {
-    openOrderModal();
-  }
+  openOrderModal();
 }
 
 function sumArray(arr) {
@@ -807,16 +791,22 @@ function renderTwentyStrip(target) {
 }
 
 function render() {
-  // Aktiver Spieler im Header
+  // Aktiver Spieler & Live-Statistik im Header
   const headerNameEl = document.getElementById('activePlayerHeaderName');
   if (headerNameEl && activeProfile) {
     headerNameEl.textContent = activeProfile.name;
   }
 
-  // Sterne
-  for (let s = 1; s <= 3; s++) {
-    document.getElementById(`star${s}`).classList.toggle('earned', state.score >= s);
-  }
+  const pStats = (activeProfile && activeProfile.stats)
+    ? activeProfile.stats
+    : { totalCargoSent: 0, packedAnimals: 0, proPackers: 0 };
+
+  const hCargo = document.getElementById('headerCargoCount');
+  const hAnimal = document.getElementById('headerAnimalCount');
+  const hPro = document.getElementById('headerProCount');
+  if (hCargo) hCargo.textContent = pStats.totalCargoSent || 0;
+  if (hAnimal) hAnimal.textContent = pStats.packedAnimals || 0;
+  if (hPro) hPro.textContent = pStats.proPackers || 0;
 
   // Frachtbrief & Top-Down Packtier zwischen den Taschen
   document.getElementById('waybillEmoji').textContent = config.license.icon;
@@ -839,11 +829,10 @@ function render() {
   if (state.activeOrder === null) {
     slot.className = 'order-slot-box';
     lockLabel.textContent = 'Auftrag wählen';
-    const canOpen = state.score < 3;
     slot.innerHTML = `
       <div style="font-size:2.2rem; margin-bottom:6px;">📜</div>
       <p style="margin:0 0 12px; color:#6b5344; font-weight:700;">Noch kein Auftrag aktiv.</p>
-      <button class="btn btn-oasis" onclick="openOrderModal()" ${!canOpen ? 'disabled' : ''}>
+      <button class="btn btn-oasis" onclick="openOrderModal()">
         📜 Auftrag auswählen
       </button>
     `;
