@@ -21,19 +21,15 @@ let config = {
 
 let state = {
   score: 0,
-  turn: 1,
-  actionsUsed: 0,        // 0..2 Aktionen pro Zug (1 Kiste = 1 Aktion)
-  orderTurnsSpent: 1,    // Wie viele Züge bereits am aktuellen Auftrag gearbeitet wird
-  blitzStars: 0,         // Wie viele Aufträge im optimalen Profi-Tempo geschafft wurden
+  proPackerCount: 0,     // Wie viele Aufträge mit der minimalen Kistenanzahl gelöst wurden
   activeOrder: null,
   activeOrderIdx: null,
   availableOrders: [],
-  leftBag: [],           // Array aus Objekten: { val, turnLoaded }
-  rightBag: [],
-  history: []
+  leftBag: [],           // Array aus Zahlenwerten: [10, 5, 1, ...]
+  rightBag: []
 };
 
-/* Berechnet die minimale Kistenanzahl (durch optimales Bündeln) und die ideale Zuganzahl */
+/* Berechnet die minimale Kistenanzahl durch optimales Bündeln (10er -> 5er -> 1er) */
 function getOptimalPacking(target) {
   let rem = target;
   const pieces = [];
@@ -49,12 +45,9 @@ function getOptimalPacking(target) {
     pieces.push(1);
     rem -= 1;
   }
-  const minPieces = pieces.length;
-  const idealTurns = Math.ceil(minPieces / 2); // 2 Aktionen (= 2 Kisten) pro Zug
   return {
     pieces,
-    minPieces,
-    idealTurns
+    minPieces: pieces.length
   };
 }
 
@@ -234,11 +227,11 @@ function openOrderModal() {
         <div class="order-badge-num">${num}</div>
         <div class="order-cargo-title">${config.license.icon} ${config.license.name}</div>
         ${renderTwentyStrip(num)}
-        <div style="margin-top:8px; font-size:0.78rem; font-weight:800; color:#6b5344;">
-          ⚡ Profi-Tempo: ${opt.idealTurns} ${opt.idealTurns === 1 ? 'Zug' : 'Züge'} (${opt.minPieces} ${opt.minPieces === 1 ? 'Kiste' : 'Kisten'})
+        <div style="margin-top:8px; font-size:0.8rem; font-weight:800; color:#6b5344;">
+          ⭐ Profi-Packer: <strong>${opt.minPieces} ${opt.minPieces === 1 ? 'Frachtstück' : 'Frachtstücke'}</strong>
         </div>
         <div style="margin-top:8px;">
-          <span class="btn btn-oasis" style="padding:5px 12px; font-size:0.82rem;">Kostenlos wählen</span>
+          <span class="btn btn-oasis" style="padding:5px 12px; font-size:0.82rem;">Auftrag wählen</span>
         </div>
       </div>
     `;
@@ -271,85 +264,42 @@ function generateReplacementOrder() {
   return candidate;
 }
 
-function pushHistory() {
-  state.history.push(JSON.stringify({
-    turn: state.turn,
-    actionsUsed: state.actionsUsed,
-    orderTurnsSpent: state.orderTurnsSpent,
-    activeOrder: state.activeOrder,
-    activeOrderIdx: state.activeOrderIdx,
-    leftBag: state.leftBag.map(p => ({ ...p })),
-    rightBag: state.rightBag.map(p => ({ ...p }))
-  }));
-}
-
-function undoStep() {
-  if (state.history.length === 0) return;
-  const prev = JSON.parse(state.history.pop());
-  state.turn = prev.turn;
-  state.actionsUsed = prev.actionsUsed;
-  state.orderTurnsSpent = prev.orderTurnsSpent;
-  state.activeOrder = prev.activeOrder;
-  state.activeOrderIdx = prev.activeOrderIdx;
-  state.leftBag = prev.leftBag;
-  state.rightBag = prev.rightBag;
-  setSpeech('↩️ Letzter Schritt wurde rückgängig gemacht.', '');
-  render();
-}
-
 function resetGame() {
   state.score = 0;
-  state.turn = 1;
-  state.actionsUsed = 0;
-  state.orderTurnsSpent = 1;
-  state.blitzStars = 0;
+  state.proPackerCount = 0;
   state.activeOrder = null;
   state.activeOrderIdx = null;
   state.availableOrders = generateOrders();
   state.leftBag = [];
   state.rightBag = [];
-  state.history = [];
   document.getElementById('celebrationModal').classList.add('hidden');
-  setSpeech('Wähle zuerst kostenlos deinen Auftrag für die Karawane aus!', '');
+  setSpeech('Wähle deinen ersten Auftrag für die Karawane aus!', '');
   render();
   if (document.getElementById('setupModal').classList.contains('hidden')) {
     openOrderModal();
   }
 }
 
-// Auftrag im Pop-up wählen (KOSTENLOS - beendet automatisch einen angebrochenen Vorzug)
+// Auftrag im Pop-up wählen
 function pickOrderCard(index) {
   if (state.activeOrder !== null) return;
 
-  pushHistory();
-
-  if (state.actionsUsed > 0) {
-    state.turn += 1;
-    state.actionsUsed = 0;
-  }
-
-  state.orderTurnsSpent = 1;
   state.activeOrderIdx = index;
   state.activeOrder = state.availableOrders[index];
 
   const opt = getOptimalPacking(state.activeOrder);
   closeOrderModal();
   setSpeech(
-    `📜 Auftrag „${state.activeOrder}× ${config.license.name}“ angenommen! Profi-Tempo: ${opt.idealTurns} ${opt.idealTurns === 1 ? 'Zug' : 'Züge'} mit nur ${opt.minPieces} ${opt.minPieces === 1 ? 'Frachtstück' : 'Frachtstücken'}.`,
+    `📜 Auftrag „${state.activeOrder}× ${config.license.name}“ angenommen! Schaffst du es als Profi-Packer mit nur ${opt.minPieces} ${opt.minPieces === 1 ? 'Frachtstück' : 'Frachtstücken'}?`,
     ''
   );
   render();
 }
 
-// AKTION: Fracht nehmen (1 Frachtkiste = 1 Aktion)
+// Frachtstück einladen
 function takeCargo(val) {
   if (state.activeOrder === null) {
-    setSpeech('Bitte wähle zuerst links einen Auftrag aus (kostenlos), bevor du Fracht einlädst!', 'error');
-    return;
-  }
-
-  if (state.actionsUsed >= 2) {
-    setSpeech('Deine 2 Aktionen für diesen Zug sind aufgebraucht! Klicke auf „Zug beenden“.', 'error');
+    setSpeech('Bitte wähle zuerst links einen Auftrag aus, bevor du Fracht einlädst!', 'error');
     return;
   }
 
@@ -357,6 +307,7 @@ function takeCargo(val) {
   const rightSum = sumArray(state.rightBag);
   const totalSum = leftSum + rightSum;
 
+  // Prüfen, ob über den Auftragswert geladen würde
   if (totalSum + val > state.activeOrder) {
     wobbleBag(leftSum < 10 ? 'bagLeft' : 'bagRight');
     setSpeech(`⚠️ Wackel-Regel! Dein Auftrag braucht genau ${state.activeOrder}. Mit +${val} wärst du bei ${totalSum + val}!`, 'error');
@@ -368,7 +319,7 @@ function takeCargo(val) {
   if (leftSum < 10) {
     if (leftSum + val > 10) {
       wobbleBag('bagLeft');
-      setSpeech(`⚠️ Wackel-Regel! In der linken Satteltasche sind nur noch ${10 - leftSum} Plätze frei – ein ${val}er-Stück passt nicht!`, 'error');
+      setSpeech(`⚠️ Wackel-Regel! In der linken Satteltasche sind nur noch ${10 - leftSum} Plätze frei – ein ${val}er-Stück passt dort nicht hinein!`, 'error');
       return;
     }
     target = 'left';
@@ -386,18 +337,10 @@ function takeCargo(val) {
     target = 'right';
   }
 
-  pushHistory();
-  state.actionsUsed += 1;
-
-  const newPiece = {
-    val: val,
-    turnLoaded: state.turn
-  };
-
   if (target === 'left') {
-    state.leftBag.push(newPiece);
+    state.leftBag.push(val);
   } else {
-    state.rightBag.push(newPiece);
+    state.rightBag.push(val);
   }
 
   const newTotal = sumArray(state.leftBag) + sumArray(state.rightBag);
@@ -407,16 +350,18 @@ function takeCargo(val) {
     return;
   }
 
-  const remainingActions = 2 - state.actionsUsed;
-  const msgExtra = remainingActions > 0
-    ? `Du hast in diesem Zug noch ${remainingActions} Aktion frei.`
-    : 'Deine 2 Aktionen für diesen Zug sind verbraucht.';
-  setSpeech(`✅ ${val}er-Frachtstück eingeladen (1 Aktion). ${msgExtra}`, '');
+  const totalPieces = state.leftBag.length + state.rightBag.length;
+  setSpeech(
+    `✅ ${val}er-Frachtstück eingeladen! Aktuell liegen ${totalPieces} ${totalPieces === 1 ? 'Stück' : 'Stücke'} (${newTotal} / ${state.activeOrder}) in den Taschen.`,
+    ''
+  );
   render();
 }
 
-// AKTION / RÜCKGABE: Frachtstück wieder auspacken
+// Frachtstück wieder auspacken (jederzeit unter Beachtung der Spiegelregel)
 function unpackCargo(side, index) {
+  // Spiegelregel zur „Erst links, dann rechts“-Regel:
+  // Solange rechts noch Fracht liegt, muss zuerst rechts ausgepackt werden.
   if (side === 'left' && state.rightBag.length > 0) {
     wobbleBag('bagLeft');
     setSpeech('⚠️ Spiegelregel beim Auspacken: Räume zuerst die rechte Überlauf-Tasche leer, bevor du links auspackst!', 'error');
@@ -426,50 +371,19 @@ function unpackCargo(side, index) {
   const bag = side === 'left' ? state.leftBag : state.rightBag;
   if (index < 0 || index >= bag.length) return;
 
-  const piece = bag[index];
-  const isFromCurrentTurn = piece.turnLoaded === state.turn;
-
-  if (!isFromCurrentTurn && state.actionsUsed >= 2) {
-    setSpeech('Dieses Frachtstück stammt aus einer früheren Runde – zum Auspacken brauchst du 1 freie Aktion!', 'error');
-    return;
-  }
-
-  pushHistory();
-  bag.splice(index, 1);
-
-  if (isFromCurrentTurn) {
-    state.actionsUsed = Math.max(0, state.actionsUsed - 1);
-    setSpeech(`↩️ ${piece.val}er-Frachtstück aus dieser Runde wieder ausgeladen – du bekommst deine Aktion zurück!`, '');
-  } else {
-    state.actionsUsed += 1;
-    setSpeech(`📤 ${piece.val}er-Frachtstück (aus Zug ${piece.turnLoaded}) ausgepackt – kostet 1 Aktion.`, '');
-  }
-
+  const removedVal = bag.splice(index, 1)[0];
+  setSpeech(`↩️ ${removedVal}er-Frachtstück wieder ausgepackt und in den Markt zurückgelegt.`, '');
   render();
 }
 
-// AKTION: Tauschen (10er-Kiste in zwei 5er-Säcke entbündeln, kostet 1 Aktion)
+// Tauschen: 10er-Kiste in zwei 5er-Säcke entbündeln
 function unbundleTen(side) {
   const bag = side === 'left' ? state.leftBag : state.rightBag;
-  const idx = bag.findIndex(p => p.val === 10);
+  const idx = bag.indexOf(10);
   if (idx === -1) return;
 
-  if (state.actionsUsed >= 2) {
-    setSpeech('Für den Basar-Tausch (Entbündeln) brauchst du 1 freie Aktion! Beende zuerst deinen Zug.', 'error');
-    return;
-  }
-
-  pushHistory();
-  state.actionsUsed += 1;
-
-  bag.splice(
-    idx,
-    1,
-    { val: 5, turnLoaded: state.turn - 1 },
-    { val: 5, turnLoaded: state.turn - 1 }
-  );
-
-  setSpeech('🔄 Basar-Tausch (1 Aktion): Die blaue 10er-Kiste wurde in zwei gelbe 5er-Säcke entbündelt!', '');
+  bag.splice(idx, 1, 5, 5);
+  setSpeech('🔄 Basar-Tausch: Die blaue 10er-Kiste wurde in zwei gelbe 5er-Säcke entbündelt!', '');
   render();
 }
 
@@ -495,22 +409,19 @@ function launchConfetti(count = 45) {
 function finishOrderDelivery() {
   state.score += 1;
   const deliveredOrder = state.activeOrder;
-  const packedPieces = [...state.leftBag, ...state.rightBag].map(p => p.val);
+  const packedPieces = [...state.leftBag, ...state.rightBag];
   const usedPiecesCount = packedPieces.length;
-  const usedTurnsCount = state.orderTurnsSpent;
 
   const opt = getOptimalPacking(deliveredOrder);
-  const isOptimalTurns = usedTurnsCount <= opt.idealTurns;
-  const isOptimalPieces = usedPiecesCount === opt.minPieces;
+  const isProPacker = usedPiecesCount === opt.minPieces;
 
-  if (isOptimalTurns && isOptimalPieces) {
-    state.blitzStars += 1;
+  if (isProPacker) {
+    state.proPackerCount += 1;
   }
 
   // Konfetti starten
   launchConfetti(state.score >= 3 ? 80 : 45);
 
-  // Gepackte Frachtstücke als Chips darstellen
   const userChipsHTML = packedPieces.map(v => `
     <span class="mini-cargo-chip chip-${v}">${v === 1 ? '1er ' + config.license.icon : v + 'er'}</span>
   `).join('');
@@ -520,16 +431,16 @@ function finishOrderDelivery() {
   `).join('');
 
   let ratingBadge = '';
-  if (isOptimalTurns && isOptimalPieces) {
+  if (isProPacker) {
     ratingBadge = `
-      <div style="background:#dcfce7; border:3px solid #16a34a; color:#14532d; padding:10px 14px; border-radius:14px; font-weight:900; margin-top:10px;">
-        ⚡ PERFEKT GEBÜNDELT! Du hast das ideale Profi-Tempo (${opt.idealTurns} ${opt.idealTurns === 1 ? 'Zug' : 'Züge'} mit nur ${opt.minPieces} ${opt.minPieces === 1 ? 'Stück' : 'Stücken'}) erreicht!
+      <div style="background:#dcfce7; border:3px solid #16a34a; color:#14532d; padding:12px 14px; border-radius:14px; font-weight:900; margin-top:10px;">
+        🏅 PROFI-PACKER! Du hast die ${deliveredOrder} optimal gebündelt und nur ${opt.minPieces} ${opt.minPieces === 1 ? 'Frachtstück' : 'Frachtstücke'} gebraucht!
       </div>
     `;
   } else {
     ratingBadge = `
-      <div style="background:#ffedd5; border:3px solid #f97316; color:#9a3412; padding:10px 14px; border-radius:14px; font-weight:800; margin-top:10px; font-size:0.9rem;">
-        💡 <strong>Profi-Tipp fürs nächste Mal:</strong> Mit dieser Bündelung schaffst du die <strong>${deliveredOrder}</strong> schon in <strong>${opt.idealTurns} ${opt.idealTurns === 1 ? 'Zug' : 'Zügen'}</strong> (${opt.minPieces} Stücke):
+      <div style="background:#ffedd5; border:3px solid #f97316; color:#9a3412; padding:12px 14px; border-radius:14px; font-weight:800; margin-top:10px; font-size:0.9rem;">
+        💡 <strong>Profi-Packer-Tipp:</strong> Du hast ${usedPiecesCount} Frachtstücke genutzt. Wenn du noch größere Stücke bündelst, reichen für die <strong>${deliveredOrder}</strong> schon <strong>${opt.minPieces} ${opt.minPieces === 1 ? 'Stück' : 'Stücke'}</strong>:
         <div class="delivered-pieces-row" style="margin:8px 0 2px;">${optChipsHTML}</div>
       </div>
     `;
@@ -539,7 +450,7 @@ function finishOrderDelivery() {
   const dialog = document.getElementById('celebrationDialog');
 
   dialog.innerHTML = `
-    <div class="celebration-trophy">${isGameWon ? '🏆🎉🐪' : '🎉⭐📦'}</div>
+    <div class="celebration-trophy">${isGameWon ? '🏆🎉🐪' : (isProPacker ? '🏅⭐📦' : '🎉📦')}</div>
     <h2 style="margin:0; font-size:1.75rem; color:var(--wood-dark);">
       ${isGameWon ? 'KARAWANEN-SIEG!' : `Lieferung ${state.score} von 3 geschafft!`}
     </h2>
@@ -547,17 +458,17 @@ function finishOrderDelivery() {
       ${config.animal.icon} Dein ${config.animal.name} hat genau <strong>${deliveredOrder}× ${config.license.name}</strong> in die Oase geliefert!
     </p>
 
-    <div style="font-size:0.85rem; font-weight:800; color:var(--wood-dark);">Deine gelieferten Frachtstücke (${usedPiecesCount} Stück):</div>
+    <div style="font-size:0.85rem; font-weight:800; color:var(--wood-dark);">Deine gepackten Frachtstücke:</div>
     <div class="delivered-pieces-row">${userChipsHTML}</div>
 
     <div class="celebration-stats-grid">
-      <div class="stat-box ${isOptimalTurns ? 'highlight-pro' : ''}">
-        <small>Dein Packtempo</small>
-        <strong>${usedTurnsCount} ${usedTurnsCount === 1 ? 'Zug' : 'Züge'} (${usedPiecesCount} Kisten)</strong>
+      <div class="stat-box ${isProPacker ? 'highlight-pro' : ''}">
+        <small>Deine Kistenanzahl</small>
+        <strong>${usedPiecesCount} ${usedPiecesCount === 1 ? 'Frachtstück' : 'Frachtstücke'}</strong>
       </div>
       <div class="stat-box highlight-pro">
-        <small>⚡ Ideales Profi-Tempo</small>
-        <strong>${opt.idealTurns} ${opt.idealTurns === 1 ? 'Zug' : 'Züge'} (${opt.minPieces} Kisten)</strong>
+        <small>⭐ Profi-Packer-Ziel</small>
+        <strong>${opt.minPieces} ${opt.minPieces === 1 ? 'Frachtstück' : 'Frachtstücke'}</strong>
       </div>
     </div>
 
@@ -567,7 +478,7 @@ function finishOrderDelivery() {
       ${
         isGameWon
           ? `<p style="font-weight:900; color:#15803d; margin-bottom:12px;">
-               Du hast alle 3 Oasen-Aufträge erfüllt (davon ${state.blitzStars}× im perfekten Blitz-Tempo)!
+               Du hast alle 3 Oasen-Aufträge erfüllt – davon <strong>${state.proPackerCount} von 3</strong> als echter 🏅 Profi-Packer!
              </p>
              <button class="btn btn-oasis" onclick="resetGame()" style="font-size:1.05rem; padding:12px 24px;">
                🔄 Neue Karawane starten
@@ -585,7 +496,6 @@ function finishOrderDelivery() {
   state.activeOrder = null;
   state.availableOrders[state.activeOrderIdx] = generateReplacementOrder();
   state.activeOrderIdx = null;
-  state.history = [];
 
   document.getElementById('celebrationModal').classList.remove('hidden');
   setSpeech(`🎉 Lieferung (${deliveredOrder}× ${config.license.name}) erfolgreich in die Oase gebracht!`, 'success');
@@ -599,19 +509,8 @@ function acknowledgeCelebration() {
   }
 }
 
-function nextTurn() {
-  state.turn += 1;
-  state.actionsUsed = 0;
-  if (state.activeOrder !== null) {
-    state.orderTurnsSpent += 1;
-  }
-  state.history = [];
-  setSpeech(`⏭️ Zug ${state.turn} beginnt! Du hast wieder 2 volle Aktionen zur Verfügung.`, '');
-  render();
-}
-
 function sumArray(arr) {
-  return arr.reduce((a, b) => a + b.val, 0);
+  return arr.reduce((a, b) => a + b, 0);
 }
 
 function wobbleBag(id) {
@@ -667,66 +566,40 @@ function render() {
   document.getElementById('topDownAnimalSVG').innerHTML = getTopDownAnimalSVG(config.animal.id);
   document.getElementById('mountCaptionLabel').textContent = `${config.animal.icon} ${config.animal.name}`;
 
-  // Zug & Aktionen (1 Frachtkiste = 1 Aktion)
-  document.getElementById('turnBadge').textContent = `Zug ${state.turn}`;
-  const p1 = document.getElementById('actionPill1');
-  const p2 = document.getElementById('actionPill2');
-
-  if (state.actionsUsed === 0) {
-    p1.className = 'action-token ready';
-    p1.textContent = '⚡ Aktion 1: Frei';
-  } else {
-    p1.className = 'action-token';
-    p1.textContent = '✓ Aktion 1: Verbraucht';
-  }
-
-  if (state.actionsUsed < 2) {
-    p2.className = 'action-token ready';
-    p2.textContent = '⚡ Aktion 2: Frei';
-  } else {
-    p2.className = 'action-token';
-    p2.textContent = '✓ Aktion 2: Verbraucht';
-  }
-
-  const sub = document.getElementById('grabSubPill');
-  if (sub) sub.style.display = 'none';
-
-  document.getElementById('btnUndo').disabled = state.history.length === 0;
-
-  // Einzel-Slot für den aktuellen Auftrag (inkl. Live-Profi-Tempo)
+  // Einzel-Slot für den aktuellen Auftrag (inkl. Profi-Packer-Ziel)
   const slot = document.getElementById('activeOrderSlot');
   const lockLabel = document.getElementById('orderLockLabel');
   if (state.activeOrder === null) {
     slot.className = 'order-slot-box';
-    lockLabel.textContent = 'Kostenlose Wahl (0 Akt.)';
+    lockLabel.textContent = 'Auftrag wählen';
     const canOpen = state.score < 3;
     slot.innerHTML = `
       <div style="font-size:2.2rem; margin-bottom:6px;">📜</div>
       <p style="margin:0 0 12px; color:#6b5344; font-weight:700;">Noch kein Auftrag aktiv.</p>
       <button class="btn btn-oasis" onclick="openOrderModal()" ${!canOpen ? 'disabled' : ''}>
-        📜 Auftrag auswählen (kostenlos)
+        📜 Auftrag auswählen
       </button>
     `;
   } else {
     const opt = getOptimalPacking(state.activeOrder);
     const currentPieces = state.leftBag.length + state.rightBag.length;
-    const isOnTrack = state.orderTurnsSpent <= opt.idealTurns && currentPieces <= opt.minPieces;
+    const isWithinProLimit = currentPieces <= opt.minPieces;
 
     slot.className = 'order-slot-box locked-order';
-    lockLabel.textContent = '🔒 Fest eingeloggt';
+    lockLabel.textContent = '🔒 Aktiv bis zur Lieferung';
     slot.innerHTML = `
       <div class="order-badge-num">${state.activeOrder}</div>
       <div class="order-cargo-title">${config.license.icon} ${config.license.name}</div>
       ${renderTwentyStrip(state.activeOrder)}
-      <div class="tempo-badge ${isOnTrack ? 'on-track' : 'over-par'}">
-        ⚡ Profi-Ziel: <strong>${opt.idealTurns} ${opt.idealTurns === 1 ? 'Zug' : 'Züge'}</strong> (min. ${opt.minPieces} Kisten)<br>
-        ⏱️ Aktuell: <strong>Zug ${state.orderTurnsSpent}</strong> (${currentPieces} geladen)
+      <div class="tempo-badge ${isWithinProLimit ? 'on-track' : 'over-par'}">
+        🏅 Profi-Packer-Ziel: <strong>${opt.minPieces} ${opt.minPieces === 1 ? 'Frachtstück' : 'Frachtstücke'}</strong><br>
+        📦 Aktuell im Sattel: <strong>${currentPieces} ${currentPieces === 1 ? 'Stück' : 'Stücke'}</strong>
       </div>
     `;
   }
 
-  // Markt-Depots aktivieren/deaktivieren
-  const canGrab = state.activeOrder !== null && state.actionsUsed < 2;
+  // Markt-Depots aktivieren/deaktivieren (sobald ein Auftrag aktiv ist, darf frei geladen werden)
+  const canGrab = state.activeOrder !== null;
   ['depot10', 'depot5', 'depot1'].forEach(id => {
     document.getElementById(id).classList.toggle('disabled', !canGrab);
   });
@@ -745,19 +618,13 @@ function render() {
   document.getElementById('rightBagCounter').textContent = `${rightSum} / 10`;
 
   // Frachtstücke rendern
-  document.getElementById('leftBagPieces').innerHTML = state.leftBag.map((p, idx) => {
-    const isCurrentTurn = p.turnLoaded === state.turn;
-    const tooltip = isCurrentTurn
-      ? 'In dieser Runde eingeladen: Klicken zum Auspacken (gibt 1 Aktion zurück!)'
-      : `In Zug ${p.turnLoaded} eingeladen: Klicken zum Auspacken (kostet 1 Aktion)`;
-    return `
-      <div class="cargo-block block-${p.val} ${isCurrentTurn ? 'current-turn-piece' : ''}"
-           onclick="unpackCargo('left', ${idx})"
-           title="${tooltip}">
-        ${p.val === 1 ? config.license.icon : p.val + 'er'}
-      </div>
-    `;
-  }).join('');
+  document.getElementById('leftBagPieces').innerHTML = state.leftBag.map((val, idx) => `
+    <div class="cargo-block block-${val}"
+         onclick="unpackCargo('left', ${idx})"
+         title="Klicken zum Auspacken">
+      ${val === 1 ? config.license.icon : val + 'er'}
+    </div>
+  `).join('');
 
   const rightBagEl = document.getElementById('bagRight');
   const gridEl = document.getElementById('saddlebagsGrid');
@@ -770,37 +637,29 @@ function render() {
     const unlocked = leftSum === 10;
     rightBagEl.classList.toggle('bag-locked', !unlocked);
     document.getElementById('rightLockHint').textContent = unlocked
-      ? '💡 Aktuelle Runde = Gratis zurück | Frühere Runde = 1 Akt.'
+      ? '💡 Klick auf Frachtstück = Wieder auspacken'
       : '🔒 Erst öffnen, wenn links randvoll (10) ist!';
 
-    document.getElementById('rightBagPieces').innerHTML = state.rightBag.map((p, idx) => {
-      const isCurrentTurn = p.turnLoaded === state.turn;
-      const tooltip = isCurrentTurn
-        ? 'In dieser Runde eingeladen: Klicken zum Auspacken (gibt 1 Aktion zurück!)'
-        : `In Zug ${p.turnLoaded} eingeladen: Klicken zum Auspacken (kostet 1 Aktion)`;
-      return `
-        <div class="cargo-block block-${p.val} ${isCurrentTurn ? 'current-turn-piece' : ''}"
-             onclick="unpackCargo('right', ${idx})"
-             title="${tooltip}">
-          ${p.val === 1 ? config.license.icon : p.val + 'er'}
-        </div>
-      `;
-    }).join('');
+    document.getElementById('rightBagPieces').innerHTML = state.rightBag.map((val, idx) => `
+      <div class="cargo-block block-${val}"
+           onclick="unpackCargo('right', ${idx})"
+           title="Klicken zum Auspacken">
+        ${val === 1 ? config.license.icon : val + 'er'}
+      </div>
+    `).join('');
   }
 
-  // Basar-Tausch Buttons (Entbündeln)
-  const hasTenLeft = state.leftBag.some(p => p.val === 10);
-  const hasTenRight = state.rightBag.some(p => p.val === 10);
-  const canSwapLeft = hasTenLeft && state.actionsUsed < 2;
-  const canSwapRight = hasTenRight && state.actionsUsed < 2;
+  // Basar-Tausch Buttons (Entbündeln jederzeit möglich, wenn eine 10er-Kiste liegt)
+  const hasTenLeft = state.leftBag.includes(10);
+  const hasTenRight = state.rightBag.includes(10);
   const btnL = document.getElementById('swapBtnLeft');
   const btnR = document.getElementById('swapBtnRight');
 
   btnL.style.display = hasTenLeft ? 'inline-block' : 'none';
-  btnL.disabled = !canSwapLeft;
+  btnL.disabled = false;
 
   btnR.style.display = hasTenRight ? 'inline-block' : 'none';
-  btnR.disabled = !canSwapRight;
+  btnR.disabled = false;
 }
 
 // Initialisierung beim Laden

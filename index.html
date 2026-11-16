@@ -27,20 +27,6 @@
     </div>
   </header>
 
-  <!-- Zug- & Aktionsleiste -->
-  <section class="turn-hud">
-    <div class="turn-left">
-      <div class="turn-counter" id="turnBadge">Zug 1</div>
-      <div class="action-token ready" id="actionPill1">⚡ Aktion 1: Frei</div>
-      <div class="action-token ready" id="actionPill2">⚡ Aktion 2: Frei</div>
-      <div class="action-token grabbing" id="grabSubPill" style="display:none;"></div>
-    </div>
-    <div style="display:flex; gap:10px;">
-      <button class="btn" id="btnUndo" onclick="undoStep()" disabled>↩️ Rückgängig</button>
-      <button class="btn btn-primary" onclick="nextTurn()">⏭️ Zug beenden</button>
-    </div>
-  </section>
-
   <!-- Oasen-Basar: Aktiver Auftrag (links) & Dienes-Frachtmarkt (rechts) -->
   <section class="bazaar-grid">
     <!-- Aktiver Auftrag (Einzel-Slot) -->
@@ -54,9 +40,9 @@
 
     <!-- Offener Fracht-Markt -->
     <div class="board-panel">
-<h3 class="panel-heading">
+      <h3 class="panel-heading">
         <span>🏪 Offener Fracht-Markt</span>
-        <small style="font-weight:700; color:#78716c;">1 Teil einladen = 1 Aktion | 1 Teil auspacken = 1 Aktion</small>
+        <small style="font-weight:700; color:#78716c;">Klicke auf ein Frachtstück zum Einladen</small>
       </h3>
       <div class="market-depots">
         <!-- 10er-Kiste Blau -->
@@ -124,9 +110,9 @@
           <div class="cargo-pieces-overlay" id="leftBagPieces"></div>
         </div>
         <div class="bag-footer">
-          <span>💡 Klick auf Frachtstück = Auspacken (1 Akt.)</span>
+          <span>💡 Klick auf Frachtstück = Wieder auspacken</span>
           <button class="btn-bazaar-swap" id="swapBtnLeft" onclick="unbundleTen('left')" style="display:none;">
-            🔄 10er ➔ 2× 5er (1 Akt.)
+            🔄 Tauschen: 10er ➔ 2× 5er
           </button>
         </div>
       </div>
@@ -151,9 +137,9 @@
         <div class="bag-footer">
           <span id="rightLockHint">🔒 Erst links vollpacken (10)!</span>
           <button class="btn-bazaar-swap" id="swapBtnRight" onclick="unbundleTen('right')" style="display:none;">
-            🔄 10er ➔ 2× 5er (1 Akt.)
+            🔄 Tauschen: 10er ➔ 2× 5er
           </button>
-        </div>
+        </div> 
       </div>
     </div>
 

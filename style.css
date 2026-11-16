@@ -700,7 +700,7 @@ body {
 }
 
 .cargo-block:hover::after {
-  content: '↩ 1 Akt.';
+  content: '↩ Auspacken';
   position: absolute;
   top: 2px;
   right: 4px;
