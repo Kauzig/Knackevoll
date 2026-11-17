@@ -19,7 +19,7 @@ let config = {
   license: LICENSES[0],
   level: 2,
   foxMode: false,        // Modul 2: Der schlaue Wüstenfuchs (im Setup zuschaltbar)
-  gameMode: 'endless'    // 'endless' = Endlos-Karawane, 'cave' = Höhle füllen (Modul 3)
+  gameMode: 'endless'    // 'endless' = Endlos-Karawane (Aufträge), 'cave' = Wintervorrat (Plus/Minus-Karten + Höhle)
 };
 
 let state = {
@@ -458,8 +458,15 @@ function renderProfileModal() {
         <div class="p-stat-item">
           <span class="p-stat-icon">🏠</span>
           <div class="p-stat-text">
-            <small>Höhlen gefüllt</small>
+            <small>Winter geschafft</small>
             <strong>${st.cavesFilled || 0}</strong>
+          </div>
+        </div>
+        <div class="p-stat-item">
+          <span class="p-stat-icon">💥</span>
+          <div class="p-stat-text">
+            <small>KNACKEVOLL!</small>
+            <strong>${st.knackevoll || 0}×</strong>
           </div>
         </div>
       `;
@@ -506,7 +513,7 @@ function renderSetupModal() {
     modeCave.classList.toggle('active-tile', config.gameMode === 'cave');
     const dims = getCaveDims();
     document.getElementById('modeCaveSub').textContent =
-      `Fülle die ${getCaveTheme().name} (${dims.rows}×${dims.cols} Felder)`;
+      `Plus & Minus: Vorräte in die ${getCaveTheme().name} (${dims.rows}×${dims.cols})`;
   }
 
   const playerName = activeProfile ? activeProfile.name : 'Karawanen-Kind';
@@ -618,14 +625,10 @@ function createOrderEntry(val, forceFox = false) {
   return { val, foxBlock };
 }
 
-// Wertebereich für Aufträge. Im Höhlen-Modus nie mehr, als noch in die Höhle passt.
+// Wertebereich für Aufträge (Endlos-Karawane)
 function getOrderRange() {
-  let maxVal = config.level === 1 ? 9 : 19; // Bis 9 bzw. 19, damit beim Entbündeln immer Platz in der Tasche ist
-  let minVal = config.level === 1 ? 2 : 6;
-  if (isCaveMode()) {
-    maxVal = Math.min(maxVal, getCaveFreeForOrders());
-    minVal = Math.min(minVal, maxVal);
-  }
+  const maxVal = config.level === 1 ? 9 : 19; // Bis 9 bzw. 19, damit beim Entbündeln immer Platz in der Tasche ist
+  const minVal = config.level === 1 ? 2 : 6;
   return { minVal, maxVal };
 }
 
@@ -661,6 +664,10 @@ function generateReplacementOrder() {
 }
 
 function resetGame() {
+  if (isCaveMode()) {
+    winterResume();
+    return;
+  }
   state.activeOrder = null;
   state.activeFoxBlock = null;
   state.activeOrderIdx = null;
@@ -721,6 +728,10 @@ function checkOrderCompletion() {
 
 // Frachtstück einladen (Option 1: man darf bis zum Taschenlimit 10/20 einladen, um große Stücke in der Tasche entbündeln zu können)
 function takeCargo(val) {
+  if (isCaveMode()) {
+    winterTakeCargo(val);
+    return;
+  }
   if (state.activeOrder === null) {
     setSpeech('Bitte wähle zuerst oben einen Auftrag aus, bevor du Fracht einlädst!', 'error');
     return;
@@ -791,6 +802,10 @@ function takeCargo(val) {
 
 // Frachtstück wieder auspacken (kann nach dem Entbündeln auch direkt die Lieferung auslösen!)
 function unpackCargo(side, index) {
+  if (isCaveMode()) {
+    winterUnpack(side, index);
+    return;
+  }
   if (side === 'left' && state.rightBag.length > 0) {
     wobbleBag('bagLeft');
     setSpeech('⚠️ Spiegelregel beim Auspacken: Räume zuerst die rechte Überlauf-Tasche leer, bevor du links auspackst!', 'error');
@@ -817,6 +832,7 @@ function unbundleTen(side) {
 
   bag.splice(idx, 1, 5, 5);
   state.unbundledThisOrder = true;
+  saveBagsIfIdle();
   setSpeech('🔄 Clever entbündelt: Die blaue 10er-Kiste wurde in zwei gelbe 5er-Säcke geteilt! Du kannst einzelne Stücke per Klick auspacken.', '');
   render();
 }
@@ -829,6 +845,7 @@ function unbundleFive(side) {
 
   bag.splice(idx, 1, 1, 1, 1, 1, 1);
   state.unbundledThisOrder = true;
+  saveBagsIfIdle();
   setSpeech('🔄 Clever entbündelt: Der gelbe 5er-Sack wurde in fünf einzelne 1er aufgeschnürt! Klicke überzählige 1er an, um sie auszupacken.', '');
   render();
 }
@@ -867,21 +884,6 @@ async function finishOrderDelivery() {
     tutorial.deliveries += 1;
   }
 
-  // Höhlen-Modus: Fracht wandert nicht zurück in den Markt, sondern wartet aufs Einlagern
-  const caveMode = isCaveMode();
-  const storeInCave = caveMode && (!tutorial.active || tutorial.queue.length === 0);
-  if (storeInCave) {
-    const cave = getActiveCave();
-    cave.pending = [...cave.pending, ...packedPieces];
-    cave.deliveries += 1;
-    if (foxWasActive) {
-      // Streich vereitelt: Der Fuchs lässt seine Beute fallen – sie kommt aufs Schatzregal
-      if (!cave.loot) cave.loot = [];
-      cave.loot.push({ icon: config.license.loot, name: config.license.lootName, sparkle: state.unbundledThisOrder });
-      cave.foxUsed = true;
-    }
-    await saveCave();
-  }
   launchConfetti(isProPacker ? 65 : 40);
 
   const chip = v => `<span class="mini-cargo-chip chip-${v}">${v} ${config.license.icon}</span>`;
@@ -916,7 +918,7 @@ async function finishOrderDelivery() {
     </details>
   `;
 
-  const nextLabel = storeInCave ? '🏠 ▶' : (tutorial.active ? '👍' : '📜 ▶');
+  const nextLabel = tutorial.active ? '👍' : '📜 ▶';
 
   const dialog = document.getElementById('celebrationDialog');
 
@@ -1044,7 +1046,10 @@ function render() {
   // Einzel-Slot für den aktuellen Auftrag (Breitformat mit prominentem Profi-Packer-Ziel)
   const slot = document.getElementById('activeOrderSlot');
   const lockLabel = document.getElementById('orderLockLabel');
-  if (state.activeOrder === null) {
+  if (isCaveMode()) {
+    renderWinterPanel();
+  } else if (state.activeOrder === null) {
+    document.getElementById('orderPanelTitle').textContent = '📜 Aktueller Auftrag';
     slot.className = 'order-slot-box';
     lockLabel.textContent = 'Auftrag wählen';
     slot.innerHTML = `
@@ -1105,7 +1110,11 @@ function render() {
   }
 
   // Markt-Depots aktivieren/deaktivieren + Wüstenfuchs-Overlay rendern
-  const canGrab = state.activeOrder !== null;
+  const winterCard = isCaveMode() ? state.winter.card : null;
+  const canGrab = isCaveMode() ? Boolean(winterCard && winterCard.type === 'plus') : state.activeOrder !== null;
+  const foxBlockNow = isCaveMode()
+    ? (winterCard ? winterCard.foxBlock : null)
+    : (state.activeOrder !== null ? state.activeFoxBlock : null);
   [
     { id: 'depot10', val: 10 },
     { id: 'depot5', val: 5 },
@@ -1119,7 +1128,7 @@ function render() {
     const oldFox = el.querySelector('.fox-blocker-overlay');
     if (oldFox) oldFox.remove();
 
-    const isFoxHere = state.activeOrder !== null && state.activeFoxBlock === d.val;
+    const isFoxHere = Boolean(foxBlockNow) && foxBlockNow === d.val;
     el.classList.toggle('fox-blocked', isFoxHere);
 
     if (isFoxHere) {
@@ -1138,7 +1147,9 @@ function render() {
   const maxCap = config.level === 1 ? 10 : 20;
 
   document.getElementById('totalLoadText').textContent =
-    state.activeOrder !== null
+    isCaveMode()
+      ? `${totalLoaded} / ${getBagCapacity()} geladen`
+      : state.activeOrder !== null
       ? `${totalLoaded} / ${state.activeOrder} geladen`
       : `${totalLoaded} / ${maxCap} geladen`;
 
@@ -1193,13 +1204,22 @@ function render() {
   if (btnR10) btnR10.style.display = state.rightBag.includes(10) ? 'inline-block' : 'none';
   if (btnR5)  btnR5.style.display  = state.rightBag.includes(5)  ? 'inline-block' : 'none';
 
+  // Bündel-Buttons (nur im Wintervorrat): 5× 1er ➔ 5er, 2× 5er ➔ 10er
+  const count = (bag, v) => bag.filter(x => x === v).length;
+  [['Left', state.leftBag], ['Right', state.rightBag]].forEach(([side, bag]) => {
+    const b5 = document.getElementById(`bundleBtn${side}5`);
+    const b10 = document.getElementById(`bundleBtn${side}10`);
+    if (b5) b5.style.display = isCaveMode() && count(bag, 1) >= 5 ? 'inline-block' : 'none';
+    if (b10) b10.style.display = isCaveMode() && count(bag, 5) >= 2 ? 'inline-block' : 'none';
+  });
+
   renderCavePanel();
 }
 
 /* ============================================================================
-   MODUL 3: HÖHLE FÜLLEN (Stufe 1: 5×10-, Stufe 2: 10×10-Lager pro Tier)
-   Gelieferte Fracht wandert nicht zurück in den Markt, sondern wird als
-   Puzzleteil (10er = 1×10, 5er = 1×5, 1er = 1×1) in die Höhle gelegt.
+   HÖHLE (Stufe 1: 5×10-, Stufe 2: 10×10-Lager pro Tier)
+   Abgeladene Fracht wird als Puzzleteil (10er = 1×10, 5er = 1×5, 1er = 1×1)
+   in die Höhle gelegt. Gespielt wird sie im Wintervorrat-Modus (Modul 4).
    ============================================================================ */
 const CAVE_THEMES = {
   unicorn: { name: 'Regenbogen-Schatzkammer', deco: ['☁️', '💎', '🌈'] },
@@ -1237,7 +1257,10 @@ function getCaveKey() {
 }
 
 function createEmptyCave() {
-  return { pieces: [], pending: [], deliveries: 0, batch: 0, completed: false, loot: [], foxUsed: false };
+  return {
+    pieces: [], pending: [], batch: 0, completed: false, loot: [], foxUsed: false,
+    bags: { left: [], right: [] }, cards: [], turns: 0, knackevoll: 0
+  };
 }
 
 function getActiveCave() {
@@ -1259,12 +1282,6 @@ async function saveCave() {
 
 function getCaveUsedCells(cave) {
   return sumArray(cave.pieces.map(p => p.size));
-}
-
-// Freier Platz für neue Aufträge (bereits gelieferte, noch nicht eingelagerte Fracht zählt mit)
-function getCaveFreeForOrders() {
-  const cave = getActiveCave();
-  return getCaveCapacity() - getCaveUsedCells(cave) - sumArray(cave.pending);
 }
 
 function buildCaveGrid(cave) {
@@ -1328,9 +1345,10 @@ function renderCavePieceHTML(size, r, c, vertical, extraClass = '', attrs = '') 
 }
 
 // Baut das Höhlen-Raster. Im interaktiven Modus (Einlagern) gibt es Vorschau & Zurücknehmen.
-function renderCaveHTML(cave, interactive = false) {
+function renderCaveHTML(cave, interactive = false, sleeping = false) {
   const { rows, cols } = getCaveDims();
   const theme = getCaveTheme();
+  const season = getSeason(cave);
   let cells = '';
 
   if (interactive) {
@@ -1352,23 +1370,31 @@ function renderCaveHTML(cave, interactive = false) {
   const pieces = cave.pieces.map((p, idx) => {
     const removable = interactive && p.batch === cave.batch;
     const isNew = p === storageUI.justPlaced;
-    return renderCavePieceHTML(
+    const html = renderCavePieceHTML(
       p.size, p.r, p.c, p.vertical,
       `${removable ? 'removable' : ''} ${isNew ? 'piece-new' : ''}`,
       removable ? `onclick="removeStoredPiece(${idx})" title="Antippen = zurück in die Ablage"` : ''
     );
+    // Frisch abgelegte Kiste: Punkte schweben kurz nach oben
+    const pop = isNew
+      ? `<div class="points-pop" style="${p.vertical
+          ? `grid-row:${p.r + 1} / span ${p.size}; grid-column:${p.c + 1};`
+          : `grid-row:${p.r + 1}; grid-column:${p.c + 1} / span ${p.size};`}">+${CRATE_POINTS[p.size]} ⭐</div>`
+      : '';
+    return html + pop;
   }).join('');
 
   const preview = interactive ? renderCavePreviewHTML(cave) : '';
 
   return `
-    <div class="cave-frame cave-theme-${config.animal.id}">
-      <div class="cave-frame-title">${theme.deco[0]} ${theme.name} ${theme.deco[1]}</div>
+    <div class="cave-frame cave-theme-${config.animal.id} season-${season.id}">
+      <div class="cave-frame-title">${season.deco[0]} ${theme.name} ${season.deco[1]}</div>
       ${renderLootShelfHTML(cave)}
       <div class="cave-grid ${rows === 5 ? 'cave-half' : ''}"
            style="grid-template-columns: repeat(${cols}, 1fr); grid-template-rows: repeat(${rows}, 1fr);"
            ${interactive ? 'onpointerleave="caveHoverLeave()"' : ''}>
         ${cells}${pieces}${preview}
+        ${sleeping ? `<div class="cave-sleeper">${config.animal.icon}<span>💤</span></div>` : ''}
       </div>
     </div>
   `;
@@ -1411,12 +1437,13 @@ function isFoxMaster(cave) {
 
 // Rekorde getrennt für Höhlen mit und ohne Fuchs-Aufträge
 function getCaveRecordKey(cave) {
-  return getCaveKey() + (cave.foxUsed ? '_fox' : '');
+  return getCaveKey() + '_pts' + (cave.foxUsed ? '_fox' : '');
 }
 
 function getCaveProgressLine(cave) {
-  const grid = buildCaveGrid(cave);
-  return `📦 ${getCaveUsedCells(cave)} / ${getCaveCapacity()} Felder &nbsp;|&nbsp; 💎 ${countFullRows(grid)} ${countFullRows(grid) === 1 ? 'Reihe' : 'Reihen'} voll &nbsp;|&nbsp; 🚚 ${cave.deliveries} ${cave.deliveries === 1 ? 'Lieferung' : 'Lieferungen'}`;
+  ensureWinterCave(cave);
+  const rows = countFullRows(buildCaveGrid(cave));
+  return `⭐ ${getCavePoints(cave)} &nbsp;|&nbsp; 📦 ${getCaveUsedCells(cave)} / ${getCaveCapacity()} &nbsp;|&nbsp; 💎 ${rows} &nbsp;|&nbsp; 🃏 ${cave.turns} &nbsp;|&nbsp; 💥 ${cave.knackevoll}`;
 }
 
 /* Kleine Höhlen-Ansicht unterhalb des Packtier-Tableaus */
@@ -1425,50 +1452,36 @@ function renderCavePanel() {
   if (!panel) return;
   if (!isCaveMode()) {
     panel.classList.add('hidden');
+    document.body.removeAttribute('data-season');
     return;
   }
-  const cave = getActiveCave();
+  const cave = ensureWinterCave(getActiveCave());
   panel.classList.remove('hidden');
+  document.body.setAttribute('data-season', getSeason(cave).id);
+  document.getElementById('caveSeasonTrack').innerHTML = renderSeasonTrack(cave);
   document.getElementById('cavePanelGrid').innerHTML = renderCaveHTML(cave, false);
   document.getElementById('cavePanelStats').innerHTML = getCaveProgressLine(cave);
 }
 
 /* ---------- Ablauf-Steuerung ---------- */
 
-// Entscheidet, was als Nächstes passiert: Einlagern, Abschlussbildschirm oder neuer Auftrag
+// Entscheidet, was als Nächstes passiert: Einlagern, Abschlussbildschirm, Karte oder Auftrag
 function continueGameFlow() {
-  if (tutorial.active) {
-    if (isCaveMode() && getActiveCave().pending.length > 0) {
-      openStorageModal();
-    } else if (state.availableOrders.length === 0) {
-      finishTutorial();
-    } else {
-      openOrderModal();
-    }
-    return;
-  }
   if (isCaveMode()) {
     const cave = getActiveCave();
-    if (cave.completed) {
+    if (cave.completed && !tutorial.active) {
       showCaveComplete();
-      return;
-    }
-    if (cave.pending.length > 0) {
+    } else if (cave.pending.length > 0) {
       openStorageModal();
-      return;
     }
+    // Sonst: Die Karten liegen im Spielfeld, das Kind wählt selbst
+    return;
+  }
+  if (tutorial.active && state.availableOrders.length === 0) {
+    finishTutorial();
+    return;
   }
   openOrderModal();
-}
-
-// Aufträge, die nicht mehr in die Höhle passen würden, werden ersetzt
-function refreshOrdersForCave() {
-  const free = getCaveFreeForOrders();
-  const kept = state.availableOrders.map(o => (o && o.val <= free ? o : null));
-  state.availableOrders = kept;
-  for (let i = 0; i < kept.length; i++) {
-    if (kept[i] === null) state.availableOrders[i] = generateReplacementOrder();
-  }
 }
 
 /* ---------- Einlagern ---------- */
@@ -1650,8 +1663,9 @@ async function finishStorage() {
       const key = getCaveRecordKey(cave);
       if (!activeProfile.caveRecords) activeProfile.caveRecords = {};
       const best = activeProfile.caveRecords[key];
-      cave.isNewRecord = !best || cave.deliveries < best;
-      if (cave.isNewRecord) activeProfile.caveRecords[key] = cave.deliveries;
+      const points = getCavePoints(cave);
+      cave.isNewRecord = !best || points > best;
+      if (cave.isNewRecord) activeProfile.caveRecords[key] = points;
     }
     await saveCave();
     render();
@@ -1659,68 +1673,65 @@ async function finishStorage() {
     return;
   }
 
+  refreshWinterCards(cave);
   await saveCave();
-  refreshOrdersForCave();
   render();
-  setSpeech('🏠 Alles verstaut! Wähle deinen nächsten Auftrag.', '');
-  openOrderModal();
+  setSpeech(`${getSeason(cave).icon} Alles verstaut! Wähle die nächste Karte.`, '');
 }
 
 /* ---------- Abschlussbildschirm ---------- */
 
 function showCaveComplete() {
-  const cave = getActiveCave();
+  const cave = ensureWinterCave(getActiveCave());
   const theme = getCaveTheme();
-  const capacity = getCaveCapacity();
-  const minPieces = capacity / 10;
-  const minDeliveries = Math.ceil(capacity / (config.level === 1 ? 9 : 19));
   const best = activeProfile && activeProfile.caveRecords ? activeProfile.caveRecords[getCaveRecordKey(cave)] : null;
   const playerName = activeProfile ? activeProfile.name : 'Du';
+  const loot = cave.loot || [];
+  const points = getCavePoints(cave);
+  const packStars = getPackStars(points);
+  const tempo = isTempoStar(cave);
+  const limits = CAVE_STAR_LIMITS[config.level];
+  const crateCounts = { 10: 0, 5: 0, 1: 0 };
+  cave.pieces.forEach(p => { crateCounts[p.size] += 1; });
 
   launchConfetti(90);
 
   document.getElementById('caveCompleteDialog').innerHTML = `
-    <div class="celebration-trophy">${theme.deco[0]}🏠💎${theme.deco[2]}</div>
-    <h2 style="margin:0; font-size:1.75rem; color:var(--wood-dark);">KNACKEVOLL!</h2>
-    <p style="margin:6px 0 12px; font-weight:800; color:#6b5344; font-size:1.05rem;">
-      ${playerName} hat die <strong>${theme.name}</strong> von ${config.animal.article} randvoll gepackt!
-    </p>
+    <div class="celebration-trophy">❄️${config.animal.icon}💤❄️</div>
+    <div class="celebration-big-number">❄️ Winterschlaf! ❄️</div>
 
-    ${renderCaveHTML(cave, false)}
+    ${renderCaveHTML(cave, false, true)}
 
-    <div class="celebration-stats-grid">
-      <div class="stat-box ${cave.deliveries <= minDeliveries ? 'highlight-pro' : ''}">
-        <small>🚚 Lieferungen</small>
-        <strong>${cave.deliveries}</strong>
-        <small style="text-transform:none;">Schnellstmöglich: ${minDeliveries}</small>
-      </div>
-      <div class="stat-box ${cave.pieces.length <= minPieces ? 'highlight-pro' : ''}">
-        <small>📦 Frachtstücke</small>
-        <strong>${cave.pieces.length}</strong>
-        <small style="text-transform:none;">Profi-Packer: ${minPieces}</small>
-      </div>
+    <div class="result-badges" style="margin:14px 0;">
+      <div class="result-badge result-pro" title="Packen: ${points} Punkte">📦 ${starString(packStars)}</div>
+      <div class="result-badge ${tempo ? 'result-pro' : 'result-tip'}" title="Tempo: ${cave.turns} Karten">🃏 ${tempo ? '⭐' : '☆'}</div>
+      <div class="result-badge result-pro" title="KNACKEVOLL!-Bonus">💥 ${cave.knackevoll}×</div>
+      ${loot.length > 0 ? `<div class="result-badge result-fox" title="Fuchs-Beute">🦊 ➔ ${loot.length}× ${loot[0].icon}</div>` : ''}
+      ${isFoxMaster(cave) ? `<div class="result-badge result-pro" title="Jede Beute durch Entbündeln erobert">🦊 🏆</div>` : ''}
+      ${cave.isNewRecord ? `<div class="result-badge result-pro" title="Neuer Rekord: so viele Punkte wie noch nie">🏆 ⭐ ${points}</div>` : ''}
     </div>
+    <div class="celebration-big-number" title="Punkte">⭐ ${points}</div>
 
-    ${(cave.loot || []).length > 0 ? `
-      <div class="result-badges" style="margin-bottom:12px;">
-        <div class="result-badge result-fox" title="Fuchs-Beute in dieser Höhle">🦊 ➔ ${cave.loot.length}× ${cave.loot[0].icon}</div>
-        ${isFoxMaster(cave) ? `<div class="result-badge result-pro" title="Jede Beute durch Entbündeln erobert">🦊 🏆 Meister</div>` : ''}
-      </div>` : ''}
-
-    ${cave.isNewRecord
-      ? `<div style="background:#dcfce7; border:3px solid #16a34a; color:#14532d; padding:10px 14px; border-radius:14px; font-weight:900;">⭐ Neuer Rekord für diese Höhle${cave.foxUsed ? ' (mit 🦊)' : ''}!</div>`
-      : (best ? `<div style="font-weight:800; color:#6b5344;">Dein Rekord: ${best} Lieferungen</div>` : '')}
+    <details class="adult-details text-detail">
+      <summary>👩‍🏫 Für Erwachsene</summary>
+      <p>${playerName} hat die <strong>${theme.name}</strong> von ${config.animal.article} randvoll mit ${config.license.name} für den Winter gefüllt.</p>
+      <p>Punkte: <strong>${points}</strong>${best ? ` · Rekord: <strong>${best}</strong>${cave.foxUsed ? ' (mit Wüstenfuchs)' : ''}` : ''}</p>
+      <p>Kisten: ${crateCounts[10]}× 10er (je ${CRATE_POINTS[10]}), ${crateCounts[5]}× 5er (je ${CRATE_POINTS[5]}), ${crateCounts[1]}× Einer (je ${CRATE_POINTS[1]}).
+        Größere Bündel bringen einen Bonus: Ein 10er zählt doppelt so viel wie zehn Einer.</p>
+      <p>Sterne: 📦 Packen ${packStars} von 3 (2 ab ${limits.points[0]}, 3 ab ${limits.points[1]} Punkten) · 🃏 Tempo ${tempo ? 'erreicht' : 'knapp verpasst'}: ${cave.turns} Karten (Stern bis ${limits.maxCards})</p>
+      <p>Gespielte Karten: <strong>${cave.turns}</strong></p>
+      <p>KNACKEVOLL! (Tier randvoll): <strong>${cave.knackevoll}×</strong> · Volle Reihen: <strong>${countFullRows(buildCaveGrid(cave))}</strong></p>
+      ${loot.length > 0 ? `<p>Fuchs-Beute: <strong>${loot.length}</strong>, davon mit Entbündeln erobert: <strong>${loot.filter(l => l.sparkle).length}</strong></p>` : ''}
+    </details>
 
     <div style="margin-top:18px; display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">
-      <button class="btn" onclick="openSetupFromCaveComplete()">⚙️ Spiel-Setup</button>
-      <button class="btn btn-oasis" onclick="startNewCave()" style="font-size:1.05rem; padding:12px 24px;">
-        🏠 Neue Höhle beginnen
-      </button>
+      <button class="btn" onclick="openSetupFromCaveComplete()" title="Spiel-Setup">⚙️</button>
+      <button class="btn btn-oasis celebration-next-btn" onclick="startNewCave()" title="Neues Jahr – neue Höhle">🌸 ▶</button>
     </div>
   `;
 
   document.getElementById('caveCompleteModal').classList.remove('hidden');
-  setSpeech(`🏠 Die ${theme.name} ist randvoll – KNACKEVOLL!`, 'success');
+  setSpeech(`❄️ ${config.animal.article} hält zufrieden Winterschlaf vor den Vorräten!`, 'success');
 }
 
 function openSetupFromCaveComplete() {
@@ -1741,9 +1752,516 @@ async function startNewCave() {
 }
 
 /* ============================================================================
+   MODUL 4: WINTERVORRAT (Höhlen-Modus)
+   Das Tier packt Vorräte für den Winter. Plus-Karten = auf dem Markt einkaufen
+   (max. 2 Stücke), Minus-Karten = vom Tier abladen und in die Höhle legen.
+   Wird das Tier randvoll, heißt es KNACKEVOLL! und alles wandert auf einmal
+   in die Höhle. Mit dem Füllstand der Höhle ziehen die Jahreszeiten vorbei.
+   ============================================================================ */
+// [Wert, Anzahl im Kartendeck] – alle Werte sind mit höchstens 2 Stücken darstellbar
+const WINTER_PLUS_DECK = [[1, 3], [2, 3], [5, 5], [6, 4], [10, 4], [11, 3], [15, 2]];
+const WINTER_MINUS_DECK = [[1, 3], [2, 3], [5, 4], [6, 3], [10, 3]];
+const WINTER_MAX_TAKES = 2;
+
+// Wertung: Bündeln lohnt sich. Ein 10er zählt doppelt so viel wie zehn Einer, ein 5er 1,6-mal so viel.
+const CRATE_POINTS = { 10: 20, 5: 8, 1: 1 };
+// Sterne-Grenzen (aus Testspielen geschätzt): [ab 2 Sternen, ab 3 Sternen] Punkte, Tempo-Stern bis maximal x Karten
+const CAVE_STAR_LIMITS = {
+  1: { points: [65, 78], maxCards: 22 },
+  2: { points: [125, 140], maxCards: 36 }
+};
+
+function getCavePoints(cave) {
+  return cave.pieces.reduce((sum, p) => sum + (CRATE_POINTS[p.size] || 0), 0);
+}
+
+function getPackStars(points) {
+  const [two, three] = CAVE_STAR_LIMITS[config.level].points;
+  return points >= three ? 3 : (points >= two ? 2 : 1);
+}
+
+function isTempoStar(cave) {
+  return cave.turns <= CAVE_STAR_LIMITS[config.level].maxCards;
+}
+
+function starString(n, total = 3) {
+  return '⭐'.repeat(n) + '☆'.repeat(Math.max(0, total - n));
+}
+
+const SEASONS = [
+  { id: 'spring', icon: '🌸', name: 'Frühling', deco: ['🌷', '🐣', '🌱'] },
+  { id: 'summer', icon: '☀️', name: 'Sommer',   deco: ['🌻', '🍓', '🦋'] },
+  { id: 'autumn', icon: '🍂', name: 'Herbst',   deco: ['🍁', '🍄', '🌰'] },
+  { id: 'winter', icon: '❄️', name: 'Winter',   deco: ['⛄', '🌨️', '❄️'] }
+];
+
+function createWinterTurnState() {
+  return { card: null, cardIdx: null, snapshot: null, takes: 0, unloaded: [] };
+}
+state.winter = createWinterTurnState();
+
+function getBagCapacity() {
+  return config.level === 1 ? 10 : 20;
+}
+
+// Ältere Höhlen um die Felder des Wintervorrats ergänzen
+function ensureWinterCave(cave) {
+  if (!cave.bags) cave.bags = { left: [], right: [] };
+  if (!cave.cards) cave.cards = [];
+  if (typeof cave.turns !== 'number') cave.turns = 0;
+  if (typeof cave.knackevoll !== 'number') cave.knackevoll = 0;
+  if (!cave.loot) cave.loot = [];
+  return cave;
+}
+
+function getCaveLoad(cave) {
+  return sumArray(cave.bags.left) + sumArray(cave.bags.right);
+}
+
+function getSeason(cave) {
+  if (cave.completed) return SEASONS[3];
+  const ratio = getCaveUsedCells(cave) / getCaveCapacity();
+  return SEASONS[Math.min(3, Math.floor(ratio * 4))];
+}
+
+/* ---------- Karten ---------- */
+
+// Gibt es einen Weg mit höchstens 2 Stücken am Fuchs vorbei? (Überschuss darf entbündelt & zurückgelegt werden)
+function findFoxStrategy(val, blocked, load) {
+  const allowed = [10, 5, 1].filter(p => p !== blocked);
+  let best = null;
+  for (const a of allowed) {
+    for (const b of [0, ...allowed]) {
+      const sum = a + b;
+      if (sum >= val && load + sum <= getBagCapacity() && (!best || sum < best.sum)) {
+        best = { sum, pieces: b ? [a, b] : [a] };
+      }
+    }
+  }
+  return best;
+}
+
+function isWinterCardValid(card, cave) {
+  const load = getCaveLoad(cave);
+  if (card.type === 'minus') return card.val <= load;
+  // Plus: Tier darf nicht überladen werden, und alles muss später noch in die Höhle passen
+  const free = getCaveCapacity() - getCaveUsedCells(cave) - sumArray(cave.pending) - load;
+  if (load + card.val > getBagCapacity() || card.val > free) return false;
+  if (card.foxBlock && !findFoxStrategy(card.val, card.foxBlock, load)) return false;
+  return true;
+}
+
+function drawWinterCard(cave, existing) {
+  const pool = [];
+  WINTER_PLUS_DECK.forEach(([val, n]) => { for (let i = 0; i < n; i++) pool.push({ type: 'plus', val, foxBlock: null }); });
+  WINTER_MINUS_DECK.forEach(([val, n]) => { for (let i = 0; i < n; i++) pool.push({ type: 'minus', val, foxBlock: null }); });
+
+  const valid = pool.filter(c => isWinterCardValid(c, cave));
+  if (valid.length === 0) return null;
+  // Möglichst keine doppelten Karten in der Auslage
+  const fresh = valid.filter(c => !existing.some(e => e && e.type === c.type && e.val === c.val));
+  const source = fresh.length > 0 ? fresh : valid;
+  const card = { ...source[Math.floor(Math.random() * source.length)] };
+
+  // Wüstenfuchs: blockiert auf Plus-Karten ein Depot, das man eigentlich bräuchte
+  if (config.foxMode && card.type === 'plus' && Math.random() < 0.4) {
+    const load = getCaveLoad(cave);
+    const candidates = [...new Set(getOptimalPacking(card.val).pieces)]
+      .filter(b => findFoxStrategy(card.val, b, load));
+    if (candidates.length > 0) card.foxBlock = candidates[Math.floor(Math.random() * candidates.length)];
+  }
+  return card;
+}
+
+// Ungültig gewordene Karten ersetzen und die Auslage auf 3 auffüllen
+function refreshWinterCards(cave) {
+  if (tutorial.active) return; // Die Übung legt ihre Karten selbst fest
+  cave.cards = cave.cards.filter(c => c && isWinterCardValid(c, cave));
+  while (cave.cards.length < 3) {
+    const card = drawWinterCard(cave, cave.cards);
+    if (!card) break;
+    cave.cards.push(card);
+  }
+}
+
+/* ---------- Spielzug ---------- */
+
+// Taschen des Tieres aus der Höhle übernehmen (nach Laden, Profilwechsel, Neustart)
+function winterResume() {
+  const cave = ensureWinterCave(getActiveCave());
+  state.activeOrder = null;
+  state.activeFoxBlock = null;
+  state.leftBag = [...cave.bags.left];
+  state.rightBag = [...cave.bags.right];
+  state.winter = createWinterTurnState();
+  refreshWinterCards(cave);
+  document.getElementById('celebrationModal').classList.add('hidden');
+  setSpeech(`${getSeason(cave).icon} Wähle oben eine Karte: ➕ einkaufen oder ➖ in die Höhle bringen!`, '');
+  render();
+  if (document.getElementById('setupModal').classList.contains('hidden')) {
+    continueGameFlow();
+  }
+}
+
+function getWinterTarget() {
+  const w = state.winter;
+  if (!w.card) return null;
+  const start = sumArray(w.snapshot.left) + sumArray(w.snapshot.right);
+  return w.card.type === 'plus' ? start + w.card.val : start - w.card.val;
+}
+
+function pickWinterCard(idx) {
+  if (state.winter.card) return;
+  const cave = getActiveCave();
+  const card = cave.cards[idx];
+  if (!card) return;
+  state.winter = {
+    card,
+    cardIdx: idx,
+    snapshot: { left: [...state.leftBag], right: [...state.rightBag] },
+    takes: 0,
+    unloaded: []
+  };
+  state.unbundledThisOrder = false;
+
+  if (card.type === 'plus') {
+    setSpeech(card.foxBlock
+      ? `🦊💤 Der Fuchs schläft auf den ${card.foxBlock}er-Kisten! Hol ${card.val} anders – du darfst auch zu viel nehmen, entbündeln und zurücklegen.`
+      : `🧺 +${card.val}: Hol ${card.val}× ${config.license.icon} vom Markt – mit höchstens ${WINTER_MAX_TAKES} Stücken!`, '');
+  } else {
+    setSpeech(`🏠 −${card.val}: Pack ${card.val}× ${config.license.icon} ab – zuerst aus der rechten Tasche!`, '');
+  }
+  render();
+}
+
+// Zug abbrechen: Taschen wie vor der Karte, Karte zurück in die Auslage
+function cancelWinterTurn() {
+  const w = state.winter;
+  if (!w.card) return;
+  state.leftBag = [...w.snapshot.left];
+  state.rightBag = [...w.snapshot.right];
+  state.winter = createWinterTurnState();
+  setSpeech('↩️ Alles wie vorher. Wähle eine Karte!', '');
+  render();
+}
+
+function winterTakeCargo(val) {
+  const w = state.winter;
+  if (!w.card) {
+    setSpeech('👆 Wähle zuerst oben eine Karte!', 'error');
+    return;
+  }
+  if (w.card.type !== 'plus') {
+    setSpeech('🏠 Bei einer Minus-Karte wird abgeladen, nicht eingekauft. Tippe auf die Fracht in den Taschen!', 'error');
+    return;
+  }
+  if (w.card.foxBlock === val) {
+    setSpeech(`🦊💤 Pssst! Der Wüstenfuchs schläft auf den ${val}er-Kisten! Nimm ein anderes Stück.`, 'error');
+    return;
+  }
+  if (w.takes >= WINTER_MAX_TAKES) {
+    setSpeech(`✋✋ Nur ${WINTER_MAX_TAKES} Stücke pro Karte! Mit ↩ kannst du neu anfangen.`, 'error');
+    flashTakeLimit();
+    return;
+  }
+
+  const leftSum = sumArray(state.leftBag);
+  const total = leftSum + sumArray(state.rightBag);
+  if (total + val > getBagCapacity()) {
+    wobbleBag(config.level === 1 || leftSum < 10 ? 'bagLeft' : 'bagRight');
+    setSpeech(`⚠️ Wackel-Regel! Auf ${config.animal.article} ist nur noch Platz für ${getBagCapacity() - total}.`, 'error');
+    return;
+  }
+
+  if (leftSum + val <= 10) {
+    state.leftBag.push(val);
+  } else if (leftSum < 10) {
+    // Zehnerübergang: links bis zur 10 auffüllen, der Rest kommt nach rechts
+    const leftPart = 10 - leftSum;
+    const rightPart = val - leftPart;
+    state.leftBag.push(...getOptimalPacking(leftPart).pieces);
+    state.rightBag.push(...getOptimalPacking(rightPart).pieces);
+    setSpeech(`✂️ Zehnerübergang: ${leftPart} links bis zur 10, ${rightPart} rechts!`, '');
+  } else {
+    state.rightBag.push(val);
+  }
+  w.takes += 1;
+
+  if (checkWinterCompletion()) return;
+  render();
+}
+
+function winterUnpack(side, index) {
+  const w = state.winter;
+  if (!w.card) {
+    setSpeech('👆 Wähle zuerst oben eine Karte!', 'error');
+    return;
+  }
+  if (side === 'left' && state.rightBag.length > 0) {
+    wobbleBag('bagLeft');
+    setSpeech('⚠️ Spiegelregel: Zuerst die rechte Tasche leer räumen!', 'error');
+    return;
+  }
+  const bag = side === 'left' ? state.leftBag : state.rightBag;
+  const val = bag[index];
+  if (val === undefined) return;
+  const total = sumArray(state.leftBag) + sumArray(state.rightBag);
+  const target = getWinterTarget();
+
+  if (w.card.type === 'plus') {
+    // Nur Überschuss darf zurück auf den Markt
+    if (total - val < target) {
+      wobbleBag(side === 'left' ? 'bagLeft' : 'bagRight');
+      setSpeech(total > target
+        ? `🔄 Zu groß! Du hast ${total - target} zu viel – entbündle das Stück erst.`
+        : '🧺 Bei Plus wird eingekauft. Hol Fracht vom Markt!', 'error');
+      return;
+    }
+    bag.splice(index, 1);
+  } else {
+    const need = w.card.val - sumArray(w.unloaded);
+    if (val > need) {
+      wobbleBag(side === 'left' ? 'bagLeft' : 'bagRight');
+      setSpeech(`🔄 Der ${val}er ist zu groß – es fehlen nur noch ${need}. Entbündle ihn zuerst!`, 'error');
+      return;
+    }
+    bag.splice(index, 1);
+    w.unloaded.push(val);
+  }
+
+  if (checkWinterCompletion()) return;
+  render();
+}
+
+function checkWinterCompletion() {
+  const w = state.winter;
+  if (!w.card) return false;
+  const total = sumArray(state.leftBag) + sumArray(state.rightBag);
+  if (w.card.type === 'plus' && total === getWinterTarget()) {
+    finishWinterPlus();
+    return true;
+  }
+  if (w.card.type === 'minus' && sumArray(w.unloaded) === w.card.val) {
+    finishWinterMinus();
+    return true;
+  }
+  return false;
+}
+
+// Karte aus der Auslage nehmen, Zug zählen
+function consumeWinterCard(cave) {
+  cave.cards.splice(state.winter.cardIdx, 1);
+  cave.turns += 1;
+  if (tutorial.active) {
+    tutorial.winterTurns += 1;
+    if (tutorial.cardQueue.length > 0) cave.cards = [tutorial.cardQueue.shift()];
+  }
+}
+
+async function finishWinterPlus() {
+  const cave = getActiveCave();
+  const card = state.winter.card;
+  consumeWinterCard(cave);
+
+  let lootHTML = '';
+  if (card.foxBlock) {
+    // Streich vereitelt: Der Fuchs lässt seine Beute fallen
+    cave.loot.push({ icon: config.license.loot, name: config.license.lootName, sparkle: state.unbundledThisOrder });
+    cave.foxUsed = true;
+    lootHTML = ` 🦊💨 ➔ <span class="loot-item ${state.unbundledThisOrder ? 'loot-sparkle' : ''}">${config.license.loot}</span>`;
+  }
+  if (!tutorial.active && activeProfile) {
+    const st = activeProfile.stats || (activeProfile.stats = {});
+    st.totalCargoSent = (st.totalCargoSent || 0) + card.val;
+    if (card.foxBlock) st.foxOutsmarted = (st.foxOutsmarted || 0) + 1;
+  }
+
+  const total = sumArray(state.leftBag) + sumArray(state.rightBag);
+  state.winter = createWinterTurnState();
+
+  if (total === getBagCapacity()) {
+    await triggerKnackevoll(cave, lootHTML);
+    return;
+  }
+
+  cave.bags = { left: [...state.leftBag], right: [...state.rightBag] };
+  refreshWinterCards(cave);
+  await saveCave();
+  if (!tutorial.active && activeProfile) await dbSaveProfile(activeProfile);
+  launchConfetti(card.foxBlock ? 40 : 15);
+  showToast(`✔ +${card.val} ${config.license.icon}${lootHTML}`);
+  setSpeech(`✅ +${card.val} eingekauft! Wähle die nächste Karte.`, 'success');
+  render();
+}
+
+async function finishWinterMinus() {
+  const cave = getActiveCave();
+  const card = state.winter.card;
+  const unloaded = [...state.winter.unloaded];
+  consumeWinterCard(cave);
+  cave.bags = { left: [...state.leftBag], right: [...state.rightBag] };
+  cave.pending = [...cave.pending, ...unloaded];
+  state.winter = createWinterTurnState();
+  await saveCave();
+  showToast(`✔ −${card.val} ${config.license.icon} ➔ 🏠`);
+  render();
+  openStorageModal();
+}
+
+// Tier randvoll: alles auf einen Schlag in die Höhle + Bonuspunkt
+async function triggerKnackevoll(cave, lootHTML = '') {
+  const allPieces = [...state.leftBag, ...state.rightBag];
+  cave.pending = [...cave.pending, ...allPieces];
+  cave.bags = { left: [], right: [] };
+  cave.knackevoll += 1;
+  state.leftBag = [];
+  state.rightBag = [];
+  if (!tutorial.active && activeProfile) {
+    const st = activeProfile.stats || (activeProfile.stats = {});
+    st.knackevoll = (st.knackevoll || 0) + 1;
+    await dbSaveProfile(activeProfile);
+  }
+  await saveCave();
+  launchConfetti(90);
+
+  const chips = allPieces.map(v => `<span class="mini-cargo-chip chip-${v}">${v} ${config.license.icon}</span>`).join('');
+  document.getElementById('celebrationDialog').innerHTML = `
+    <div class="celebration-trophy">💥${config.animal.icon}💥</div>
+    <div class="celebration-big-number knackevoll-title">KNACKEVOLL!</div>
+    <div class="delivered-pieces-row">${chips}</div>
+    <div class="result-badges">
+      <div class="result-badge result-pro" title="KNACKEVOLL!-Bonus">⭐ +1</div>
+      ${lootHTML ? `<div class="result-badge result-fox">${lootHTML}</div>` : ''}
+    </div>
+    <div style="margin-top:18px;">
+      <button class="btn btn-oasis celebration-next-btn" onclick="acknowledgeCelebration()">🏠 ▶</button>
+    </div>
+  `;
+  document.getElementById('celebrationModal').classList.remove('hidden');
+  setSpeech(`💥 KNACKEVOLL! ${config.animal.article} bringt alles auf einmal in die Höhle!`, 'success');
+  render();
+}
+
+// Bündeln: aus kleinen Stücken wieder größere machen (nur im Wintervorrat)
+function bundleCargo(side, kind) {
+  const bag = side === 'left' ? state.leftBag : state.rightBag;
+  const from = kind === 5 ? 1 : 5;
+  const need = kind === 5 ? 5 : 2;
+  const positions = [];
+  bag.forEach((v, i) => { if (v === from) positions.push(i); });
+  if (positions.length < need) return;
+  const use = positions.slice(0, need);
+  const insertAt = use[0];
+  for (let i = use.length - 1; i >= 0; i--) bag.splice(use[i], 1);
+  bag.splice(insertAt, 0, kind);
+  setSpeech(`🔗 Gebündelt: ${need}× ${from}er ➔ 1× ${kind}er!`, '');
+  saveBagsIfIdle();
+  render();
+}
+
+// Außerhalb eines Zuges (z. B. Bündeln/Entbündeln zum Aufräumen) sofort speichern
+function saveBagsIfIdle() {
+  if (!isCaveMode() || state.winter.card) return;
+  const cave = getActiveCave();
+  cave.bags = { left: [...state.leftBag], right: [...state.rightBag] };
+  saveCave();
+}
+
+function flashTakeLimit() {
+  const el = document.getElementById('winterTakes');
+  if (!el) return;
+  el.classList.remove('wobble-error');
+  void el.offsetWidth;
+  el.classList.add('wobble-error');
+}
+
+function showToast(html) {
+  const el = document.getElementById('gameToast');
+  el.innerHTML = html;
+  el.classList.remove('show');
+  void el.offsetWidth;
+  el.classList.add('show');
+}
+
+/* ---------- Darstellung ---------- */
+
+function renderWinterCardHTML(card, idx, active = false) {
+  const isPlus = card.type === 'plus';
+  const fox = card.foxBlock
+    ? `<div class="fox-card-badge" title="Der Wüstenfuchs blockiert das ${card.foxBlock}er-Depot">🦊 🚫 ${card.foxBlock}er</div>`
+    : '';
+  return `
+    <div class="winter-card ${isPlus ? 'card-plus' : 'card-minus'} ${active ? 'card-active' : ''}"
+         ${active ? '' : `onclick="pickWinterCard(${idx})"`}
+         title="${isPlus ? `Einkaufen: ${card.val} vom Markt holen (max. ${WINTER_MAX_TAKES} Stücke)` : `Abladen: ${card.val} in die Höhle bringen`}">
+      <div class="winter-card-icon">${isPlus ? '🧺' : '🏠'}</div>
+      <div class="winter-card-num">${isPlus ? '+' : '−'}${card.val}</div>
+      <div class="winter-card-sub">${isPlus ? '✋'.repeat(WINTER_MAX_TAKES) : `${config.license.icon} ➔ 🏠`}</div>
+      ${fox}
+    </div>
+  `;
+}
+
+function renderWinterPanel() {
+  const cave = ensureWinterCave(getActiveCave());
+  const slot = document.getElementById('activeOrderSlot');
+  const lockLabel = document.getElementById('orderLockLabel');
+  document.getElementById('orderPanelTitle').textContent = `${getSeason(cave).icon} Vorräte für den Winter`;
+  const w = state.winter;
+
+  if (!w.card) {
+    slot.className = 'order-slot-box winter-slot';
+    lockLabel.textContent = '👆';
+    slot.innerHTML = cave.cards.length
+      ? `<div class="winter-card-row">${cave.cards.map((c, i) => renderWinterCardHTML(c, i)).join('')}</div>`
+      : `<div style="font-size:2rem;">🏠</div>`;
+    return;
+  }
+
+  slot.className = 'order-slot-box winter-slot locked-order';
+  lockLabel.textContent = '';
+  let status = '';
+  if (w.card.type === 'plus') {
+    const hands = Array.from({ length: WINTER_MAX_TAKES }, (_, i) =>
+      `<span class="take-hand ${i < w.takes ? 'used' : ''}">✋</span>`).join('');
+    const total = sumArray(state.leftBag) + sumArray(state.rightBag);
+    const target = getWinterTarget();
+    status = `
+      <div class="winter-takes" id="winterTakes" title="Höchstens ${WINTER_MAX_TAKES} Stücke vom Markt">${hands}</div>
+      ${total > target ? `<span class="overload-warning-pill">🔄 ${total - target} zu viel</span>` : ''}
+    `;
+  } else {
+    const chips = w.unloaded.map(v => `<span class="mini-cargo-chip chip-${v}">${v}</span>`).join('');
+    const rest = w.card.val - sumArray(w.unloaded);
+    status = `
+      <div class="winter-unload-tray" title="Abgeladen">${chips || '<span style="opacity:0.5;">📦</span>'}</div>
+      <span class="pro-counter-pill">🏠 noch ${rest}</span>
+    `;
+  }
+  slot.innerHTML = `
+    <div class="winter-active-row">
+      ${renderWinterCardHTML(w.card, w.cardIdx, true)}
+      <div class="winter-status">${status}</div>
+      <button class="btn winter-cancel-btn" onclick="cancelWinterTurn()" title="Zug abbrechen – alles wie vorher">↩</button>
+    </div>
+  `;
+}
+
+function renderSeasonTrack(cave) {
+  const ratio = getCaveUsedCells(cave) / getCaveCapacity();
+  const current = getSeason(cave);
+  return `
+    <div class="season-track" title="Füllstand der Höhle: ${Math.round(ratio * 100)} %">
+      <div class="season-fill" style="width:${ratio * 100}%;"></div>
+      ${SEASONS.map(s => `<span class="season-mark ${s.id === current.id ? 'current' : ''}">${s.icon}</span>`).join('')}
+    </div>
+  `;
+}
+
+/* ============================================================================
    GEFÜHRTE ÜBUNGSRUNDE (Tutorial)
-   Eine Zeige-Hand führt durch zwei kleine Aufträge (und im Höhlen-Modus durch
-   einmal Einlagern). Klicks außerhalb des gezeigten Ziels werden ignoriert,
+   Eine Zeige-Hand führt durch zwei kleine Aufträge (Endlos-Karawane) bzw. durch
+   eine Plus- und eine Minus-Karte mit Einlagern (Wintervorrat). Klicks außerhalb des gezeigten Ziels werden ignoriert,
    damit das Kind nur durch Nachmachen lernt – ganz ohne Lesen.
    ============================================================================ */
 const tutorial = {
@@ -1752,6 +2270,8 @@ const tutorial = {
   stepIdx: 0,
   queue: [],        // noch folgende Übungsaufträge
   deliveries: 0,
+  cardQueue: [],    // noch folgende Übungskarten (Wintervorrat)
+  winterTurns: 0,
   cave: null,       // Übungs-Höhle (wird nicht gespeichert)
   timer: null,
   lastTarget: null
@@ -1810,22 +2330,39 @@ function buildTutorialSteps(orders) {
     });
   });
 
-  // Im Höhlen-Modus: die Fracht der letzten Übungslieferung einmal einlagern
-  if (isCaveMode()) {
-    const lastPlan = orders[orders.length - 1].plan;
-    lastPlan.forEach((_, k) => {
-      steps.push({
-        allow: '#storageCaveFrame .cave-cell',
-        target: () => getTutorialStorageCell(),
-        done: () => tutorial.cave.pieces.length >= k + 1
-      });
-    });
-    steps.push({
-      allow: '#storageDoneBtn',
-      target: () => document.getElementById('storageDoneBtn'),
-      done: () => isHidden('storageModal')
-    });
-  }
+  return steps;
+}
+
+// Wintervorrat-Übung: +6 einkaufen (5 + 1), dann −2 abladen (1 weg, 5er entbündeln, 1 weg), dann einlagern
+function buildWinterTutorialSteps() {
+  const turns = () => tutorial.winterTurns;
+  const firstOne = () => document.querySelector('#leftBagPieces .block-1');
+  const steps = [
+    { allow: '#activeOrderSlot .winter-card', target: () => document.querySelector('#activeOrderSlot .winter-card'),
+      done: () => state.winter.card !== null || turns() >= 1 },
+    { allow: '#depot5', target: () => document.getElementById('depot5'),
+      done: () => state.winter.takes >= 1 || turns() >= 1 },
+    { allow: '#depot1', target: () => document.getElementById('depot1'),
+      done: () => turns() >= 1 },
+    { allow: '#activeOrderSlot .winter-card', target: () => document.querySelector('#activeOrderSlot .winter-card'),
+      done: () => (turns() >= 1 && state.winter.card !== null) || turns() >= 2 },
+    { allow: '#leftBagPieces .block-1', target: firstOne,
+      done: () => state.winter.unloaded.length >= 1 || turns() >= 2 },
+    { allow: '#swapBtnLeft5', target: () => document.getElementById('swapBtnLeft5'),
+      done: () => state.unbundledThisOrder || turns() >= 2 },
+    { allow: '#leftBagPieces .block-1', target: firstOne,
+      done: () => turns() >= 2 }
+  ];
+  [0, 1].forEach(k => steps.push({
+    allow: '#storageCaveFrame .cave-cell',
+    target: () => getTutorialStorageCell(),
+    done: () => tutorial.cave.pieces.length >= k + 1
+  }));
+  steps.push({
+    allow: '#storageDoneBtn',
+    target: () => document.getElementById('storageDoneBtn'),
+    done: () => isHidden('storageModal')
+  });
   return steps;
 }
 
@@ -1852,24 +2389,28 @@ function startTutorial() {
   const orders = getTutorialOrders();
   tutorial.active = true;
   tutorial.deliveries = 0;
+  tutorial.winterTurns = 0;
   tutorial.stepIdx = 0;
   tutorial.cave = createEmptyCave();
   tutorial.queue = orders.slice(1).map(o => ({ val: o.val, foxBlock: null }));
-  tutorial.steps = buildTutorialSteps(orders);
+  tutorial.cardQueue = [{ type: 'minus', val: 2, foxBlock: null }];
+  tutorial.steps = isCaveMode() ? buildWinterTutorialSteps() : buildTutorialSteps(orders);
 
   state.activeOrder = null;
   state.activeFoxBlock = null;
   state.activeOrderIdx = null;
   state.leftBag = [];
   state.rightBag = [];
+  state.winter = createWinterTurnState();
   state.availableOrders = [{ val: orders[0].val, foxBlock: null }];
+  tutorial.cave.cards = [{ type: 'plus', val: 6, foxBlock: null }];
   storageUI.vertical = false;
 
   document.getElementById('tutorialBar').classList.remove('hidden');
   document.body.classList.add('tutorial-running');
   setSpeech('🎓 👆', '');
   render();
-  openOrderModal();
+  if (!isCaveMode()) openOrderModal();
 
   clearInterval(tutorial.timer);
   tutorial.timer = setInterval(tutorialTick, 120);
@@ -1976,6 +2517,7 @@ function closeTutorialEnd() {
 // Für Erwachsene: Übung abbrechen
 function skipTutorial() {
   ['orderModal', 'celebrationModal', 'storageModal'].forEach(id => document.getElementById(id).classList.add('hidden'));
+  state.winter = createWinterTurnState();
   stopTutorial();
   markTutorialDone();
   resetGame();

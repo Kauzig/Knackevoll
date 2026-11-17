@@ -45,7 +45,7 @@
     <!-- Aktiver Auftrag (Einzel-Slot) -->
     <div class="board-panel">
       <h3 class="panel-heading">
-        <span>📜 Aktueller Auftrag</span>
+        <span id="orderPanelTitle">📜 Aktueller Auftrag</span>
         <small style="font-weight:700; color:#15803d;" id="orderLockLabel">Freie Wahl (0 Akt.)</small>
       </h3>
       <div class="order-slot-box" id="activeOrderSlot"></div>
@@ -125,6 +125,12 @@
             <button class="btn-bazaar-swap swap-yellow" id="swapBtnLeft5" onclick="unbundleFive('left')" style="display:none;">
               🔄 5er ➔ 5× 1er
             </button>
+            <button class="btn-bazaar-swap swap-bundle" id="bundleBtnLeft5" onclick="bundleCargo('left', 5)" style="display:none;" title="Bündeln: fünf 1er werden ein 5er">
+              🔗 5× 1er ➔ 5er
+            </button>
+            <button class="btn-bazaar-swap swap-bundle" id="bundleBtnLeft10" onclick="bundleCargo('left', 10)" style="display:none;" title="Bündeln: zwei 5er werden ein 10er">
+              🔗 2× 5er ➔ 10er
+            </button>
           </div>
         </div>
       </div>
@@ -155,6 +161,12 @@
             <button class="btn-bazaar-swap swap-yellow" id="swapBtnRight5" onclick="unbundleFive('right')" style="display:none;">
               🔄 5er ➔ 5× 1er
             </button>
+            <button class="btn-bazaar-swap swap-bundle" id="bundleBtnRight5" onclick="bundleCargo('right', 5)" style="display:none;" title="Bündeln: fünf 1er werden ein 5er">
+              🔗 5× 1er ➔ 5er
+            </button>
+            <button class="btn-bazaar-swap swap-bundle" id="bundleBtnRight10" onclick="bundleCargo('right', 10)" style="display:none;" title="Bündeln: zwei 5er werden ein 10er">
+              🔗 2× 5er ➔ 10er
+            </button>
           </div>
         </div>
       </div>
@@ -166,12 +178,13 @@
     </div>
   </section>
 
-  <!-- Modul 3: Höhle des Packtiers (nur im Modus „Höhle füllen“) -->
+  <!-- Höhle des Packtiers mit Jahreszeiten (nur im Modus „Wintervorrat“) -->
   <section class="board-panel cave-panel hidden" id="cavePanel">
     <h3 class="panel-heading">
       <span>🏠 Deine Höhle</span>
       <small style="font-weight:700; color:#78716c;" id="cavePanelStats"></small>
     </h3>
+    <div id="caveSeasonTrack"></div>
     <div id="cavePanelGrid"></div>
   </section>
 
@@ -236,7 +249,7 @@
         <small>Ein Auftrag nach dem anderen – ohne Ende</small>
       </div>
       <div class="tile-option" id="modeCaveTile" onclick="setGameMode('cave')">
-        <div style="font-size:1.2rem; font-weight:900;">🏠 Höhle füllen</div>
+        <div style="font-size:1.2rem; font-weight:900;">❄️ Wintervorrat</div>
         <small id="modeCaveSub">Fülle die Höhle deines Tieres</small>
       </div>
     </div>
@@ -365,6 +378,9 @@
     </button>
   </div>
 </div>
+
+<!-- Kurze Bestätigung mitten im Bild (z. B. „✔ +6“) -->
+<div class="game-toast" id="gameToast"></div>
 
 <!-- Konfetti-Ebene -->
 <div class="confetti-layer" id="confettiLayer"></div>

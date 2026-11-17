@@ -1914,3 +1914,232 @@ body {
   0%, 100% { filter: drop-shadow(0 0 3px #facc15); transform: scale(1); }
   50% { filter: drop-shadow(0 0 9px #fde047) drop-shadow(0 0 3px #fff); transform: scale(1.15); }
 }
+
+/* ============================================================================
+   Wintervorrat: Karten, Jahreszeiten, Winterschlaf
+   ============================================================================ */
+.winter-slot {
+  display: block;
+}
+
+.winter-card-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.winter-card {
+  border-radius: 16px;
+  border: 4px solid;
+  padding: 10px 8px;
+  text-align: center;
+  cursor: pointer;
+  box-shadow: 0 5px 0 rgba(0, 0, 0, 0.2);
+  transition: transform 0.12s;
+  user-select: none;
+}
+
+.winter-card:hover {
+  transform: translateY(-3px);
+}
+
+.winter-card.card-plus  { background: #f0fdf4; border-color: #16a34a; }
+.winter-card.card-minus { background: #fef3c7; border-color: #b45309; }
+
+.winter-card.card-active {
+  cursor: default;
+  transform: none;
+  min-width: 120px;
+}
+
+.winter-card-icon { font-size: 1.8rem; }
+.winter-card-num  { font-size: 2.6rem; font-weight: 900; line-height: 1.1; color: var(--wood-dark); }
+.winter-card-sub  { font-size: 1.1rem; margin-top: 2px; }
+
+.winter-card .fox-card-badge {
+  margin-top: 6px;
+}
+
+.winter-active-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.winter-status {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.winter-takes {
+  display: flex;
+  gap: 6px;
+  font-size: 2.2rem;
+}
+
+.take-hand.used {
+  opacity: 0.25;
+  filter: grayscale(1);
+}
+
+.winter-unload-tray {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-height: 36px;
+  align-items: center;
+}
+
+.winter-cancel-btn {
+  font-size: 1.6rem;
+  padding: 6px 16px;
+}
+
+.btn-bazaar-swap.swap-bundle {
+  background: linear-gradient(180deg, #dcfce7 0%, #86efac 100%);
+  color: #14532d;
+  border-color: #14532d;
+  box-shadow: 0 3px 0 #14532d;
+}
+
+/* Jahreszeiten-Leiste */
+.season-track {
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 40px;
+  margin: 0 auto 12px;
+  max-width: 520px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: #e7dcc8;
+  border: 3px solid var(--wood-light);
+  overflow: hidden;
+}
+
+.season-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  background: linear-gradient(90deg, #f9a8d4 0%, #fde047 33%, #fb923c 66%, #bae6fd 100%);
+  transition: width 0.6s ease;
+}
+
+.season-mark {
+  position: relative;
+  font-size: 1.4rem;
+  opacity: 0.55;
+}
+
+.season-mark.current {
+  opacity: 1;
+  transform: scale(1.3);
+}
+
+/* Höhlenrahmen je Jahreszeit */
+.cave-frame.season-spring { --cave-bg: #fdf2f8; }
+.cave-frame.season-summer { --cave-bg: #fefce8; }
+.cave-frame.season-autumn { --cave-bg: #ffedd5; }
+.cave-frame.season-winter { --cave-bg: #f0f9ff; border-color: #7dd3fc; }
+
+/* Hintergrund des ganzen Spiels je Jahreszeit (nur im Wintervorrat) */
+body[data-season] {
+  transition: background 1s ease;
+}
+
+body[data-season="spring"] { background: radial-gradient(circle at top, #fff1f7 0%, #fce7f3 55%, #f5d0e4 100%); }
+body[data-season="summer"] { background: radial-gradient(circle at top, #fffbe6 0%, #fef3c7 55%, #fde68a 100%); }
+body[data-season="autumn"] { background: radial-gradient(circle at top, #fff4e6 0%, #fed7aa 55%, #fdba74 100%); }
+body[data-season="winter"] { background: radial-gradient(circle at top, #ffffff 0%, #e0f2fe 55%, #bae6fd 100%); }
+
+/* Winterschlaf: Tier liegt zufrieden in der vollen Höhle */
+.cave-grid {
+  position: relative;
+}
+
+.cave-sleeper {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 5rem;
+  z-index: 5;
+  pointer-events: none;
+  filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.45));
+}
+
+.cave-sleeper span {
+  font-size: 2.4rem;
+  align-self: flex-start;
+  margin-top: 18%;
+  animation: trophyBounce 2s ease-in-out infinite;
+}
+
+.knackevoll-title {
+  color: #b91c1c;
+  text-shadow: 0 3px 0 #fde047;
+  animation: trophyBounce 0.8s ease-in-out infinite;
+}
+
+/* Kurze Bestätigung in der Bildmitte */
+.game-toast {
+  position: fixed;
+  left: 50%;
+  top: 40%;
+  transform: translate(-50%, -50%) scale(0.6);
+  z-index: 320;
+  background: var(--parchment);
+  border: 4px solid var(--oasis-green);
+  border-radius: 20px;
+  padding: 12px 24px;
+  font-size: 2.2rem;
+  font-weight: 900;
+  color: var(--wood-dark);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.3);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.game-toast.show {
+  animation: toastPop 1.4s ease forwards;
+}
+
+@keyframes toastPop {
+  0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.6); }
+  15%  { opacity: 1; transform: translate(-50%, -50%) scale(1.05); }
+  70%  { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -60%) scale(1); }
+}
+
+@media (max-width: 600px) {
+  .winter-card-num { font-size: 2rem; }
+  .winter-card-row { gap: 8px; }
+}
+
+/* Punkte, die beim Ablegen einer Kiste nach oben schweben */
+.points-pop {
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 900;
+  font-size: 1.3rem;
+  color: #fff;
+  text-shadow: 0 2px 3px rgba(0, 0, 0, 0.7), 0 0 8px #facc15;
+  pointer-events: none;
+  animation: pointsFloat 1.2s ease-out forwards;
+  white-space: nowrap;
+}
+
+@keyframes pointsFloat {
+  0%   { opacity: 0; transform: translateY(6px) scale(0.7); }
+  20%  { opacity: 1; transform: translateY(-4px) scale(1.25); }
+  100% { opacity: 0; transform: translateY(-34px) scale(1); }
+}
