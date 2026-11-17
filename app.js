@@ -7,10 +7,11 @@ const ANIMALS = [
 ];
 
 const LICENSES = [
-  { id: 'fairy', name: 'Feenstaub', title: 'Königliche Feenstaub-Lizenz', icon: '✨' },
-  { id: 'dino', name: 'Dino-Knochen', title: 'Große Dino-Knochen-Lizenz', icon: '🍖' },
-  { id: 'honey', name: 'Meister-Honig', title: 'Meister-Honig-Lizenz', icon: '🍯' },
-  { id: 'fish', name: 'Edel-Stinkefisch', title: 'Edel-Stinkefisch-Lizenz', icon: '🐟' }
+  // loot = Schatzstück, das der Wüstenfuchs fallen lässt, wenn sein Streich vereitelt wird
+  { id: 'fairy', name: 'Feenstaub', title: 'Königliche Feenstaub-Lizenz', icon: '✨', loot: '👛', lootName: 'Goldener Feenstaub-Beutel' },
+  { id: 'dino', name: 'Dino-Knochen', title: 'Große Dino-Knochen-Lizenz', icon: '🍖', loot: '🦴', lootName: 'Goldener Fossil-Knochen' },
+  { id: 'honey', name: 'Meister-Honig', title: 'Meister-Honig-Lizenz', icon: '🍯', loot: '🍯', lootName: 'Goldener Honigtopf' },
+  { id: 'fish', name: 'Edel-Stinkefisch', title: 'Edel-Stinkefisch-Lizenz', icon: '🐟', loot: '🐠', lootName: 'Goldfisch' }
 ];
 
 let config = {
@@ -27,7 +28,8 @@ let state = {
   activeOrderIdx: null,
   availableOrders: [],   // Array aus { val, foxBlock }
   leftBag: [],           // Array aus Zahlenwerten: [10, 5, 1, ...]
-  rightBag: []
+  rightBag: [],
+  unbundledThisOrder: false // Wurde beim aktuellen Auftrag entbündelt? (Extra-Funkeln für die Fuchs-Beute)
 };
 
 /* ============================================================================
@@ -681,6 +683,7 @@ function pickOrderCard(index) {
   state.activeOrderIdx = index;
   state.activeOrder = chosen.val;
   state.activeFoxBlock = chosen.foxBlock;
+  state.unbundledThisOrder = false;
 
   const opt = getOptimalPacking(state.activeOrder, state.activeFoxBlock);
   closeOrderModal();
@@ -813,6 +816,7 @@ function unbundleTen(side) {
   if (idx === -1) return;
 
   bag.splice(idx, 1, 5, 5);
+  state.unbundledThisOrder = true;
   setSpeech('🔄 Clever entbündelt: Die blaue 10er-Kiste wurde in zwei gelbe 5er-Säcke geteilt! Du kannst einzelne Stücke per Klick auspacken.', '');
   render();
 }
@@ -824,6 +828,7 @@ function unbundleFive(side) {
   if (idx === -1) return;
 
   bag.splice(idx, 1, 1, 1, 1, 1, 1);
+  state.unbundledThisOrder = true;
   setSpeech('🔄 Clever entbündelt: Der gelbe 5er-Sack wurde in fünf einzelne 1er aufgeschnürt! Klicke überzählige 1er an, um sie auszupacken.', '');
   render();
 }
@@ -869,6 +874,12 @@ async function finishOrderDelivery() {
     const cave = getActiveCave();
     cave.pending = [...cave.pending, ...packedPieces];
     cave.deliveries += 1;
+    if (foxWasActive) {
+      // Streich vereitelt: Der Fuchs lässt seine Beute fallen – sie kommt aufs Schatzregal
+      if (!cave.loot) cave.loot = [];
+      cave.loot.push({ icon: config.license.loot, name: config.license.lootName, sparkle: state.unbundledThisOrder });
+      cave.foxUsed = true;
+    }
     await saveCave();
   }
   launchConfetti(isProPacker ? 65 : 40);
@@ -883,7 +894,9 @@ async function finishOrderDelivery() {
     : `<div class="result-badge result-tip" title="So geht es mit weniger Stücken">💡 <span class="result-arrow">➔</span> ${optChipsHTML}</div>`;
 
   const foxBadge = foxWasActive
-    ? `<div class="result-badge result-fox" title="Wüstenfuchs ausgetrickst">🦊 ✔</div>`
+    ? `<div class="result-badge result-fox" title="Wüstenfuchs ausgetrickst – er lässt seine Beute fallen: ${config.license.lootName}">
+         🦊💨 <span class="result-arrow">➔</span> <span class="loot-item ${state.unbundledThisOrder ? 'loot-sparkle' : ''}">${config.license.loot}</span>
+       </div>`
     : '';
 
   // Ausführliche Auswertung & Gesamtbilanz nur auf Nachfrage (für Eltern & Lehrkräfte)
@@ -1224,7 +1237,7 @@ function getCaveKey() {
 }
 
 function createEmptyCave() {
-  return { pieces: [], pending: [], deliveries: 0, batch: 0, completed: false };
+  return { pieces: [], pending: [], deliveries: 0, batch: 0, completed: false, loot: [], foxUsed: false };
 }
 
 function getActiveCave() {
@@ -1351,6 +1364,7 @@ function renderCaveHTML(cave, interactive = false) {
   return `
     <div class="cave-frame cave-theme-${config.animal.id}">
       <div class="cave-frame-title">${theme.deco[0]} ${theme.name} ${theme.deco[1]}</div>
+      ${renderLootShelfHTML(cave)}
       <div class="cave-grid ${rows === 5 ? 'cave-half' : ''}"
            style="grid-template-columns: repeat(${cols}, 1fr); grid-template-rows: repeat(${rows}, 1fr);"
            ${interactive ? 'onpointerleave="caveHoverLeave()"' : ''}>
@@ -1377,6 +1391,27 @@ function updateCavePreview() {
   const old = gridEl.querySelector('.cave-preview');
   if (old) old.remove();
   gridEl.insertAdjacentHTML('beforeend', renderCavePreviewHTML(getActiveCave()));
+}
+
+// Schatzregal mit der Fuchs-Beute (funkelnd, wenn dafür entbündelt wurde)
+function renderLootShelfHTML(cave) {
+  const loot = cave.loot || [];
+  if (loot.length === 0) return '';
+  const items = loot.map(l =>
+    `<span class="loot-item ${l.sparkle ? 'loot-sparkle' : ''}" title="${l.name}${l.sparkle ? ' (mit Entbündeln erobert)' : ''}">${l.icon}</span>`
+  ).join('');
+  return `<div class="loot-shelf" title="Fuchs-Beute">🦊 ${items}</div>`;
+}
+
+// Fuchs-Meister: Jede Beute dieser Höhle wurde durch Entbündeln erobert
+function isFoxMaster(cave) {
+  const loot = cave.loot || [];
+  return loot.length > 0 && loot.every(l => l.sparkle);
+}
+
+// Rekorde getrennt für Höhlen mit und ohne Fuchs-Aufträge
+function getCaveRecordKey(cave) {
+  return getCaveKey() + (cave.foxUsed ? '_fox' : '');
 }
 
 function getCaveProgressLine(cave) {
@@ -1612,7 +1647,7 @@ async function finishStorage() {
     if (activeProfile) {
       if (!activeProfile.stats) activeProfile.stats = {};
       activeProfile.stats.cavesFilled = (activeProfile.stats.cavesFilled || 0) + 1;
-      const key = getCaveKey();
+      const key = getCaveRecordKey(cave);
       if (!activeProfile.caveRecords) activeProfile.caveRecords = {};
       const best = activeProfile.caveRecords[key];
       cave.isNewRecord = !best || cave.deliveries < best;
@@ -1639,7 +1674,7 @@ function showCaveComplete() {
   const capacity = getCaveCapacity();
   const minPieces = capacity / 10;
   const minDeliveries = Math.ceil(capacity / (config.level === 1 ? 9 : 19));
-  const best = activeProfile && activeProfile.caveRecords ? activeProfile.caveRecords[getCaveKey()] : null;
+  const best = activeProfile && activeProfile.caveRecords ? activeProfile.caveRecords[getCaveRecordKey(cave)] : null;
   const playerName = activeProfile ? activeProfile.name : 'Du';
 
   launchConfetti(90);
@@ -1666,8 +1701,14 @@ function showCaveComplete() {
       </div>
     </div>
 
+    ${(cave.loot || []).length > 0 ? `
+      <div class="result-badges" style="margin-bottom:12px;">
+        <div class="result-badge result-fox" title="Fuchs-Beute in dieser Höhle">🦊 ➔ ${cave.loot.length}× ${cave.loot[0].icon}</div>
+        ${isFoxMaster(cave) ? `<div class="result-badge result-pro" title="Jede Beute durch Entbündeln erobert">🦊 🏆 Meister</div>` : ''}
+      </div>` : ''}
+
     ${cave.isNewRecord
-      ? `<div style="background:#dcfce7; border:3px solid #16a34a; color:#14532d; padding:10px 14px; border-radius:14px; font-weight:900;">⭐ Neuer Rekord für diese Höhle!</div>`
+      ? `<div style="background:#dcfce7; border:3px solid #16a34a; color:#14532d; padding:10px 14px; border-radius:14px; font-weight:900;">⭐ Neuer Rekord für diese Höhle${cave.foxUsed ? ' (mit 🦊)' : ''}!</div>`
       : (best ? `<div style="font-weight:800; color:#6b5344;">Dein Rekord: ${best} Lieferungen</div>` : '')}
 
     <div style="margin-top:18px; display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">

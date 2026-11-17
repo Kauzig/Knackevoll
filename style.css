@@ -1885,3 +1885,32 @@ body {
   font-size: 1.1rem;
   letter-spacing: 1px;
 }
+
+/* Fuchs-Beute & Schatzregal */
+.loot-shelf {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+  margin: 0 auto 8px;
+  padding: 4px 10px;
+  background: linear-gradient(180deg, #a16207 0%, #78350f 100%);
+  border-radius: 8px;
+  box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.3);
+  font-size: 1.2rem;
+}
+
+.loot-item {
+  display: inline-block;
+  filter: drop-shadow(0 0 3px #facc15) drop-shadow(0 0 1px #fde047);
+}
+
+.loot-item.loot-sparkle {
+  animation: lootSparkle 1.6s ease-in-out infinite;
+}
+
+@keyframes lootSparkle {
+  0%, 100% { filter: drop-shadow(0 0 3px #facc15); transform: scale(1); }
+  50% { filter: drop-shadow(0 0 9px #fde047) drop-shadow(0 0 3px #fff); transform: scale(1.15); }
+}
