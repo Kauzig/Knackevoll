@@ -20,7 +20,7 @@
   <header class="game-header">
     <div class="brand-title">
       <h1>🐪 KNACKEVOLL!</h1>
-      <p>Passt, wackelt und hat Fracht! – Modul 1: Aufbruch der Karawane</p>
+      <p>Passt, wackelt und hat Fracht!</p>
     </div>
     <div class="header-actions">
         <button class="btn player-QuickBtn" onclick="openProfileModal()" title="Spieler wechseln & Statistiken ansehen">
@@ -166,6 +166,15 @@
     </div>
   </section>
 
+  <!-- Modul 3: Höhle des Packtiers (nur im Modus „Höhle füllen“) -->
+  <section class="board-panel cave-panel hidden" id="cavePanel">
+    <h3 class="panel-heading">
+      <span>🏠 Deine Höhle</span>
+      <small style="font-weight:700; color:#78716c;" id="cavePanelStats"></small>
+    </h3>
+    <div id="cavePanelGrid"></div>
+  </section>
+
   <footer class="game-footer">
     <span>© 2026 Tobias Moebert · <strong>KNACKEVOLL!</strong></span>
     <span>
@@ -217,6 +226,18 @@
       <div class="tile-option" id="foxOnTile" onclick="setFoxMode(true)">
         <div style="font-size:1.2rem; font-weight:900;">🦊 Mit Wüstenfuchs!</div>
         <small>Blockiert Depots – fordert cleveres Entbündeln</small>
+      </div>
+    </div>
+
+    <label class="setup-section-label">5. Spielmodus:</label>
+    <div class="selection-grid" style="grid-template-columns: 1fr 1fr;">
+      <div class="tile-option active-tile" id="modeEndlessTile" onclick="setGameMode('endless')">
+        <div style="font-size:1.2rem; font-weight:900;">🐪 Endlos-Karawane</div>
+        <small>Ein Auftrag nach dem anderen – ohne Ende</small>
+      </div>
+      <div class="tile-option" id="modeCaveTile" onclick="setGameMode('cave')">
+        <div style="font-size:1.2rem; font-weight:900;">🏠 Höhle füllen</div>
+        <small id="modeCaveSub">Fülle die Höhle deines Tieres</small>
       </div>
     </div>
 
@@ -283,6 +304,42 @@
 <!-- POP-UP 3: Auftrags-Abschluss & Sieges-Feier -->
 <div class="modal-backdrop hidden" id="celebrationModal">
   <div class="modal-dialog celebration-card" id="celebrationDialog">
+    <!-- Inhalt wird dynamisch von app.js befüllt -->
+  </div>
+</div>
+
+<!-- POP-UP: Fracht in die Höhle einlagern (Modul 3) -->
+<div class="modal-backdrop hidden" id="storageModal">
+  <div class="modal-dialog">
+    <div class="modal-header-banner">
+      <h2 id="storageTitle">🏠 Ab in die Höhle!</h2>
+      <p>Lege deine gelieferte Fracht in die Höhle. Wer volle Reihen schafft, bekommt Edelsteine! 💎</p>
+    </div>
+
+    <div class="storage-toolbar">
+      <div class="storage-tray" id="storageTray"></div>
+      <div class="storage-tools">
+        <button class="btn-bazaar-swap" id="storageUnbundleBtn" onclick="unbundleSelectedPiece()" style="display:none;"></button>
+        <button class="btn" id="storageRotateBtn" onclick="toggleStorageRotation()">↻ Drehen</button>
+      </div>
+    </div>
+
+    <div id="storageCaveFrame"></div>
+    <div class="cave-stats-line" id="storageStats"></div>
+
+    <div class="camel-speech" id="storageHint"></div>
+
+    <div style="text-align:right; margin-top:14px;">
+      <button class="btn btn-oasis" id="storageDoneBtn" onclick="finishStorage()" style="font-size:1.05rem; padding:11px 24px;">
+        ✔ Fertig eingelagert
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- POP-UP: Höhle voll – Abschlussbildschirm (Modul 3) -->
+<div class="modal-backdrop hidden" id="caveCompleteModal">
+  <div class="modal-dialog celebration-card" id="caveCompleteDialog">
     <!-- Inhalt wird dynamisch von app.js befüllt -->
   </div>
 </div>

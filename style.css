@@ -1372,7 +1372,7 @@ body {
 /* Statistik-Leiste des gewählten Spielers (4 Kennzahlen) */
 .profile-stats-banner {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
   gap: 10px;
   background: #fffdf9;
   border: 2px dashed var(--wood-light);
@@ -1519,4 +1519,166 @@ body {
 
 .game-footer a:hover {
   color: #b45309;
+}
+/* ============================================================================
+   Modul 3: Höhle füllen
+   ============================================================================ */
+.cave-panel {
+  margin-top: 18px;
+}
+
+.cave-panel.hidden {
+  display: none;
+}
+
+.cave-frame {
+  --cave-border: #8b5a2b;
+  --cave-bg: #f5e6cc;
+  border: 5px solid var(--cave-border);
+  background: var(--cave-bg);
+  border-radius: 18px;
+  padding: 10px 12px 14px;
+  max-width: 520px;
+  margin: 0 auto;
+  box-shadow: inset 0 3px 8px rgba(0, 0, 0, 0.15);
+}
+
+.cave-theme-raptor  { --cave-border: #15803d; --cave-bg: #ecfccb; }
+.cave-theme-unicorn { --cave-border: #db2777; --cave-bg: #fdf2f8; }
+.cave-theme-bear    { --cave-border: #78350f; --cave-bg: #f5e6cc; }
+.cave-theme-cat     { --cave-border: #ea580c; --cave-bg: #fff7ed; }
+.cave-theme-camel   { --cave-border: #b45309; --cave-bg: #fef3c7; }
+
+.cave-frame-title {
+  text-align: center;
+  font-weight: 900;
+  color: var(--cave-border);
+  margin-bottom: 8px;
+  font-size: 1.05rem;
+}
+
+.cave-grid {
+  display: grid;
+  gap: 2px;
+  aspect-ratio: 1 / 1;
+  width: 100%;
+  touch-action: manipulation;
+}
+
+.cave-grid.cave-half {
+  aspect-ratio: 2 / 1;
+}
+
+.cave-cell {
+  background: rgba(255, 255, 255, 0.65);
+  border: 1px dashed rgba(92, 58, 33, 0.3);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.cave-piece {
+  display: flex;
+  gap: 2px;
+  border-radius: 6px;
+  padding: 2px;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.cave-piece.piece-new {
+  animation: dropIn 0.2s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+}
+
+.cave-piece.is-vertical {
+  flex-direction: column;
+}
+
+.cave-unit {
+  flex: 1;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.cave-piece.is-vertical .cave-unit.unit-mid {
+  border-bottom: 2px solid rgba(0, 0, 0, 0.35);
+}
+
+.cave-piece:not(.is-vertical) .cave-unit.unit-mid {
+  border-right: 2px solid rgba(0, 0, 0, 0.35);
+}
+
+.cave-piece.piece-10 { background: var(--dienes-blue); box-shadow: inset 0 0 0 2px #1e3a8a; }
+.cave-piece.piece-5  { background: var(--dienes-yellow); box-shadow: inset 0 0 0 2px #a16207; }
+.cave-piece.piece-1  { background: var(--dienes-red); box-shadow: inset 0 0 0 2px #7f1d1d; }
+
+.cave-piece.removable {
+  pointer-events: auto;
+  cursor: pointer;
+  outline: 3px dashed #fff;
+  outline-offset: -3px;
+}
+
+.cave-piece.removable:hover {
+  filter: brightness(1.15);
+}
+
+.cave-preview {
+  z-index: 2;
+  opacity: 0.6;
+  animation: none;
+}
+
+.cave-preview.valid {
+  outline: 3px solid var(--oasis-green);
+}
+
+.cave-preview.invalid {
+  outline: 3px solid var(--dienes-red);
+  filter: grayscale(0.6);
+}
+
+.cave-stats-line {
+  text-align: center;
+  font-weight: 800;
+  color: #6b5344;
+  font-size: 0.88rem;
+  margin-top: 8px;
+}
+
+.storage-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.storage-tray {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.storage-tools {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.tray-chip {
+  border: 3px solid transparent;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.tray-chip.selected {
+  border-color: var(--wood-dark);
+  transform: translateY(-3px);
+  box-shadow: 0 6px 0 rgba(0, 0, 0, 0.25);
+}
+
+.storage-tray-empty {
+  font-weight: 900;
+  color: var(--oasis-green);
 }

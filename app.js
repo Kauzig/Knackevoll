@@ -17,7 +17,8 @@ let config = {
   animal: ANIMALS[1],
   license: LICENSES[0],
   level: 2,
-  foxMode: false         // Modul 2: Der schlaue Wüstenfuchs (im Setup zuschaltbar)
+  foxMode: false,        // Modul 2: Der schlaue Wüstenfuchs (im Setup zuschaltbar)
+  gameMode: 'endless'    // 'endless' = Endlos-Karawane, 'cave' = Höhle füllen (Modul 3)
 };
 
 let state = {
@@ -141,6 +142,7 @@ async function selectProfile(profileId, shouldRenderSetup = true) {
   config.license = LICENSES.find(l => l.id === target.licenseId) || LICENSES[0];
   config.level = target.level || 2;
   config.foxMode = Boolean(target.foxMode);
+  config.gameMode = target.gameMode === 'cave' ? 'cave' : 'endless';
 
   if (shouldRenderSetup) {
     renderProfileModal();
@@ -164,6 +166,7 @@ async function createNewProfile() {
     licenseId: config.license.id,
     level: config.level,
     foxMode: config.foxMode,
+    gameMode: config.gameMode,
     stats: {
       totalCargoSent: 0,
       packedAnimals: 0,
@@ -205,6 +208,7 @@ async function saveActiveProfilePreferences() {
   activeProfile.licenseId = config.license.id;
   activeProfile.level = config.level;
   activeProfile.foxMode = config.foxMode;
+  activeProfile.gameMode = config.gameMode;
   await dbSaveProfile(activeProfile);
 }
 
@@ -449,6 +453,13 @@ function renderProfileModal() {
             <strong>${foxTotal}×</strong>
           </div>
         </div>
+        <div class="p-stat-item">
+          <span class="p-stat-icon">🏠</span>
+          <div class="p-stat-text">
+            <small>Höhlen gefüllt</small>
+            <strong>${st.cavesFilled || 0}</strong>
+          </div>
+        </div>
       `;
     }
 }
@@ -485,6 +496,17 @@ function renderSetupModal() {
     foxOn.classList.toggle('active-tile', config.foxMode);
   }
 
+  // 5. Spielmodus
+  const modeEndless = document.getElementById('modeEndlessTile');
+  const modeCave = document.getElementById('modeCaveTile');
+  if (modeEndless && modeCave) {
+    modeEndless.classList.toggle('active-tile', config.gameMode !== 'cave');
+    modeCave.classList.toggle('active-tile', config.gameMode === 'cave');
+    const dims = getCaveDims();
+    document.getElementById('modeCaveSub').textContent =
+      `Fülle die ${getCaveTheme().name} (${dims.rows}×${dims.cols} Felder)`;
+  }
+
   const playerName = activeProfile ? activeProfile.name : 'Karawanen-Kind';
   document.getElementById('setupMottoBox').textContent =
     `${playerName}: „Ich bin ${config.animal.article} und fahre heute eine offizielle ${config.license.name}-Lieferung!“`;
@@ -510,6 +532,12 @@ function setLevel(lvl) {
 
 function setFoxMode(enabled) {
   config.foxMode = Boolean(enabled);
+  saveActiveProfilePreferences();
+  renderSetupModal();
+}
+
+function setGameMode(mode) {
+  config.gameMode = mode === 'cave' ? 'cave' : 'endless';
   saveActiveProfilePreferences();
   renderSetupModal();
 }
@@ -588,13 +616,26 @@ function createOrderEntry(val, forceFox = false) {
   return { val, foxBlock };
 }
 
+// Wertebereich für Aufträge. Im Höhlen-Modus nie mehr, als noch in die Höhle passt.
+function getOrderRange() {
+  let maxVal = config.level === 1 ? 9 : 19; // Bis 9 bzw. 19, damit beim Entbündeln immer Platz in der Tasche ist
+  let minVal = config.level === 1 ? 2 : 6;
+  if (isCaveMode()) {
+    maxVal = Math.min(maxVal, getCaveFreeForOrders());
+    minVal = Math.min(minVal, maxVal);
+  }
+  return { minVal, maxVal };
+}
+
 function generateOrders() {
-  const maxVal = config.level === 1 ? 9 : 19; // Bis 9 bzw. 19, damit beim Entbündeln immer Platz in der Tasche ist
-  const minVal = config.level === 1 ? 2 : 6;
+  const { minVal, maxVal } = getOrderRange();
+  if (maxVal < 1) return [];
+  const span = maxVal - minVal + 1;
   const values = [];
   while (values.length < 3) {
-    const candidate = Math.floor(Math.random() * (maxVal - minVal + 1)) + minVal;
-    if (!values.includes(candidate)) {
+    const candidate = Math.floor(Math.random() * span) + minVal;
+    // Doppelte Werte nur, wenn der Bereich zu klein für 3 verschiedene ist (Endspurt in der Höhle)
+    if (!values.includes(candidate) || values.length >= span) {
       values.push(candidate);
     }
   }
@@ -603,13 +644,15 @@ function generateOrders() {
 }
 
 function generateReplacementOrder() {
-  const maxVal = config.level === 1 ? 9 : 19;
-  const minVal = config.level === 1 ? 2 : 6;
-  const existingVals = state.availableOrders.map(o => o.val);
-  let candidate = Math.floor(Math.random() * (maxVal - minVal + 1)) + minVal;
-  while (existingVals.includes(candidate)) {
-    candidate = Math.floor(Math.random() * (maxVal - minVal + 1)) + minVal;
+  const { minVal, maxVal } = getOrderRange();
+  const span = maxVal - minVal + 1;
+  const existingVals = state.availableOrders.filter(Boolean).map(o => o.val);
+  const freeValues = [];
+  for (let v = minVal; v <= maxVal; v++) {
+    if (!existingVals.includes(v)) freeValues.push(v);
   }
+  const pool = freeValues.length > 0 ? freeValues : [Math.floor(Math.random() * span) + minVal];
+  const candidate = pool[Math.floor(Math.random() * pool.length)];
   // Im Fuchs-Modus haben ~70% der nachrückenden Karten ein Fuchs-Symbol
   const hasFox = config.foxMode && Math.random() < 0.7;
   return createOrderEntry(candidate, hasFox);
@@ -626,7 +669,7 @@ function resetGame() {
   setSpeech('Wähle deinen nächsten Auftrag für die Karawane aus!', '');
   render();
   if (document.getElementById('setupModal').classList.contains('hidden')) {
-    openOrderModal();
+    continueGameFlow();
   }
 }
 
@@ -814,6 +857,15 @@ async function finishOrderDelivery() {
   const isProPacker = usedPiecesCount <= opt.minPieces;
 
   await recordDeliveryStats(deliveredOrder, isProPacker, Boolean(foxWasActive));
+
+  // Höhlen-Modus: Fracht wandert nicht zurück in den Markt, sondern wartet aufs Einlagern
+  const caveMode = isCaveMode();
+  if (caveMode) {
+    const cave = getActiveCave();
+    cave.pending = [...cave.pending, ...packedPieces];
+    cave.deliveries += 1;
+    await saveCave();
+  }
   launchConfetti(isProPacker ? 65 : 40);
 
   const userChipsHTML = packedPieces.map(v => `
@@ -885,7 +937,7 @@ async function finishOrderDelivery() {
 
     <div style="margin-top:18px;">
       <button class="btn btn-oasis" onclick="acknowledgeCelebration()" style="font-size:1.05rem; padding:12px 24px;">
-        📜 Nächsten Auftrag wählen!
+        ${caveMode ? `🏠 Ab in die ${getCaveTheme().name}!` : '📜 Nächsten Auftrag wählen!'}
       </button>
     </div>
   `;
@@ -905,7 +957,7 @@ async function finishOrderDelivery() {
 
 function acknowledgeCelebration() {
   document.getElementById('celebrationModal').classList.add('hidden');
-  openOrderModal();
+  continueGameFlow();
 }
 
 function sumArray(arr) {
@@ -1138,6 +1190,506 @@ function render() {
   if (btnL5)  btnL5.style.display  = state.leftBag.includes(5)  ? 'inline-block' : 'none';
   if (btnR10) btnR10.style.display = state.rightBag.includes(10) ? 'inline-block' : 'none';
   if (btnR5)  btnR5.style.display  = state.rightBag.includes(5)  ? 'inline-block' : 'none';
+
+  renderCavePanel();
+}
+
+/* ============================================================================
+   MODUL 3: HÖHLE FÜLLEN (Stufe 1: 5×10-, Stufe 2: 10×10-Lager pro Tier)
+   Gelieferte Fracht wandert nicht zurück in den Markt, sondern wird als
+   Puzzleteil (10er = 1×10, 5er = 1×5, 1er = 1×1) in die Höhle gelegt.
+   ============================================================================ */
+const CAVE_THEMES = {
+  unicorn: { name: 'Regenbogen-Schatzkammer', deco: ['☁️', '💎', '🌈'] },
+  raptor:  { name: 'Urzeit-Vorratsnest',      deco: ['🌿', '🌋', '🦴'] },
+  bear:    { name: 'Bärenhöhle',              deco: ['🪵', '🍂', '🍯'] },
+  cat:     { name: 'Kratzbaum-Palast',        deco: ['🧶', '🛋️', '🐾'] },
+  camel:   { name: 'Oasen-Warenhaus',         deco: ['🌴', '🏺', '⛺'] }
+};
+
+const fallbackCaves = {}; // Falls kein Profil geladen werden konnte
+
+// Zustand der Einlager-Ansicht (nicht gespeichert)
+const storageUI = { selectedIdx: 0, vertical: false, hover: null, justPlaced: null };
+
+function isCaveMode() {
+  return config.gameMode === 'cave';
+}
+
+function getCaveTheme(animalId = config.animal.id) {
+  return CAVE_THEMES[animalId] || CAVE_THEMES.camel;
+}
+
+function getCaveDims(level = config.level) {
+  return { rows: level === 1 ? 5 : 10, cols: 10 };
+}
+
+function getCaveCapacity() {
+  const d = getCaveDims();
+  return d.rows * d.cols;
+}
+
+// Jede Kombination aus Tier und Stufe hat ihre eigene Höhle (5×10 und 10×10 getrennt)
+function getCaveKey() {
+  return `${config.animal.id}_L${config.level}`;
+}
+
+function createEmptyCave() {
+  return { pieces: [], pending: [], deliveries: 0, batch: 0, completed: false };
+}
+
+function getActiveCave() {
+  let caves = fallbackCaves;
+  if (activeProfile) {
+    if (!activeProfile.caves) activeProfile.caves = {};
+    caves = activeProfile.caves;
+  }
+  const key = getCaveKey();
+  if (!caves[key]) caves[key] = createEmptyCave();
+  return caves[key];
+}
+
+async function saveCave() {
+  if (activeProfile) await dbSaveProfile(activeProfile);
+}
+
+function getCaveUsedCells(cave) {
+  return sumArray(cave.pieces.map(p => p.size));
+}
+
+// Freier Platz für neue Aufträge (bereits gelieferte, noch nicht eingelagerte Fracht zählt mit)
+function getCaveFreeForOrders() {
+  const cave = getActiveCave();
+  return getCaveCapacity() - getCaveUsedCells(cave) - sumArray(cave.pending);
+}
+
+function buildCaveGrid(cave) {
+  const { rows, cols } = getCaveDims();
+  const grid = Array.from({ length: rows }, () => Array(cols).fill(null));
+  cave.pieces.forEach((p, idx) => {
+    for (let i = 0; i < p.size; i++) {
+      const r = p.r + (p.vertical ? i : 0);
+      const c = p.c + (p.vertical ? 0 : i);
+      if (r < rows && c < cols) grid[r][c] = idx;
+    }
+  });
+  return grid;
+}
+
+function countFullRows(grid) {
+  return grid.filter(row => row.every(cell => cell !== null)).length;
+}
+
+function canPlacePiece(grid, size, r, c, vertical) {
+  const rows = grid.length;
+  const cols = grid[0].length;
+  if (r < 0 || c < 0) return false;
+  if (vertical ? r + size > rows : c + size > cols) return false;
+  for (let i = 0; i < size; i++) {
+    if (grid[r + (vertical ? i : 0)][c + (vertical ? 0 : i)] !== null) return false;
+  }
+  return true;
+}
+
+function pieceFitsAnywhere(grid, size) {
+  for (let r = 0; r < grid.length; r++) {
+    for (let c = 0; c < grid[0].length; c++) {
+      if (canPlacePiece(grid, size, r, c, false) || canPlacePiece(grid, size, r, c, true)) return true;
+    }
+  }
+  return false;
+}
+
+// Verschiebt den Ankerpunkt so, dass das Teil nicht über den Rand ragt (kinderfreundlich)
+function clampAnchor(size, r, c, vertical) {
+  const { rows, cols } = getCaveDims();
+  if (vertical) r = Math.max(0, Math.min(r, rows - size));
+  else c = Math.max(0, Math.min(c, cols - size));
+  return { r, c };
+}
+
+function renderCavePieceHTML(size, r, c, vertical, extraClass = '', attrs = '') {
+  let units = '';
+  for (let i = 1; i <= size; i++) {
+    units += `<span class="cave-unit ${size === 10 && i === 5 ? 'unit-mid' : ''}"></span>`;
+  }
+  const area = vertical
+    ? `grid-row:${r + 1} / span ${size}; grid-column:${c + 1};`
+    : `grid-row:${r + 1}; grid-column:${c + 1} / span ${size};`;
+  return `
+    <div class="cave-piece piece-${size} ${vertical ? 'is-vertical' : ''} ${extraClass}" style="${area}" ${attrs}>
+      ${units}
+    </div>
+  `;
+}
+
+// Baut das Höhlen-Raster. Im interaktiven Modus (Einlagern) gibt es Vorschau & Zurücknehmen.
+function renderCaveHTML(cave, interactive = false) {
+  const { rows, cols } = getCaveDims();
+  const theme = getCaveTheme();
+  let cells = '';
+
+  if (interactive) {
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        cells += `<div class="cave-cell" style="grid-row:${r + 1}; grid-column:${c + 1};"
+                       onpointerenter="caveHover(event, ${r}, ${c})"
+                       onclick="caveCellClick(${r}, ${c})"></div>`;
+      }
+    }
+  } else {
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        cells += `<div class="cave-cell" style="grid-row:${r + 1}; grid-column:${c + 1};"></div>`;
+      }
+    }
+  }
+
+  const pieces = cave.pieces.map((p, idx) => {
+    const removable = interactive && p.batch === cave.batch;
+    const isNew = p === storageUI.justPlaced;
+    return renderCavePieceHTML(
+      p.size, p.r, p.c, p.vertical,
+      `${removable ? 'removable' : ''} ${isNew ? 'piece-new' : ''}`,
+      removable ? `onclick="removeStoredPiece(${idx})" title="Antippen = zurück in die Ablage"` : ''
+    );
+  }).join('');
+
+  const preview = interactive ? renderCavePreviewHTML(cave) : '';
+
+  return `
+    <div class="cave-frame cave-theme-${config.animal.id}">
+      <div class="cave-frame-title">${theme.deco[0]} ${theme.name} ${theme.deco[1]}</div>
+      <div class="cave-grid ${rows === 5 ? 'cave-half' : ''}"
+           style="grid-template-columns: repeat(${cols}, 1fr); grid-template-rows: repeat(${rows}, 1fr);"
+           ${interactive ? 'onpointerleave="caveHoverLeave()"' : ''}>
+        ${cells}${pieces}${preview}
+      </div>
+    </div>
+  `;
+}
+
+function renderCavePreviewHTML(cave) {
+  if (!storageUI.hover || cave.pending.length === 0) return '';
+  const size = cave.pending[storageUI.selectedIdx];
+  const grid = buildCaveGrid(cave);
+  const vertical = size > 1 && storageUI.vertical;
+  const a = clampAnchor(size, storageUI.hover.r, storageUI.hover.c, vertical);
+  const valid = canPlacePiece(grid, size, a.r, a.c, vertical);
+  return renderCavePieceHTML(size, a.r, a.c, vertical, `cave-preview ${valid ? 'valid' : 'invalid'}`);
+}
+
+// Aktualisiert nur die Vorschau, ohne die abgelegten Kisten neu aufzubauen (sonst flackern sie)
+function updateCavePreview() {
+  const gridEl = document.querySelector('#storageCaveFrame .cave-grid');
+  if (!gridEl) return;
+  const old = gridEl.querySelector('.cave-preview');
+  if (old) old.remove();
+  gridEl.insertAdjacentHTML('beforeend', renderCavePreviewHTML(getActiveCave()));
+}
+
+function getCaveProgressLine(cave) {
+  const grid = buildCaveGrid(cave);
+  return `📦 ${getCaveUsedCells(cave)} / ${getCaveCapacity()} Felder &nbsp;|&nbsp; 💎 ${countFullRows(grid)} ${countFullRows(grid) === 1 ? 'Reihe' : 'Reihen'} voll &nbsp;|&nbsp; 🚚 ${cave.deliveries} ${cave.deliveries === 1 ? 'Lieferung' : 'Lieferungen'}`;
+}
+
+/* Kleine Höhlen-Ansicht unterhalb des Packtier-Tableaus */
+function renderCavePanel() {
+  const panel = document.getElementById('cavePanel');
+  if (!panel) return;
+  if (!isCaveMode()) {
+    panel.classList.add('hidden');
+    return;
+  }
+  const cave = getActiveCave();
+  panel.classList.remove('hidden');
+  document.getElementById('cavePanelGrid').innerHTML = renderCaveHTML(cave, false);
+  document.getElementById('cavePanelStats').innerHTML = getCaveProgressLine(cave);
+}
+
+/* ---------- Ablauf-Steuerung ---------- */
+
+// Entscheidet, was als Nächstes passiert: Einlagern, Abschlussbildschirm oder neuer Auftrag
+function continueGameFlow() {
+  if (isCaveMode()) {
+    const cave = getActiveCave();
+    if (cave.completed) {
+      showCaveComplete();
+      return;
+    }
+    if (cave.pending.length > 0) {
+      openStorageModal();
+      return;
+    }
+  }
+  openOrderModal();
+}
+
+// Aufträge, die nicht mehr in die Höhle passen würden, werden ersetzt
+function refreshOrdersForCave() {
+  const free = getCaveFreeForOrders();
+  const kept = state.availableOrders.map(o => (o && o.val <= free ? o : null));
+  state.availableOrders = kept;
+  for (let i = 0; i < kept.length; i++) {
+    if (kept[i] === null) state.availableOrders[i] = generateReplacementOrder();
+  }
+}
+
+/* ---------- Einlagern ---------- */
+
+function openStorageModal() {
+  storageUI.selectedIdx = 0;
+  storageUI.hover = null;
+  renderStorage();
+  document.getElementById('storageModal').classList.remove('hidden');
+}
+
+function setStorageHint(text, type = '') {
+  const el = document.getElementById('storageHint');
+  el.className = 'camel-speech' + (type ? ` speech-${type}` : '');
+  el.textContent = text;
+}
+
+function renderStorage(hintText = null, hintType = '') {
+  const cave = getActiveCave();
+  const grid = buildCaveGrid(cave);
+  const theme = getCaveTheme();
+
+  if (storageUI.selectedIdx >= cave.pending.length) storageUI.selectedIdx = 0;
+
+  document.getElementById('storageTitle').textContent = `${theme.deco[0]} Ab in die ${theme.name}!`;
+
+  const tray = document.getElementById('storageTray');
+  if (cave.pending.length === 0) {
+    tray.innerHTML = `<span class="storage-tray-empty">✅ Alles eingelagert!</span>`;
+  } else {
+    tray.innerHTML = cave.pending.map((size, idx) => `
+      <button class="mini-cargo-chip chip-${size} tray-chip ${idx === storageUI.selectedIdx ? 'selected' : ''}"
+              onclick="selectPendingPiece(${idx})">
+        ${size} mal ${config.license.icon}
+      </button>
+    `).join('');
+  }
+
+  const rotateBtn = document.getElementById('storageRotateBtn');
+  const selectedSize = cave.pending[storageUI.selectedIdx];
+  rotateBtn.style.visibility = cave.pending.length > 0 && selectedSize > 1 ? 'visible' : 'hidden';
+  rotateBtn.textContent = storageUI.vertical ? '↻ Drehen (jetzt: hochkant)' : '↻ Drehen (jetzt: quer)';
+
+  document.getElementById('storageCaveFrame').innerHTML = renderCaveHTML(cave, true);
+  storageUI.justPlaced = null;
+  document.getElementById('storageStats').innerHTML = getCaveProgressLine(cave);
+
+  const unbundleBtn = document.getElementById('storageUnbundleBtn');
+  const stuck = cave.pending.length > 0 && selectedSize > 1 && !pieceFitsAnywhere(grid, selectedSize);
+  unbundleBtn.style.display = stuck ? 'inline-block' : 'none';
+  if (stuck) {
+    unbundleBtn.textContent = selectedSize === 10 ? '🔄 10er ➔ 2× 5er' : '🔄 5er ➔ 5× 1er';
+  }
+
+  const doneBtn = document.getElementById('storageDoneBtn');
+  doneBtn.disabled = cave.pending.length > 0;
+
+  if (hintText) {
+    setStorageHint(hintText, hintType);
+  } else if (cave.pending.length === 0) {
+    setStorageHint('Super! Alles liegt in der Höhle. Tippe auf „Fertig“ – oder tippe ein neues Teil an, um es noch einmal umzulegen.', 'success');
+  } else if (stuck) {
+    setStorageHint(`Der ${selectedSize}er passt nirgends mehr hin! Entbündle ihn in kleinere Teile.`, 'error');
+  } else {
+    setStorageHint('Tippe ein Frachtstück oben an und dann auf ein Feld in der Höhle. Beim ersten Tippen siehst du eine Vorschau, beim zweiten wird abgelegt.');
+  }
+}
+
+function selectPendingPiece(idx) {
+  storageUI.selectedIdx = idx;
+  renderStorage();
+}
+
+function toggleStorageRotation() {
+  storageUI.vertical = !storageUI.vertical;
+  renderStorage();
+}
+
+// Maus: Vorschau beim Darüberfahren. Touch: Vorschau erst beim ersten Antippen (siehe caveCellClick)
+function caveHover(event, r, c) {
+  if (event.pointerType !== 'mouse') return;
+  if (storageUI.hover && storageUI.hover.r === r && storageUI.hover.c === c) return;
+  storageUI.hover = { r, c };
+  updateCavePreview();
+}
+
+function caveHoverLeave() {
+  if (!storageUI.hover) return;
+  storageUI.hover = null;
+  updateCavePreview();
+}
+
+function caveCellClick(r, c) {
+  const cave = getActiveCave();
+  if (cave.pending.length === 0) return;
+
+  const sameSpot = storageUI.hover && storageUI.hover.r === r && storageUI.hover.c === c;
+  if (!sameSpot) {
+    storageUI.hover = { r, c };
+    renderStorage();
+    return;
+  }
+  placeSelectedPiece(r, c);
+}
+
+function placeSelectedPiece(r, c) {
+  const cave = getActiveCave();
+  const size = cave.pending[storageUI.selectedIdx];
+  const vertical = size > 1 && storageUI.vertical;
+  const grid = buildCaveGrid(cave);
+  const a = clampAnchor(size, r, c, vertical);
+
+  if (!canPlacePiece(grid, size, a.r, a.c, vertical)) {
+    renderStorage(`⚠️ Da passt der ${size}er nicht hin! Probier eine andere Stelle${size > 1 ? ' oder drehe das Teil' : ''}.`, 'error');
+    return;
+  }
+
+  const rowsBefore = countFullRows(grid);
+  const newPiece = { size, r: a.r, c: a.c, vertical, batch: cave.batch };
+  cave.pieces.push(newPiece);
+  storageUI.justPlaced = newPiece;
+  cave.pending.splice(storageUI.selectedIdx, 1);
+  const rowsAfter = countFullRows(buildCaveGrid(cave));
+
+  saveCave();
+
+  if (rowsAfter > rowsBefore) {
+    launchConfetti(25);
+    const n = rowsAfter - rowsBefore;
+    renderStorage(`💎 ${n === 1 ? 'Eine Reihe' : n + ' Reihen'} randvoll! Dafür gibt es ${n === 1 ? 'einen Edelstein' : n + ' Edelsteine'}!`, 'success');
+  } else {
+    renderStorage();
+  }
+}
+
+// Teile aus der aktuellen Lieferung dürfen zurück in die Ablage
+function removeStoredPiece(idx) {
+  const cave = getActiveCave();
+  const piece = cave.pieces[idx];
+  if (!piece || piece.batch !== cave.batch) return;
+  cave.pieces.splice(idx, 1);
+  cave.pending.push(piece.size);
+  storageUI.selectedIdx = cave.pending.length - 1;
+  storageUI.vertical = piece.vertical;
+  saveCave();
+  renderStorage('↩️ Zurück in die Ablage genommen.');
+}
+
+// Notlösung, wenn ein großes Teil nirgends mehr hineinpasst
+function unbundleSelectedPiece() {
+  const cave = getActiveCave();
+  const size = cave.pending[storageUI.selectedIdx];
+  if (size === 10) cave.pending.splice(storageUI.selectedIdx, 1, 5, 5);
+  else if (size === 5) cave.pending.splice(storageUI.selectedIdx, 1, 1, 1, 1, 1, 1);
+  else return;
+  saveCave();
+  renderStorage(`🔄 Clever entbündelt! Jetzt passt die Fracht in die Lücken.`);
+}
+
+async function finishStorage() {
+  const cave = getActiveCave();
+  if (cave.pending.length > 0) return;
+
+  cave.batch += 1;
+  storageUI.hover = null;
+  document.getElementById('storageModal').classList.add('hidden');
+
+  if (getCaveUsedCells(cave) >= getCaveCapacity()) {
+    cave.completed = true;
+    if (activeProfile) {
+      if (!activeProfile.stats) activeProfile.stats = {};
+      activeProfile.stats.cavesFilled = (activeProfile.stats.cavesFilled || 0) + 1;
+      const key = getCaveKey();
+      if (!activeProfile.caveRecords) activeProfile.caveRecords = {};
+      const best = activeProfile.caveRecords[key];
+      cave.isNewRecord = !best || cave.deliveries < best;
+      if (cave.isNewRecord) activeProfile.caveRecords[key] = cave.deliveries;
+    }
+    await saveCave();
+    render();
+    showCaveComplete();
+    return;
+  }
+
+  await saveCave();
+  refreshOrdersForCave();
+  render();
+  setSpeech('🏠 Alles verstaut! Wähle deinen nächsten Auftrag.', '');
+  openOrderModal();
+}
+
+/* ---------- Abschlussbildschirm ---------- */
+
+function showCaveComplete() {
+  const cave = getActiveCave();
+  const theme = getCaveTheme();
+  const capacity = getCaveCapacity();
+  const minPieces = capacity / 10;
+  const minDeliveries = Math.ceil(capacity / (config.level === 1 ? 9 : 19));
+  const best = activeProfile && activeProfile.caveRecords ? activeProfile.caveRecords[getCaveKey()] : null;
+  const playerName = activeProfile ? activeProfile.name : 'Du';
+
+  launchConfetti(90);
+
+  document.getElementById('caveCompleteDialog').innerHTML = `
+    <div class="celebration-trophy">${theme.deco[0]}🏠💎${theme.deco[2]}</div>
+    <h2 style="margin:0; font-size:1.75rem; color:var(--wood-dark);">KNACKEVOLL!</h2>
+    <p style="margin:6px 0 12px; font-weight:800; color:#6b5344; font-size:1.05rem;">
+      ${playerName} hat die <strong>${theme.name}</strong> von ${config.animal.article} randvoll gepackt!
+    </p>
+
+    ${renderCaveHTML(cave, false)}
+
+    <div class="celebration-stats-grid">
+      <div class="stat-box ${cave.deliveries <= minDeliveries ? 'highlight-pro' : ''}">
+        <small>🚚 Lieferungen</small>
+        <strong>${cave.deliveries}</strong>
+        <small style="text-transform:none;">Schnellstmöglich: ${minDeliveries}</small>
+      </div>
+      <div class="stat-box ${cave.pieces.length <= minPieces ? 'highlight-pro' : ''}">
+        <small>📦 Frachtstücke</small>
+        <strong>${cave.pieces.length}</strong>
+        <small style="text-transform:none;">Profi-Packer: ${minPieces}</small>
+      </div>
+    </div>
+
+    ${cave.isNewRecord
+      ? `<div style="background:#dcfce7; border:3px solid #16a34a; color:#14532d; padding:10px 14px; border-radius:14px; font-weight:900;">⭐ Neuer Rekord für diese Höhle!</div>`
+      : (best ? `<div style="font-weight:800; color:#6b5344;">Dein Rekord: ${best} Lieferungen</div>` : '')}
+
+    <div style="margin-top:18px; display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">
+      <button class="btn" onclick="openSetupFromCaveComplete()">⚙️ Spiel-Setup</button>
+      <button class="btn btn-oasis" onclick="startNewCave()" style="font-size:1.05rem; padding:12px 24px;">
+        🏠 Neue Höhle beginnen
+      </button>
+    </div>
+  `;
+
+  document.getElementById('caveCompleteModal').classList.remove('hidden');
+  setSpeech(`🏠 Die ${theme.name} ist randvoll – KNACKEVOLL!`, 'success');
+}
+
+function openSetupFromCaveComplete() {
+  document.getElementById('caveCompleteModal').classList.add('hidden');
+  openSetupModal();
+}
+
+async function startNewCave() {
+  const key = getCaveKey();
+  if (activeProfile) {
+    activeProfile.caves[key] = createEmptyCave();
+  } else {
+    fallbackCaves[key] = createEmptyCave();
+  }
+  await saveCave();
+  document.getElementById('caveCompleteModal').classList.add('hidden');
+  resetGame();
 }
 
 // Initialisierung beim Laden
