@@ -1,19 +1,3 @@
-const ANIMALS = [
-  { id: 'unicorn', name: 'Einhorn', article: 'das Einhorn', icon: '🦄' },
-  { id: 'raptor', name: 'Raptor', article: 'der Raptor', icon: '🦖' },
-  { id: 'bear', name: 'Bär', article: 'der Bär', icon: '🐻' },
-  { id: 'cat', name: 'Katze', article: 'die Katze', icon: '🐱' },
-  { id: 'camel', name: 'Kamel', article: 'das Kamel', icon: '🐪' }
-];
-
-const LICENSES = [
-  // loot = Schatzstück, das der Wüstenfuchs fallen lässt, wenn sein Streich vereitelt wird
-  { id: 'fairy', name: 'Feenstaub', title: 'Königliche Feenstaub-Lizenz', icon: '✨', loot: '👛', lootName: 'Goldener Feenstaub-Beutel' },
-  { id: 'dino', name: 'Dino-Knochen', title: 'Große Dino-Knochen-Lizenz', icon: '🍖', loot: '🦴', lootName: 'Goldener Fossil-Knochen' },
-  { id: 'honey', name: 'Meister-Honig', title: 'Meister-Honig-Lizenz', icon: '🍯', loot: '🍯', lootName: 'Goldener Honigtopf' },
-  { id: 'fish', name: 'Edel-Stinkefisch', title: 'Edel-Stinkefisch-Lizenz', icon: '🐟', loot: '🐠', lootName: 'Goldfisch' }
-];
-
 let config = {
   animal: ANIMALS[1],
   license: LICENSES[0],
@@ -1221,13 +1205,6 @@ function render() {
    Abgeladene Fracht wird als Puzzleteil (10er = 1×10, 5er = 1×5, 1er = 1×1)
    in die Höhle gelegt. Gespielt wird sie im Wintervorrat-Modus (Modul 4).
    ============================================================================ */
-const CAVE_THEMES = {
-  unicorn: { name: 'Regenbogen-Schatzkammer', deco: ['☁️', '💎', '🌈'] },
-  raptor:  { name: 'Urzeit-Vorratsnest',      deco: ['🌿', '🌋', '🦴'] },
-  bear:    { name: 'Bärenhöhle',              deco: ['🪵', '🍂', '🍯'] },
-  cat:     { name: 'Kratzbaum-Palast',        deco: ['🧶', '🛋️', '🐾'] },
-  camel:   { name: 'Oasen-Warenhaus',         deco: ['🌴', '🏺', '⛺'] }
-};
 
 const fallbackCaves = {}; // Falls kein Profil geladen werden konnte
 
