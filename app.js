@@ -143,6 +143,7 @@ async function selectProfile(profileId, shouldRenderSetup = true) {
   config.foxMode = Boolean(target.foxMode);
 
   if (shouldRenderSetup) {
+    renderProfileModal();
     renderSetupModal();
   }
   render();
@@ -194,7 +195,7 @@ async function removeProfile(event, profileId) {
   if (activeProfile && activeProfile.id === profileId) {
     await selectProfile(profiles[0].id, true);
   } else {
-    renderSetupModal();
+    renderProfileModal();
   }
 }
 
@@ -395,8 +396,7 @@ function getTopDownAnimalSVG(animalId) {
   }
 }
 
-function renderSetupModal() {
-  // 0. Spieler-Profile & Statistik rendern
+function renderProfileModal() {
   const listEl = document.getElementById('profileListContainer');
   if (listEl) {
     listEl.innerHTML = profiles.map(p => {
@@ -451,6 +451,11 @@ function renderSetupModal() {
         </div>
       `;
     }
+}
+
+function renderSetupModal() {
+  const nameEl = document.getElementById('setupActivePlayerName');
+  if (nameEl) nameEl.textContent = activeProfile ? activeProfile.name : 'Gast';
 
   // 1. Packtiere
   document.getElementById('setupAnimals').innerHTML = ANIMALS.map(a => `
@@ -512,6 +517,25 @@ function setFoxMode(enabled) {
 function openSetupModal() {
   renderSetupModal();
   document.getElementById('setupModal').classList.remove('hidden');
+}
+
+let profileIdOnModalOpen = null;
+
+function openProfileModal() {
+  profileIdOnModalOpen = activeProfile ? activeProfile.id : null;
+  renderProfileModal();
+  document.getElementById('profileModal').classList.remove('hidden');
+}
+
+function closeProfileModal() {
+  document.getElementById('profileModal').classList.add('hidden');
+  renderSetupModal();
+  // Bei Spielerwechsel neue Runde mit den Einstellungen des neuen Profils starten
+  // (nicht, wenn das Profil-Fenster aus dem Setup heraus geöffnet wurde)
+  const changed = activeProfile && activeProfile.id !== profileIdOnModalOpen;
+  if (changed && document.getElementById('setupModal').classList.contains('hidden')) {
+    resetGame();
+  }
 }
 
 function startFromSetup() {
@@ -1118,6 +1142,7 @@ function render() {
 
 // Initialisierung beim Laden
 initPlayerManagement().then(() => {
+  renderProfileModal();
   renderSetupModal();
   render();
 });

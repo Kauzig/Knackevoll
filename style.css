@@ -1023,6 +1023,16 @@ body {
   margin: 12px 0 8px;
 }
 
+.setup-player-hint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-weight: 800;
+  color: var(--wood-dark);
+  margin-bottom: 4px;
+}
+
 .selection-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(115px, 1fr));

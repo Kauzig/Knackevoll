@@ -23,7 +23,7 @@
       <p>Passt, wackelt und hat Fracht! – Modul 1: Aufbruch der Karawane</p>
     </div>
     <div class="header-actions">
-        <button class="btn player-QuickBtn" onclick="openSetupModal()" title="Spieler wechseln & Statistiken ansehen">
+        <button class="btn player-QuickBtn" onclick="openProfileModal()" title="Spieler wechseln & Statistiken ansehen">
             👤 <span id="activePlayerHeaderName">Gast</span>
         </button>
         <div class="trophy-pill" id="headerStatsPill" title="Deine Gesamtbilanz">
@@ -35,7 +35,7 @@
             <span style="opacity:0.4;">|</span>
             <span>🦊 Fuchs: <strong id="headerFoxCount">0</strong></span>
         </div>
-        <button class="btn" onclick="openSetupModal()">⚙️ Setup & Profile</button>
+        <button class="btn" onclick="openSetupModal()" title="Packtier, Lizenz, Zahlenraum & Erweiterungen einstellen">⚙️ Spiel-Setup</button>
         <button class="btn" onclick="resetGame()">🔄 Neustart</button>
     </div>
   </header>
@@ -185,22 +185,9 @@
       <p>Wähle dein Packtier-Tableau, deine offizielle Fracht-Lizenz und den Zahlenraum!</p>
     </div>
 
-    <!-- NEU: Spieler-Management & Statistiken (IndexedDB) -->
-    <div class="profile-manager-box">
-      <div class="profile-manager-header">
-        <label class="setup-section-label" style="margin:0;">👤 Spieler-Profil & Karawanen-Statistik:</label>
-        <div class="profile-create-row">
-          <input type="text" id="newProfileNameInput" class="profile-input" placeholder="Neuer Name..." maxlength="18" onkeydown="if(event.key==='Enter') createNewProfile()" />
-          <button class="btn btn-oasis" onclick="createNewProfile()" style="padding:6px 12px; font-size:0.85rem;">➕ Anlegen</button>
-        </div>
-      </div>
-
-      <div class="profile-list-grid" id="profileListContainer">
-        <!-- Wird dynamisch aus der IndexedDB geladen -->
-      </div>
-
-      <!-- Statistik-Banner für das ausgewählte Profil -->
-      <div class="profile-stats-banner" id="activeProfileStatsBanner"></div>
+    <div class="setup-player-hint">
+      👤 Spieler: <strong id="setupActivePlayerName">Gast</strong>
+      <button class="btn" onclick="openProfileModal()" style="padding:4px 10px; font-size:0.8rem;">Wechseln</button>
     </div>
 
     <label class="setup-section-label">1. Wähle dein Packtier-Tableau:</label>
@@ -238,6 +225,40 @@
     <div style="text-align:right;">
       <button class="btn btn-oasis" onclick="startFromSetup()" style="font-size:1.05rem; padding:11px 24px;">
         🚀 Karawane starten!
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- POP-UP: Spieler-Profile (Auswahl, Anlegen, Löschen, Statistik) -->
+<div class="modal-backdrop hidden" id="profileModal">
+  <div class="modal-dialog">
+    <div class="modal-header-banner">
+      <h2>👤 Spieler-Profile</h2>
+      <p>Wähle deinen Spieler aus, lege neue Profile an und sieh dir deine Karawanen-Statistik an!</p>
+    </div>
+
+    <!-- Spieler-Management & Statistiken (IndexedDB) -->
+    <div class="profile-manager-box">
+      <div class="profile-manager-header">
+        <label class="setup-section-label" style="margin:0;">👤 Spieler-Profil & Karawanen-Statistik:</label>
+        <div class="profile-create-row">
+          <input type="text" id="newProfileNameInput" class="profile-input" placeholder="Neuer Name..." maxlength="18" onkeydown="if(event.key==='Enter') createNewProfile()" />
+          <button class="btn btn-oasis" onclick="createNewProfile()" style="padding:6px 12px; font-size:0.85rem;">➕ Anlegen</button>
+        </div>
+      </div>
+
+      <div class="profile-list-grid" id="profileListContainer">
+        <!-- Wird dynamisch aus der IndexedDB geladen -->
+      </div>
+
+      <!-- Statistik-Banner für das ausgewählte Profil -->
+      <div class="profile-stats-banner" id="activeProfileStatsBanner"></div>
+    </div>
+
+    <div style="text-align:right;">
+      <button class="btn btn-oasis" onclick="closeProfileModal()" style="font-size:1.05rem; padding:11px 24px;">
+        ✔ Fertig
       </button>
     </div>
   </div>
