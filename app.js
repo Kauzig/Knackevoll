@@ -562,14 +562,14 @@ function closeProfileModal() {
   // (nicht, wenn das Profil-Fenster aus dem Setup heraus geöffnet wurde)
   const changed = activeProfile && activeProfile.id !== profileIdOnModalOpen;
   if (changed && document.getElementById('setupModal').classList.contains('hidden')) {
-    resetGame();
+    startRound();
   }
 }
 
 function startFromSetup() {
   saveActiveProfilePreferences();
   document.getElementById('setupModal').classList.add('hidden');
-  resetGame();
+  startRound();
 }
 
 function openOrderModal() {
@@ -582,8 +582,8 @@ function openOrderModal() {
     const opt = getOptimalPacking(num, foxBlock);
 
     const foxBadgeHTML = foxBlock
-      ? `<div class="fox-card-badge">🦊 Fuchs blockiert ${foxBlock}er-Depot!</div>`
-      : `<div style="margin-top:6px; font-size:0.75rem; color:#15803d; font-weight:800;">🌿 Freier Markt</div>`;
+      ? `<div class="fox-card-badge" title="Der Wüstenfuchs blockiert das ${foxBlock}er-Depot">🦊 🚫 ${foxBlock}er</div>`
+      : `<div style="margin-top:6px; font-size:1.1rem;" title="Freier Markt">🌿</div>`;
 
     return `
       <div class="OrderCardPopup" onclick="pickOrderCard(${idx})">
@@ -591,11 +591,11 @@ function openOrderModal() {
         <div class="order-cargo-title">${config.license.icon} ${config.license.name}</div>
         ${renderTwentyStrip(num)}
         ${foxBadgeHTML}
-        <div style="margin-top:8px; font-size:0.8rem; font-weight:800; color:#6b5344;">
-          ⭐ Profi-Packer: <strong>${opt.minPieces} ${opt.minPieces === 1 ? 'Frachtstück' : 'Frachtstücke'}</strong>
+        <div class="order-pro-goal" title="Profi-Packer: ${opt.minPieces} ${opt.minPieces === 1 ? 'Frachtstück' : 'Frachtstücke'}">
+          ⭐ ${'📦'.repeat(opt.minPieces)}
         </div>
         <div style="margin-top:8px;">
-          <span class="btn btn-oasis" style="padding:5px 12px; font-size:0.82rem;">Auftrag wählen</span>
+          <span class="btn btn-oasis" style="padding:5px 16px; font-size:1.2rem;">👆</span>
         </div>
       </div>
     `;
@@ -856,11 +856,16 @@ async function finishOrderDelivery() {
   const opt = getOptimalPacking(deliveredOrder, foxWasActive);
   const isProPacker = usedPiecesCount <= opt.minPieces;
 
-  await recordDeliveryStats(deliveredOrder, isProPacker, Boolean(foxWasActive));
+  if (!tutorial.active) {
+    await recordDeliveryStats(deliveredOrder, isProPacker, Boolean(foxWasActive));
+  } else {
+    tutorial.deliveries += 1;
+  }
 
   // Höhlen-Modus: Fracht wandert nicht zurück in den Markt, sondern wartet aufs Einlagern
   const caveMode = isCaveMode();
-  if (caveMode) {
+  const storeInCave = caveMode && (!tutorial.active || tutorial.queue.length === 0);
+  if (storeInCave) {
     const cave = getActiveCave();
     cave.pending = [...cave.pending, ...packedPieces];
     cave.deliveries += 1;
@@ -868,78 +873,58 @@ async function finishOrderDelivery() {
   }
   launchConfetti(isProPacker ? 65 : 40);
 
-  const userChipsHTML = packedPieces.map(v => `
-    <span class="mini-cargo-chip chip-${v}">${v} mal ${config.license.icon}</span>
-  `).join('');
+  const chip = v => `<span class="mini-cargo-chip chip-${v}">${v} ${config.license.icon}</span>`;
+  const userChipsHTML = packedPieces.map(chip).join('');
+  const optChipsHTML = opt.pieces.map(chip).join('');
 
-  const optChipsHTML = opt.pieces.map(v => `
-    <span class="mini-cargo-chip chip-${v}">${v} mal ${config.license.icon}</span>
-  `).join('');
+  // Ergebnis als Bild: Profi = Medaille, sonst Glühbirne + ideale Aufteilung
+  const resultBadge = isProPacker
+    ? `<div class="result-badge result-pro" title="Profi-Packer">🏅 ${'⭐'.repeat(Math.min(opt.minPieces, 5))}</div>`
+    : `<div class="result-badge result-tip" title="So geht es mit weniger Stücken">💡 <span class="result-arrow">➔</span> ${optChipsHTML}</div>`;
 
-  const foxPraise = foxWasActive
-    ? `<div style="margin-top:8px; background:#ffedd5; border:2px solid #ea580c; color:#9a3412; padding:6px 12px; border-radius:10px; font-weight:900; font-size:0.88rem;">
-         🦊 Schlauer als der Wüstenfuchs! Du hast die ${foxWasActive}er-Sperre durch cleveres Tauschen/Bündeln ausgetrickst!
-       </div>`
+  const foxBadge = foxWasActive
+    ? `<div class="result-badge result-fox" title="Wüstenfuchs ausgetrickst">🦊 ✔</div>`
     : '';
 
-  let ratingBadge = '';
-  if (isProPacker) {
-    ratingBadge = `
-      <div style="background:#dcfce7; border:3px solid #16a34a; color:#14532d; padding:12px 14px; border-radius:14px; font-weight:900; margin-top:10px;">
-        🏅 PROFI-PACKER! Du hast die ${deliveredOrder} optimal gebündelt und nur ${usedPiecesCount} ${usedPiecesCount === 1 ? 'Frachtstück' : 'Frachtstücke'} gebraucht!
-      </div>
-    `;
-  } else {
-    ratingBadge = `
-      <div style="background:#ffedd5; border:3px solid #f97316; color:#9a3412; padding:12px 14px; border-radius:14px; font-weight:800; margin-top:10px; font-size:0.9rem;">
-        💡 <strong>Profi-Packer-Tipp:</strong> Du hast ${usedPiecesCount} Frachtstücke genutzt. Ideal wären <strong>${opt.minPieces} ${opt.minPieces === 1 ? 'Stück' : 'Stücke'}</strong>:
-        <div class="delivered-pieces-row" style="margin:8px 0 2px;">${optChipsHTML}</div>
-      </div>
-    `;
-  }
-
-  const pStats = activeProfile ? activeProfile.stats : { totalCargoSent: 0, packedAnimals: 0, proPackers: 0, foxOutsmarted: 0 };
+  // Ausführliche Auswertung & Gesamtbilanz nur auf Nachfrage (für Eltern & Lehrkräfte)
+  const pStats = (activeProfile && activeProfile.stats) || {};
   const playerStatLine = activeProfile
-    ? `<div style="margin-top:12px; padding:8px 12px; background:#fff; border:2px dashed #cbb69b; border-radius:10px; font-size:0.84rem; font-weight:800; color:#57412f;">
-         👤 <strong>${activeProfile.name}s Gesamtbilanz:</strong> 📦 ${pStats.totalCargoSent || 0} Fracht &nbsp;|&nbsp; 🐪 ${pStats.packedAnimals} Tiere &nbsp;|&nbsp; 🏅 ${pStats.proPackers}× Profi &nbsp;|&nbsp; 🦊 ${pStats.foxOutsmarted || 0}× Fuchs ausgetrickst
-       </div>`
+    ? `<p>👤 <strong>${activeProfile.name}s Gesamtbilanz:</strong> 📦 ${pStats.totalCargoSent || 0} Fracht · 🐪 ${pStats.packedAnimals || 0} Tiere · 🏅 ${pStats.proPackers || 0}× Profi · 🦊 ${pStats.foxOutsmarted || 0}× Fuchs ausgetrickst</p>`
     : '';
+
+  const adultDetails = `
+    <details class="adult-details text-detail">
+      <summary>👩‍🏫 Für Erwachsene</summary>
+      <p>${config.animal.icon} ${config.animal.article} hat genau <strong>${deliveredOrder}× ${config.license.name}</strong> geliefert.</p>
+      <p>Benutzte Frachtstücke: <strong>${usedPiecesCount}</strong> · Profi-Packer-Ziel: <strong>${opt.minPieces}</strong>
+        ${isProPacker ? ' – optimal gebündelt! 🏅' : ' – mit größeren Bündeln wäre es mit weniger Stücken gegangen.'}</p>
+      ${foxWasActive ? `<p>🦊 Die ${foxWasActive}er-Sperre des Wüstenfuchses wurde durch Tauschen/Entbündeln umgangen.</p>` : ''}
+      ${playerStatLine}
+    </details>
+  `;
+
+  const nextLabel = storeInCave ? '🏠 ▶' : (tutorial.active ? '👍' : '📜 ▶');
 
   const dialog = document.getElementById('celebrationDialog');
 
   dialog.innerHTML = `
     <div class="celebration-trophy">${isProPacker ? (foxWasActive ? '🦊🏅⭐' : '🏅⭐📦') : '🎉🐪📦'}</div>
-    <h2 style="margin:0; font-size:1.75rem; color:var(--wood-dark);">
-      Lieferung geschafft! (+${deliveredOrder} ${config.license.icon})
-    </h2>
-    <p style="margin:6px 0 12px; font-weight:800; color:#6b5344; font-size:1.05rem;">
-      ${config.animal.icon} Dein ${config.animal.name} hat genau <strong>${deliveredOrder}× ${config.license.name}</strong> in die Oase geliefert!
-    </p>
+    <div class="celebration-big-number">+${deliveredOrder} ${config.license.icon}</div>
 
-    ${foxPraise}
-
-    <div style="font-size:0.85rem; font-weight:800; color:var(--wood-dark); margin-top:10px;">Deine gepackten Frachtstücke:</div>
     <div class="delivered-pieces-row">${userChipsHTML}</div>
 
-    <div class="celebration-stats-grid">
-      <div class="stat-box ${isProPacker ? 'highlight-pro' : ''}">
-        <small>Deine Kistenanzahl</small>
-        <strong>${usedPiecesCount} ${usedPiecesCount === 1 ? 'Frachtstück' : 'Frachtstücke'}</strong>
-      </div>
-      <div class="stat-box highlight-pro">
-        <small>⭐ Profi-Packer-Ziel</small>
-        <strong>${opt.minPieces} ${opt.minPieces === 1 ? 'Frachtstück' : 'Frachtstücke'}</strong>
-      </div>
+    <div class="result-badges">
+      ${resultBadge}
+      ${foxBadge}
     </div>
-
-    ${ratingBadge}
-    ${playerStatLine}
 
     <div style="margin-top:18px;">
-      <button class="btn btn-oasis" onclick="acknowledgeCelebration()" style="font-size:1.05rem; padding:12px 24px;">
-        ${caveMode ? `🏠 Ab in die ${getCaveTheme().name}!` : '📜 Nächsten Auftrag wählen!'}
+      <button class="btn btn-oasis celebration-next-btn" onclick="acknowledgeCelebration()">
+        ${nextLabel}
       </button>
     </div>
+
+    ${tutorial.active ? '' : adultDetails}
   `;
 
   // Taschen leeren und Auftrag durch neuen ersetzen
@@ -947,7 +932,11 @@ async function finishOrderDelivery() {
   state.rightBag = [];
   state.activeOrder = null;
   state.activeFoxBlock = null;
-  state.availableOrders[state.activeOrderIdx] = generateReplacementOrder();
+  if (tutorial.active) {
+    nextTutorialOrders();
+  } else {
+    state.availableOrders[state.activeOrderIdx] = generateReplacementOrder();
+  }
   state.activeOrderIdx = null;
 
   document.getElementById('celebrationModal').classList.remove('hidden');
@@ -1239,6 +1228,7 @@ function createEmptyCave() {
 }
 
 function getActiveCave() {
+  if (tutorial.active && tutorial.cave) return tutorial.cave;
   let caves = fallbackCaves;
   if (activeProfile) {
     if (!activeProfile.caves) activeProfile.caves = {};
@@ -1250,6 +1240,7 @@ function getActiveCave() {
 }
 
 async function saveCave() {
+  if (tutorial.active) return; // Übungs-Höhle wird nicht gespeichert
   if (activeProfile) await dbSaveProfile(activeProfile);
 }
 
@@ -1332,7 +1323,7 @@ function renderCaveHTML(cave, interactive = false) {
   if (interactive) {
     for (let r = 0; r < rows; r++) {
       for (let c = 0; c < cols; c++) {
-        cells += `<div class="cave-cell" style="grid-row:${r + 1}; grid-column:${c + 1};"
+        cells += `<div class="cave-cell" data-r="${r}" data-c="${c}" style="grid-row:${r + 1}; grid-column:${c + 1};"
                        onpointerenter="caveHover(event, ${r}, ${c})"
                        onclick="caveCellClick(${r}, ${c})"></div>`;
       }
@@ -1411,6 +1402,16 @@ function renderCavePanel() {
 
 // Entscheidet, was als Nächstes passiert: Einlagern, Abschlussbildschirm oder neuer Auftrag
 function continueGameFlow() {
+  if (tutorial.active) {
+    if (isCaveMode() && getActiveCave().pending.length > 0) {
+      openStorageModal();
+    } else if (state.availableOrders.length === 0) {
+      finishTutorial();
+    } else {
+      openOrderModal();
+    }
+    return;
+  }
   if (isCaveMode()) {
     const cave = getActiveCave();
     if (cave.completed) {
@@ -1600,6 +1601,12 @@ async function finishStorage() {
   storageUI.hover = null;
   document.getElementById('storageModal').classList.add('hidden');
 
+  if (tutorial.active) {
+    render();
+    finishTutorial();
+    return;
+  }
+
   if (getCaveUsedCells(cave) >= getCaveCapacity()) {
     cave.completed = true;
     if (activeProfile) {
@@ -1690,6 +1697,252 @@ async function startNewCave() {
   await saveCave();
   document.getElementById('caveCompleteModal').classList.add('hidden');
   resetGame();
+}
+
+/* ============================================================================
+   GEFÜHRTE ÜBUNGSRUNDE (Tutorial)
+   Eine Zeige-Hand führt durch zwei kleine Aufträge (und im Höhlen-Modus durch
+   einmal Einlagern). Klicks außerhalb des gezeigten Ziels werden ignoriert,
+   damit das Kind nur durch Nachmachen lernt – ganz ohne Lesen.
+   ============================================================================ */
+const tutorial = {
+  active: false,
+  steps: [],
+  stepIdx: 0,
+  queue: [],        // noch folgende Übungsaufträge
+  deliveries: 0,
+  cave: null,       // Übungs-Höhle (wird nicht gespeichert)
+  timer: null,
+  lastTarget: null
+};
+
+function isTutorialDone(profile = activeProfile) {
+  if (!profile) return false;
+  // Wer schon Tiere gepackt hat, kennt das Spiel bereits
+  return Boolean(profile.tutorialDone) || Boolean(profile.stats && profile.stats.packedAnimals > 0);
+}
+
+// Startet eine Runde – beim allerersten Mal als geführte Übung
+function startRound() {
+  if (!isTutorialDone()) startTutorial();
+  else resetGame();
+}
+
+function getTutorialOrders() {
+  // Runde 1: 7 = 5 + 1 + 1 (Bündeln statt Zählen)
+  // Runde 2: Stufe 2 → 16 = 10 + 5 + 1 (Erst links, dann rechts) · Stufe 1 → 10 (eine Kiste füllt die Tasche)
+  return config.level === 1
+    ? [{ val: 7, plan: [5, 1, 1] }, { val: 10, plan: [10] }]
+    : [{ val: 7, plan: [5, 1, 1] }, { val: 16, plan: [10, 5, 1] }];
+}
+
+function isVisible(el) {
+  return Boolean(el) && el.getClientRects().length > 0;
+}
+
+function isHidden(id) {
+  return document.getElementById(id).classList.contains('hidden');
+}
+
+function buildTutorialSteps(orders) {
+  const steps = [];
+  const loadedCount = () => state.leftBag.length + state.rightBag.length;
+
+  orders.forEach((order, idx) => {
+    const round = idx + 1;
+    steps.push({
+      allow: '.OrderCardPopup',
+      target: () => document.querySelector('#popupOrdersList .OrderCardPopup'),
+      done: () => state.activeOrder !== null || tutorial.deliveries >= round
+    });
+    order.plan.forEach((val, k) => {
+      steps.push({
+        allow: `#depot${val}`,
+        target: () => document.getElementById(`depot${val}`),
+        done: () => tutorial.deliveries >= round || loadedCount() >= k + 1
+      });
+    });
+    steps.push({
+      allow: '#celebrationDialog .btn-oasis',
+      target: () => document.querySelector('#celebrationDialog .btn-oasis'),
+      done: () => tutorial.deliveries >= round && isHidden('celebrationModal')
+    });
+  });
+
+  // Im Höhlen-Modus: die Fracht der letzten Übungslieferung einmal einlagern
+  if (isCaveMode()) {
+    const lastPlan = orders[orders.length - 1].plan;
+    lastPlan.forEach((_, k) => {
+      steps.push({
+        allow: '#storageCaveFrame .cave-cell',
+        target: () => getTutorialStorageCell(),
+        done: () => tutorial.cave.pieces.length >= k + 1
+      });
+    });
+    steps.push({
+      allow: '#storageDoneBtn',
+      target: () => document.getElementById('storageDoneBtn'),
+      done: () => isHidden('storageModal')
+    });
+  }
+  return steps;
+}
+
+// Schlägt die erste freie Stelle (von oben links) vor, an der das gewählte Teil quer passt
+function getTutorialStorageCell() {
+  const cave = tutorial.cave;
+  if (!cave || cave.pending.length === 0) return null;
+  const size = cave.pending[storageUI.selectedIdx] || cave.pending[0];
+  const grid = buildCaveGrid(cave);
+  for (let r = 0; r < grid.length; r++) {
+    for (let c = 0; c < grid[0].length; c++) {
+      if (canPlacePiece(grid, size, r, c, false)) {
+        return document.querySelector(`#storageCaveFrame .cave-cell[data-r="${r}"][data-c="${c}"]`);
+      }
+    }
+  }
+  return null;
+}
+
+function startTutorial() {
+  ['setupModal', 'profileModal', 'orderModal', 'celebrationModal', 'storageModal', 'caveCompleteModal', 'tutorialEndModal']
+    .forEach(id => document.getElementById(id).classList.add('hidden'));
+
+  const orders = getTutorialOrders();
+  tutorial.active = true;
+  tutorial.deliveries = 0;
+  tutorial.stepIdx = 0;
+  tutorial.cave = createEmptyCave();
+  tutorial.queue = orders.slice(1).map(o => ({ val: o.val, foxBlock: null }));
+  tutorial.steps = buildTutorialSteps(orders);
+
+  state.activeOrder = null;
+  state.activeFoxBlock = null;
+  state.activeOrderIdx = null;
+  state.leftBag = [];
+  state.rightBag = [];
+  state.availableOrders = [{ val: orders[0].val, foxBlock: null }];
+  storageUI.vertical = false;
+
+  document.getElementById('tutorialBar').classList.remove('hidden');
+  document.body.classList.add('tutorial-running');
+  setSpeech('🎓 👆', '');
+  render();
+  openOrderModal();
+
+  clearInterval(tutorial.timer);
+  tutorial.timer = setInterval(tutorialTick, 120);
+  tutorialTick();
+}
+
+// Wird nach jeder Übungslieferung aufgerufen: nächster Übungsauftrag oder keiner mehr
+function nextTutorialOrders() {
+  state.availableOrders = tutorial.queue.length > 0 ? [tutorial.queue.shift()] : [];
+}
+
+function tutorialTick() {
+  if (!tutorial.active) return;
+
+  let step = tutorial.steps[tutorial.stepIdx];
+  if (step && step.done()) {
+    tutorial.stepIdx++;
+    step = tutorial.steps[tutorial.stepIdx];
+  }
+
+  renderTutorialProgress();
+
+  const hand = document.getElementById('tutorialHand');
+  const target = step ? step.target() : null;
+
+  document.querySelectorAll('.tutorial-target').forEach(el => {
+    if (el !== target) el.classList.remove('tutorial-target');
+  });
+
+  if (!isVisible(target)) {
+    hand.classList.add('hidden');
+    return;
+  }
+
+  target.classList.add('tutorial-target');
+  if (target !== tutorial.lastTarget) {
+    tutorial.lastTarget = target;
+    target.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }
+
+  const rect = target.getBoundingClientRect();
+  hand.style.left = `${rect.left + rect.width / 2}px`;
+  hand.style.top = `${rect.top + Math.min(rect.height / 2, 40)}px`;
+  hand.classList.remove('hidden');
+}
+
+function renderTutorialProgress() {
+  const dots = tutorial.steps.map((_, i) =>
+    `<span class="tutorial-dot ${i < tutorial.stepIdx ? 'done' : (i === tutorial.stepIdx ? 'current' : '')}"></span>`
+  ).join('');
+  document.getElementById('tutorialDots').innerHTML = dots;
+}
+
+function nudgeTutorialHand() {
+  const hand = document.getElementById('tutorialHand');
+  hand.classList.remove('nudge');
+  void hand.offsetWidth;
+  hand.classList.add('nudge');
+}
+
+// Klicks außerhalb des gezeigten Ziels abfangen (Capture-Phase, vor den onclick-Handlern)
+document.addEventListener('click', (event) => {
+  if (!tutorial.active) return;
+  if (event.target.closest('#tutorialBar')) return;
+  const step = tutorial.steps[tutorial.stepIdx];
+  if (step && event.target.closest(step.allow)) return;
+  event.stopPropagation();
+  event.preventDefault();
+  nudgeTutorialHand();
+}, true);
+
+function stopTutorial() {
+  tutorial.active = false;
+  clearInterval(tutorial.timer);
+  tutorial.timer = null;
+  tutorial.lastTarget = null;
+  tutorial.cave = null;
+  document.getElementById('tutorialHand').classList.add('hidden');
+  document.getElementById('tutorialBar').classList.add('hidden');
+  document.body.classList.remove('tutorial-running');
+  document.querySelectorAll('.tutorial-target').forEach(el => el.classList.remove('tutorial-target'));
+}
+
+async function markTutorialDone() {
+  if (!activeProfile) return;
+  activeProfile.tutorialDone = true;
+  await dbSaveProfile(activeProfile);
+}
+
+// Übung regulär geschafft → kurzer Abschluss mit großem „Los geht's“
+function finishTutorial() {
+  stopTutorial();
+  markTutorialDone();
+  launchConfetti(70);
+  document.getElementById('tutorialEndAnimal').textContent = config.animal.icon;
+  document.getElementById('tutorialEndModal').classList.remove('hidden');
+}
+
+function closeTutorialEnd() {
+  document.getElementById('tutorialEndModal').classList.add('hidden');
+  resetGame();
+}
+
+// Für Erwachsene: Übung abbrechen
+function skipTutorial() {
+  ['orderModal', 'celebrationModal', 'storageModal'].forEach(id => document.getElementById(id).classList.add('hidden'));
+  stopTutorial();
+  markTutorialDone();
+  resetGame();
+}
+
+function startTutorialFromSetup() {
+  saveActiveProfilePreferences();
+  startTutorial();
 }
 
 // Initialisierung beim Laden

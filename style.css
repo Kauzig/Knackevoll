@@ -1682,3 +1682,206 @@ body {
   font-weight: 900;
   color: var(--oasis-green);
 }
+
+/* ============================================================================
+   Geführte Übungsrunde
+   ============================================================================ */
+.setup-footer-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.tutorial-hand {
+  position: fixed;
+  z-index: 400;
+  font-size: 3.2rem;
+  line-height: 1;
+  pointer-events: none;
+  transform: translate(-50%, 0);
+  transition: left 0.35s ease, top 0.35s ease;
+  filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.45));
+  animation: tutorialTap 1s ease-in-out infinite;
+}
+
+.tutorial-hand.hidden {
+  display: none;
+}
+
+.tutorial-hand.nudge {
+  animation: tutorialNudge 0.4s ease-in-out, tutorialTap 1s ease-in-out 0.4s infinite;
+}
+
+@keyframes tutorialTap {
+  0%, 100% { transform: translate(-50%, 12px); }
+  50% { transform: translate(-50%, 0); }
+}
+
+@keyframes tutorialNudge {
+  0%, 100% { transform: translate(-50%, 6px) scale(1); }
+  30% { transform: translate(-50%, 6px) scale(1.35); }
+  60% { transform: translate(-50%, 6px) scale(0.95); }
+}
+
+.tutorial-target {
+  outline: 4px solid #facc15 !important;
+  outline-offset: 3px;
+  animation: tutorialGlow 1s ease-in-out infinite;
+  position: relative;
+  z-index: 3;
+}
+
+@keyframes tutorialGlow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(250, 204, 21, 0.7); }
+  50% { box-shadow: 0 0 0 10px rgba(250, 204, 21, 0); }
+}
+
+.tutorial-bar {
+  position: fixed;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 350;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--parchment);
+  border: 3px solid var(--wood-mid);
+  border-radius: 999px;
+  padding: 6px 8px 6px 14px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
+}
+
+.tutorial-bar.hidden {
+  display: none;
+}
+
+.tutorial-bar-icon {
+  font-size: 1.4rem;
+}
+
+.tutorial-dots {
+  display: flex;
+  gap: 5px;
+}
+
+.tutorial-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #e7dcc8;
+  border: 2px solid var(--wood-light);
+}
+
+.tutorial-dot.done {
+  background: var(--oasis-green);
+  border-color: #166534;
+}
+
+.tutorial-dot.current {
+  background: #facc15;
+  border-color: #a16207;
+  transform: scale(1.25);
+}
+
+.tutorial-skip {
+  border: none;
+  background: #e7dcc8;
+  color: var(--wood-dark);
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.tutorial-go-btn {
+  font-size: 1.6rem;
+  padding: 14px 34px;
+}
+
+/* ============================================================================
+   Weniger Text: grafisches Feierfenster & Ausblenden in der Übung
+   ============================================================================ */
+.tutorial-running .text-detail {
+  display: none !important;
+}
+
+.tutorial-running #headerStatsPill {
+  visibility: hidden;
+}
+
+.celebration-big-number {
+  font-size: 3rem;
+  font-weight: 900;
+  color: var(--wood-dark);
+  line-height: 1.1;
+}
+
+.result-badges {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.result-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+  padding: 10px 16px;
+  border-radius: 16px;
+  font-size: 1.8rem;
+  font-weight: 900;
+  border: 3px solid;
+}
+
+.result-pro { background: #dcfce7; border-color: #16a34a; }
+.result-tip { background: #ffedd5; border-color: #f97316; }
+.result-fox { background: #ffedd5; border-color: #ea580c; }
+
+.result-badge .mini-cargo-chip {
+  font-size: 1rem;
+}
+
+.result-arrow {
+  font-size: 1.4rem;
+  color: #9a3412;
+}
+
+.celebration-next-btn {
+  font-size: 1.8rem;
+  padding: 12px 40px;
+}
+
+.adult-details {
+  margin-top: 18px;
+  text-align: left;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #57412f;
+  background: #fff;
+  border: 2px dashed #cbb69b;
+  border-radius: 10px;
+  padding: 6px 12px;
+}
+
+.adult-details summary {
+  cursor: pointer;
+  font-weight: 900;
+  color: #78716c;
+}
+
+.adult-details p {
+  margin: 6px 0;
+}
+
+.order-pro-goal {
+  margin-top: 8px;
+  font-size: 1.1rem;
+  letter-spacing: 1px;
+}

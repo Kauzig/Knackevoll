@@ -161,7 +161,7 @@
     </div>
 
     <!-- Feedback-Spruchband -->
-    <div class="camel-speech" id="speechBanner">
+    <div class="camel-speech text-detail" id="speechBanner">
       <span id="speechText">Willkommen bei der Karawane!</span>
     </div>
   </section>
@@ -243,7 +243,10 @@
 
     <div class="motto-scroll" id="setupMottoBox"></div>
 
-    <div style="text-align:right;">
+    <div class="setup-footer-row">
+      <button class="btn" onclick="startTutorialFromSetup()" title="Die geführte Übungsrunde noch einmal spielen">
+        🎓 Übungsrunde starten
+      </button>
       <button class="btn btn-oasis" onclick="startFromSetup()" style="font-size:1.05rem; padding:11px 24px;">
         🚀 Karawane starten!
       </button>
@@ -289,13 +292,13 @@
 <div class="modal-backdrop hidden" id="orderModal">
   <div class="modal-dialog">
     <div class="modal-header-banner">
-      <h2>📜 Auftrag wählen (kostenlos)</h2>
-      <p>Such dir 1 Auftragskarte aus der offenen Auslage aus. Das Auswählen kostet keine Aktion – danach bleibt der Auftrag bis zur Lieferung fest eingeloggt!</p>
+      <h2>📜 Auftrag wählen</h2>
+      <p class="text-detail">Such dir 1 Auftragskarte aus der offenen Auslage aus. Das Auswählen kostet keine Aktion – danach bleibt der Auftrag bis zur Lieferung fest eingeloggt!</p>
     </div>
 
     <div class="popup-orders-grid" id="popupOrdersList"></div>
 
-    <div style="text-align:right;">
+    <div class="text-detail" style="text-align:right;">
       <button class="btn" onclick="closeOrderModal()">Später wählen</button>
     </div>
   </div>
@@ -313,7 +316,7 @@
   <div class="modal-dialog">
     <div class="modal-header-banner">
       <h2 id="storageTitle">🏠 Ab in die Höhle!</h2>
-      <p>Lege deine gelieferte Fracht in die Höhle. Wer volle Reihen schafft, bekommt Edelsteine! 💎</p>
+      <p class="text-detail">Lege deine gelieferte Fracht in die Höhle. Wer volle Reihen schafft, bekommt Edelsteine! 💎</p>
     </div>
 
     <div class="storage-toolbar">
@@ -327,7 +330,7 @@
     <div id="storageCaveFrame"></div>
     <div class="cave-stats-line" id="storageStats"></div>
 
-    <div class="camel-speech" id="storageHint"></div>
+    <div class="camel-speech text-detail" id="storageHint"></div>
 
     <div style="text-align:right; margin-top:14px;">
       <button class="btn btn-oasis" id="storageDoneBtn" onclick="finishStorage()" style="font-size:1.05rem; padding:11px 24px;">
@@ -341,6 +344,25 @@
 <div class="modal-backdrop hidden" id="caveCompleteModal">
   <div class="modal-dialog celebration-card" id="caveCompleteDialog">
     <!-- Inhalt wird dynamisch von app.js befüllt -->
+  </div>
+</div>
+
+<!-- Übungsrunde: Zeige-Hand, Fortschritt & Abschluss -->
+<div class="tutorial-hand hidden" id="tutorialHand">👆</div>
+
+<div class="tutorial-bar hidden" id="tutorialBar">
+  <span class="tutorial-bar-icon">🎓</span>
+  <span class="tutorial-dots" id="tutorialDots"></span>
+  <button class="tutorial-skip" onclick="skipTutorial()" title="Übungsrunde beenden">✖</button>
+</div>
+
+<div class="modal-backdrop hidden" id="tutorialEndModal">
+  <div class="modal-dialog celebration-card">
+    <div class="celebration-trophy">🎉👍<span id="tutorialEndAnimal">🦖</span></div>
+    <div style="font-size:2.4rem; margin:8px 0 18px;">⭐ ⭐ ⭐</div>
+    <button class="btn btn-oasis tutorial-go-btn" id="tutorialEndBtn" onclick="closeTutorialEnd()">
+      ▶ Los geht's!
+    </button>
   </div>
 </div>
 
