@@ -753,7 +753,7 @@ function unbundleTen(side) {
 // Entbündeln 2: Gelben 5er-Sack in fünf rote 1er-Einheiten aufschnüren
 function unbundleFive(side) {
   const bag = side === 'left' ? state.leftBag : state.rightBag;
-  const idx = bag.indexOf(5);
+  const idx = bag.lastIndexOf(5);
   if (idx === -1) return;
 
   bag.splice(idx, 1, 1, 1, 1, 1, 1);
