@@ -1851,19 +1851,44 @@ function getSeason(cave) {
 
 /* ---------- Karten ---------- */
 
-// Gibt es einen Weg mit höchstens 2 Stücken am Fuchs vorbei? (Überschuss darf entbündelt & zurückgelegt werden)
-function findFoxStrategy(val, blocked, load) {
+// Legt ein Stück in die Taschen – nach den Spielregeln: erst links bis 10, dann rechts (Wackel-Regel).
+// Gibt die neuen Taschen zurück oder null, wenn das Stück dort nicht hineinpasst.
+function placeInBags(left, right, val) {
+  const leftSum = sumArray(left);
+  const rightSum = sumArray(right);
+  if (leftSum + rightSum + val > getBagCapacity()) return null; // Tier wäre überladen
+  if (leftSum < 10) {
+    return leftSum + val <= 10 ? { left: [...left, val], right } : null;
+  }
+  return rightSum + val <= 10 ? { left, right: [...right, val] } : null;
+}
+
+// Gibt es von diesem Zustand aus einen Weg zum Zielwert? Höchstens maxTakes Stücke vom Markt (ohne das
+// gesperrte Depot), und die Stücke müssen nach den Passregeln in die Taschen passen. Ein Überschuss darf
+// anschließend entbündelt und zurückgelegt werden.
+function planFrom(target, blocked, left, right, maxTakes) {
   const allowed = [10, 5, 1].filter(p => p !== blocked);
   let best = null;
-  for (const a of allowed) {
-    for (const b of [0, ...allowed]) {
-      const sum = a + b;
-      if (sum >= val && load + sum <= getBagCapacity() && (!best || sum < best.sum)) {
-        best = { sum, pieces: b ? [a, b] : [a] };
+  const walk = (l, r, taken) => {
+    const total = sumArray(l) + sumArray(r);
+    if (total >= target) {
+      if (!best || taken.length < best.pieces.length || (taken.length === best.pieces.length && total < best.total)) {
+        best = { pieces: taken, total };
       }
+      return;
     }
-  }
+    if (taken.length >= maxTakes) return;
+    for (const piece of allowed) {
+      const next = placeInBags(l, r, piece);
+      if (next) walk(next.left, next.right, [...taken, piece]);
+    }
+  };
+  walk(left, right, []);
   return best;
+}
+
+function findPlusPlan(val, blocked, left, right) {
+  return planFrom(sumArray(left) + sumArray(right) + val, blocked, left, right, WINTER_MAX_TAKES);
 }
 
 function isWinterCardValid(card, cave) {
@@ -1872,8 +1897,8 @@ function isWinterCardValid(card, cave) {
   // Plus: Tier darf nicht überladen werden, und alles muss später noch in die Höhle passen
   const free = getCaveCapacity() - getCaveUsedCells(cave) - sumArray(cave.pending) - load;
   if (load + card.val > getBagCapacity() || card.val > free) return false;
-  if (card.foxBlock && !findFoxStrategy(card.val, card.foxBlock, load)) return false;
-  return true;
+  // Muss sich mit höchstens 2 Stücken und den Passregeln lösen lassen (auch am Fuchs vorbei)
+  return Boolean(findPlusPlan(card.val, card.foxBlock, cave.bags.left, cave.bags.right));
 }
 
 function drawWinterCard(cave, existing) {
@@ -1890,9 +1915,8 @@ function drawWinterCard(cave, existing) {
 
   // Wüstenfuchs: blockiert auf Plus-Karten ein Depot, das man eigentlich bräuchte
   if (config.foxMode && card.type === 'plus' && Math.random() < 0.4) {
-    const load = getCaveLoad(cave);
     const candidates = [...new Set(getOptimalPacking(card.val).pieces)]
-      .filter(b => findFoxStrategy(card.val, b, load));
+      .filter(b => findPlusPlan(card.val, b, cave.bags.left, cave.bags.right));
     if (candidates.length > 0) card.foxBlock = candidates[Math.floor(Math.random() * candidates.length)];
   }
   return card;
@@ -1992,23 +2016,29 @@ function winterTakeCargo(val) {
   }
 
   const leftSum = sumArray(state.leftBag);
-  const total = leftSum + sumArray(state.rightBag);
+  const rightSum = sumArray(state.rightBag);
+  const total = leftSum + rightSum;
+
+  // Wackel-Regel wie im Endlos-Modus: Ein Stück, das nicht mehr in die Tasche passt, bleibt draußen –
+  // das Kind muss selbst überlegen, wie es den Rest zerlegt (z. B. 5 + 5 statt 10).
   if (total + val > getBagCapacity()) {
     wobbleBag(config.level === 1 || leftSum < 10 ? 'bagLeft' : 'bagRight');
     setSpeech(`⚠️ Wackel-Regel! Auf ${config.animal.article} ist nur noch Platz für ${getBagCapacity() - total}.`, 'error');
     return;
   }
-
-  if (leftSum + val <= 10) {
+  if (leftSum < 10) {
+    if (leftSum + val > 10) {
+      wobbleBag('bagLeft');
+      setSpeech(`⚠️ Wackel-Regel! In der linken Satteltasche sind nur noch ${10 - leftSum} Plätze frei – ein ${val}er-Stück passt dort nicht hinein!`, 'error');
+      return;
+    }
     state.leftBag.push(val);
-  } else if (leftSum < 10) {
-    // Zehnerübergang: links bis zur 10 auffüllen, der Rest kommt nach rechts
-    const leftPart = 10 - leftSum;
-    const rightPart = val - leftPart;
-    state.leftBag.push(...getOptimalPacking(leftPart).pieces);
-    state.rightBag.push(...getOptimalPacking(rightPart).pieces);
-    setSpeech(`✂️ Zehnerübergang: ${leftPart} links bis zur 10, ${rightPart} rechts!`, '');
   } else {
+    if (rightSum + val > 10) {
+      wobbleBag('bagRight');
+      setSpeech(`⚠️ Wackel-Regel! In der rechten Satteltasche sind nur noch ${10 - rightSum} Plätze frei!`, 'error');
+      return;
+    }
     state.rightBag.push(val);
   }
   fx('take');
@@ -2016,6 +2046,16 @@ function winterTakeCargo(val) {
 
   if (checkWinterCompletion()) return;
   render();
+}
+
+// Sackgasse: Ziel nicht mehr erreichbar (z. B. falsches Stück gewählt) → ↩ blinkt, Kind fängt neu an
+function isWinterStuck() {
+  const w = state.winter;
+  if (!w.card || w.card.type !== 'plus') return false;
+  const total = sumArray(state.leftBag) + sumArray(state.rightBag);
+  const target = getWinterTarget();
+  if (total >= target) return false; // Überschuss lässt sich durch Entbündeln lösen
+  return !planFrom(target, w.card.foxBlock, state.leftBag, state.rightBag, WINTER_MAX_TAKES - w.takes);
 }
 
 function winterUnpack(side, index) {
@@ -2281,7 +2321,7 @@ function renderWinterPanel() {
     <div class="winter-active-row">
       ${renderWinterCardHTML(w.card, w.cardIdx, true)}
       <div class="winter-status">${status}</div>
-      <button class="btn winter-cancel-btn" onclick="cancelWinterTurn()" title="Zug abbrechen – alles wie vorher">↩</button>
+      <button class="btn winter-cancel-btn ${isWinterStuck() ? 'pulse-hint' : ''}" onclick="cancelWinterTurn()" title="Zug abbrechen – alles wie vorher">↩</button>
     </div>
   `;
 }

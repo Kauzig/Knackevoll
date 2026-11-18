@@ -2257,3 +2257,14 @@ body[data-season="winter"] { background: radial-gradient(circle at top, #ffffff 
   0%, 100% { outline-color: var(--oasis-green); }
   50% { outline-color: #bbf7d0; }
 }
+
+/* ↩ blinkt, wenn die Karte so nicht mehr lösbar ist */
+.winter-cancel-btn.pulse-hint {
+  animation: pulseHint 0.8s ease-in-out infinite;
+  border-color: var(--dienes-red);
+}
+
+@keyframes pulseHint {
+  0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.6); }
+  50% { transform: scale(1.15); box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+}
