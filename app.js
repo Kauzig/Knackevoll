@@ -2288,6 +2288,15 @@ function renderWinterCardHTML(card, idx, active = false) {
   `;
 }
 
+// Kleine, nicht antippbare Ansicht einer liegengebliebenen Karte (während ein Zug läuft)
+function renderWinterMiniCardHTML(card) {
+  const isPlus = card.type === 'plus';
+  return `<span class="winter-mini ${isPlus ? 'card-plus' : 'card-minus'}"
+                title="${isPlus ? 'Einkaufen' : 'Abladen'} ${card.val}${card.foxBlock ? ` – Fuchs blockiert das ${card.foxBlock}er-Depot` : ''}">
+            ${isPlus ? '🧺' : '🏠'}${isPlus ? '+' : '−'}${card.val}${card.foxBlock ? '🦊' : ''}
+          </span>`;
+}
+
 function renderWinterPanel() {
   const cave = ensureWinterCave(getActiveCave());
   const slot = document.getElementById('activeOrderSlot');
@@ -2326,11 +2335,18 @@ function renderWinterPanel() {
       <span class="pro-counter-pill">🏠 noch ${rest}</span>
     `;
   }
+  // Die anderen Karten bleiben sichtbar (zum Vorausplanen), aber ohne Funktion, solange ein Zug läuft
+  const waiting = cave.cards.filter((c, i) => c && i !== w.cardIdx);
+  const preview = waiting.length
+    ? `<div class="winter-preview" title="Diese Karten bleiben liegen">${waiting.map(renderWinterMiniCardHTML).join('')}</div>`
+    : '';
+
   slot.innerHTML = `
     <div class="winter-active-row">
       ${renderWinterCardHTML(w.card, w.cardIdx, true)}
       <div class="winter-status">${status}</div>
       <button class="btn winter-cancel-btn ${isWinterStuck() ? 'pulse-hint' : ''}" onclick="cancelWinterTurn()" title="Zug abbrechen – alles wie vorher">↩</button>
+      ${preview}
     </div>
   `;
 }

@@ -2556,3 +2556,61 @@ body[data-season="winter"] { background: radial-gradient(circle at top, #ffffff 
 .winter-card.card-empty:hover {
   transform: none;
 }
+
+/* Liegengebliebene Karten während eines Zuges: klein, blass, nicht antippbar */
+.winter-preview {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  padding-left: 10px;
+  border-left: 2px dashed #cbb69b;
+  pointer-events: none;
+  opacity: 0.8;
+}
+
+.winter-mini {
+  display: inline-block;
+  padding: 3px 8px;
+  border: 2px solid;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  font-weight: 900;
+  white-space: nowrap;
+  color: var(--wood-dark);
+}
+
+.winter-mini.card-plus  { background: #f0fdf4; border-color: #16a34a; }
+.winter-mini.card-minus { background: #fef3c7; border-color: #b45309; }
+
+.winter-active-row {
+  flex-wrap: wrap;
+}
+
+.winter-status {
+  flex: 1 1 100px;
+}
+
+@media (max-width: 559px) {
+  /* Schmal: Karte, Zustand und ↩ bleiben in einer Zeile, die Vorschau liegt darunter */
+  .winter-active-row {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 6px 8px;
+    align-items: center;
+  }
+
+  .winter-preview {
+    grid-column: 1 / -1;
+    justify-content: center;
+    margin-left: 0;
+    padding: 6px 0 0;
+    border-left: none;
+    border-top: 2px dashed #cbb69b;
+  }
+}
+
+/* Wintervorrat während eines Zuges: eine einzige Spalte (nicht das zweispaltige Raster des Endlos-Auftrags) */
+.bazaar-grid .order-slot-box.winter-slot.locked-order {
+  display: block;
+}
