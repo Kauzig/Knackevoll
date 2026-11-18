@@ -51,6 +51,7 @@
         <span>🏪 Offener Fracht-Markt</span>
         <small class="panel-hint" style="font-weight:700; color:#78716c;">Klicke auf ein Frachtstück zum Einladen</small>
       </h3>
+      <div class="rick-banner hidden" id="rickBanner"></div>
         <div class="market-depots">
             <!-- 10er-Kiste Blau -->
             <div class="depot-card" id="depot10" onclick="takeCargo(10)" title="Füllt 1 ganze Tasche sofort (10)">
@@ -228,12 +229,12 @@
     <label class="setup-section-label">4. Erweiterung (Modul 2):</label>
     <div class="selection-grid" style="grid-template-columns: 1fr 1fr;">
       <div class="tile-option active-tile" id="foxOffTile" onclick="setFoxMode(false)">
-        <div style="font-size:1.2rem; font-weight:900;">🌿 Ohne Wüstenfuchs</div>
+        <div style="font-size:1.2rem; font-weight:900;">🌿 Ohne Rick</div>
         <small>Alle Markt-Depots sind immer frei</small>
       </div>
       <div class="tile-option" id="foxOnTile" onclick="setFoxMode(true)">
-        <div style="font-size:1.2rem; font-weight:900;">🦊 Mit Wüstenfuchs!</div>
-        <small>Blockiert Depots – fordert cleveres Entbündeln</small>
+        <div style="font-size:1.2rem; font-weight:900;">🦊 Mit Rick, dem Wüstenfuchs!</div>
+        <small>Rick blockiert ein Depot – fordert cleveres Entbündeln</small>
       </div>
     </div>
 

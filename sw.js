@@ -1,4 +1,4 @@
-const CACHE_NAME = 'knackevoll-cache-v4';
+const CACHE_NAME = 'knackevoll-cache-v5';
 const ASSETS = [
   './',
   './index.html',

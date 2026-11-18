@@ -8,9 +8,10 @@ let config = {
 
 let state = {
   activeOrder: null,     // Zielzahl (z. B. 14)
-  activeFoxBlock: null,  // Welches Depot blockiert der Fuchs aktuell? (null, 10, 5 oder 1)
+  activeFoxBlock: null,  // Sperre von Rick für den aktiven Auftrag (null, 10, 5 oder 1)
+  rick: { current: null, next: null }, // Rick: aktuelle und angekündigte Sperre
   activeOrderIdx: null,
-  availableOrders: [],   // Array aus { val, foxBlock }
+  availableOrders: [],   // Array aus { val }
   leftBag: [],           // Array aus Zahlenwerten: [10, 5, 1, ...]
   rightBag: [],
   unbundledThisOrder: false // Wurde beim aktuellen Auftrag entbündelt? (Extra-Funkeln für die Fuchs-Beute)
@@ -274,18 +275,102 @@ function getOptimalPacking(target, foxBlockedDepot = null) {
   };
 }
 
-/* Wählt für einen Auftragswert ein spannendes, garantiert lösbares Fuchs-Hindernis */
-function pickFoxBlockForValue(val) {
-  const candidates = [];
-  // 10er-Blockade ist spannend, wenn die Zahl >= 10 ist (man muss auf 5er ausweichen)
-  if (val >= 10) candidates.push(10);
-  // 5er-Blockade fordert Entbündeln einer 10er-Kiste, wenn eine 5er-Einheit gebraucht wird oder val >= 5
-  if (val >= 5) candidates.push(5);
-  // 1er-Blockade fordert das Aufschnüren eines 5er-Sacks, wenn Einerstellen (nicht durch 5 teilbar) gebraucht werden
-  if (val % 5 !== 0) candidates.push(1);
+/* ----------------------------------------------------------------------------
+   Rick, der Wüstenfuchs
+   Rick liegt pro Lieferung (Endlos) bzw. pro Einkaufs-Zug (Wintervorrat) auf genau einem Depot.
+   Die Sperre für die nächste Lieferung steht schon vorher fest und wird angekündigt,
+   damit das Kind vorausplanen kann.
+   ---------------------------------------------------------------------------- */
+const RICK_DEPOTS = [10, 5, 1];
+const RICK_NAME = 'Rick';
 
-  if (candidates.length === 0) return null;
-  return candidates[Math.floor(Math.random() * candidates.length)];
+function rickIsActive() {
+  return config.foxMode && !tutorial.active;
+}
+
+function rickBlockNow() {
+  return rickIsActive() ? state.rick.current : null;
+}
+
+function rickBlockNext() {
+  return rickIsActive() ? state.rick.next : null;
+}
+
+// Ist die Sperre für diesen Wert wirklich im Weg? (Sonst wäre das Depot ohnehin nicht gebraucht.)
+function isRickRelevant(val, block) {
+  return Boolean(block) && getOptimalPacking(val).pieces.includes(block);
+}
+
+/*
+ * Wählt die Sperre für den übernächsten Zug.
+ * - valid:    harte Bedingung (z. B. alle offenen Karten bleiben lösbar), wird nur ignoriert, wenn nichts übrig bleibt
+ * - relevant: weiche Bedingung (Rick soll mindestens eine offene Karte wirklich betreffen)
+ * Die neue Sperre unterscheidet sich immer von der aktuellen.
+ */
+function pickRickBlock(exclude, valid = () => true, relevant = () => true) {
+  const candidates = RICK_DEPOTS.filter(d => d !== exclude);
+  const ok = candidates.filter(valid);
+  const base = ok.length > 0 ? ok : candidates;
+  const preferred = base.filter(relevant);
+  const pool = preferred.length > 0 ? preferred : base;
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+
+// Kurzer Satz für die Sprechblase: wo Rick jetzt liegt und wo er als Nächstes liegen wird
+function rickAnnouncement() {
+  const now = rickBlockNow();
+  if (!now) return '';
+  const next = rickBlockNext();
+  return `🦊 ${RICK_NAME} schläft auf den ${now}er-Kisten${next ? ` – danach auf den ${next}ern` : ''}. Plane voraus!`;
+}
+
+// Abzeichen für Auftragskarten: 🌿 nur, wenn Rick gar nicht aktiv ist, sonst immer seine Sperre
+// (ob sie für den Auftrag eine Rolle spielt, findet das Kind selbst heraus).
+function rickBadgeHTML(block, style = '') {
+  if (!block) return `<div style="margin-top:6px; font-size:1.1rem;" title="Freier Markt">🌿</div>`;
+  return `<div class="fox-card-badge" ${style ? `style="${style}"` : ''} title="${RICK_NAME} blockiert das ${block}er-Depot">🦊 🚫 ${block}er</div>`;
+}
+
+function renderRickBanner() {
+  const el = document.getElementById('rickBanner');
+  if (!el) return;
+  const now = rickBlockNow();
+  const next = rickBlockNext();
+  el.classList.toggle('hidden', !now);
+  if (!now) {
+    el.innerHTML = '';
+    return;
+  }
+  el.innerHTML = `
+    <span class="rick-banner-now" title="${RICK_NAME} schläft gerade auf den ${now}er-Kisten">🦊 ${RICK_NAME}: 🚫 ${now}er</span>
+    ${next ? `<span class="rick-banner-next" title="Danach schläft ${RICK_NAME} auf den ${next}er-Kisten">danach ➜ 🚫 ${next}er</span>` : ''}
+  `;
+}
+
+function resetRick() {
+  state.rick = { current: null, next: null };
+}
+
+// Neues Spiel: aktuelle Sperre würfeln, die nächste folgt in planRickNext()
+function startRick(valid, relevant) {
+  resetRick();
+  if (!config.foxMode) return;
+  state.rick.current = pickRickBlock(null, valid, relevant);
+}
+
+// Nächster Zug: angekündigte Sperre wird aktuell. Die neue Ankündigung folgt mit planRickNext(),
+// sobald die neuen Karten feststehen.
+function advanceRick() {
+  if (!rickIsActive()) return;
+  state.rick = {
+    current: state.rick.next || pickRickBlock(state.rick.current),
+    next: null
+  };
+}
+
+function planRickNext(valid, relevant) {
+  if (!rickIsActive()) return;
+  state.rick.next = pickRickBlock(state.rick.current, valid, relevant);
 }
 
 /* Top-Down SVG Illustrationen der 5 Packtiere */
@@ -446,13 +531,13 @@ function renderProfileModal() {
       item('📦', 'Verschickte Fracht', `${en.totalCargoSent} Einh.`),
       item('🐪', 'Gepackte Tiere', en.packedAnimals),
       item('🏅', 'Profi-Packer', `${en.proPackers} <span style="font-size:0.8rem; font-weight:700; color:#15803d;">(${rate}%)</span>`),
-      item('🦊', 'Schlauer als Fuchs', `${en.foxOutsmarted}×`)
+      item('🦊', 'Schlauer als Rick', `${en.foxOutsmarted}×`)
     ]);
     const caveSection = section('cave', '❄️ Wintervorrat', [
       item('📦', 'Eingelagerte Fracht', `${cv.totalCargoSent} Einh.`),
       item('🏠', 'Winter geschafft', cv.cavesFilled),
       item('💥', 'KNACKEVOLL!', `${cv.knackevoll}×`),
-      item('🦊', 'Schlauer als Fuchs', `${cv.foxOutsmarted}×`)
+      item('🦊', 'Schlauer als Rick', `${cv.foxOutsmarted}×`)
     ]);
     statsEl.innerHTML = config.gameMode === 'cave' ? caveSection + endlessSection : endlessSection + caveSection;
   }
@@ -572,12 +657,10 @@ function openOrderModal() {
   const list = document.getElementById('popupOrdersList');
   list.innerHTML = state.availableOrders.map((orderObj, idx) => {
     const num = orderObj.val;
-    const foxBlock = orderObj.foxBlock;
+    const foxBlock = rickBlockNow();
     const opt = getOptimalPacking(num, foxBlock);
 
-    const foxBadgeHTML = foxBlock
-      ? `<div class="fox-card-badge" title="Der Wüstenfuchs blockiert das ${foxBlock}er-Depot">🦊 🚫 ${foxBlock}er</div>`
-      : `<div style="margin-top:6px; font-size:1.1rem;" title="Freier Markt">🌿</div>`;
+    const foxBadgeHTML = rickBadgeHTML(foxBlock);
 
     return `
       <div class="OrderCardPopup" onclick="pickOrderCard(${idx})">
@@ -602,19 +685,23 @@ function closeOrderModal() {
   document.getElementById('orderModal').classList.add('hidden');
 }
 
-function createOrderEntry(val, forceFox = false) {
-  let foxBlock = null;
-  if (config.foxMode && forceFox) {
-    foxBlock = pickFoxBlockForValue(val);
-  }
-  return { val, foxBlock };
-}
-
 // Wertebereich für Aufträge (Endlos-Karawane)
 function getOrderRange() {
   const maxVal = config.level === 1 ? 9 : 19; // Bis 9 bzw. 19, damit beim Entbündeln immer Platz in der Tasche ist
   const minVal = config.level === 1 ? 2 : 6;
   return { minVal, maxVal };
+}
+
+/*
+ * Filter für Ricks Sperren im Endlos-Modus:
+ * - lösbar: Jeder Auftrag lässt sich mit jeder Sperre lösen (fehlendes 10er → 2×5, fehlendes 5er → 10 entbündeln,
+ *   fehlendes 1er → 5er aufschnüren; die Taschen reichen dafür, weil die Auftragswerte unter der Kapazität bleiben).
+ *   Es muss also nichts herausgefiltert werden.
+ * - relevant: Rick soll mindestens einen der offenen Aufträge wirklich betreffen.
+ */
+function rickOrderFilters() {
+  const orders = () => state.availableOrders.filter(Boolean);
+  return [undefined, block => orders().some(o => isRickRelevant(o.val, block))];
 }
 
 function generateOrders() {
@@ -629,8 +716,7 @@ function generateOrders() {
       values.push(candidate);
     }
   }
-  // Wenn der Wüstenfuchs-Modus aktiv ist, bekommen die ersten 2 Karten einen Wüstenfuchs
-  return values.map((val, idx) => createOrderEntry(val, config.foxMode && idx < 2));
+  return values.map(val => ({ val }));
 }
 
 function generateReplacementOrder() {
@@ -643,9 +729,7 @@ function generateReplacementOrder() {
   }
   const pool = freeValues.length > 0 ? freeValues : [Math.floor(Math.random() * span) + minVal];
   const candidate = pool[Math.floor(Math.random() * pool.length)];
-  // Im Fuchs-Modus haben ~70% der nachrückenden Karten ein Fuchs-Symbol
-  const hasFox = config.foxMode && Math.random() < 0.7;
-  return createOrderEntry(candidate, hasFox);
+  return { val: candidate };
 }
 
 function resetGame() {
@@ -657,10 +741,12 @@ function resetGame() {
   state.activeFoxBlock = null;
   state.activeOrderIdx = null;
   state.availableOrders = generateOrders();
+  startRick(...rickOrderFilters());
+  planRickNext(...rickOrderFilters());
   state.leftBag = [];
   state.rightBag = [];
   document.getElementById('celebrationModal').classList.add('hidden');
-  setSpeech('Wähle deinen nächsten Auftrag für die Karawane aus!', '');
+  setSpeech(rickAnnouncement() || 'Wähle deinen nächsten Auftrag für die Karawane aus!', '');
   render();
   if (document.getElementById('setupModal').classList.contains('hidden')) {
     continueGameFlow();
@@ -674,14 +760,14 @@ function pickOrderCard(index) {
   const chosen = state.availableOrders[index];
   state.activeOrderIdx = index;
   state.activeOrder = chosen.val;
-  state.activeFoxBlock = chosen.foxBlock;
+  state.activeFoxBlock = rickBlockNow();
   state.unbundledThisOrder = false;
   fx('pick');
 
   const opt = getOptimalPacking(state.activeOrder, state.activeFoxBlock);
   closeOrderModal();
 
-  if (state.activeFoxBlock) {
+  if (isRickRelevant(state.activeOrder, state.activeFoxBlock)) {
     let tip = '';
     if (state.activeFoxBlock === 5) {
       tip = 'Tipp: Lade eine 10er-Kiste ein, schnüre sie in zwei 5er auf und packe einen 5er wieder aus!';
@@ -690,7 +776,7 @@ function pickOrderCard(index) {
     } else {
       tip = 'Tipp: Nutze zwei 5er-Säcke, um die linke 10er-Tasche vollzumachen!';
     }
-    setSpeech(`🦊 Oh! Der Wüstenfuchs schläft auf den ${state.activeFoxBlock}er-Kisten! ${tip}`, '');
+    setSpeech(`🦊 Oh! ${RICK_NAME} schläft auf den ${state.activeFoxBlock}er-Kisten! ${tip}`, '');
   } else {
     setSpeech(
       `📜 Auftrag „${state.activeOrder}× ${config.license.name}“ angenommen! Schaffst du es als Profi-Packer mit nur ${opt.minPieces} ${opt.minPieces === 1 ? 'Frachtstück' : 'Frachtstücken'}?`,
@@ -723,14 +809,14 @@ function takeCargo(val) {
     return;
   }
 
-  // Prüfen, ob der Wüstenfuchs auf diesem Markt-Depot schläft
+  // Prüfen, ob Rick auf diesem Markt-Depot schläft
   if (state.activeFoxBlock === val) {
     const foxHint = val === 1
       ? 'Hol dir stattdessen einen 5er-Sack und schnüre ihn an der Satteltasche in fünf 1er auf!'
       : (val === 5
           ? 'Hol dir stattdessen eine 10er-Kiste und teile sie an der Satteltasche in zwei 5er!'
           : 'Nimm stattdessen zwei 5er-Säcke für die linke Tasche!');
-    setSpeech(`🦊💤 Pssst! Der Wüstenfuchs schläft auf den ${val}er-Kisten! ${foxHint}`, 'error');
+    setSpeech(`🦊💤 Pssst! ${RICK_NAME} schläft auf den ${val}er-Kisten! ${foxHint}`, 'error');
     return;
   }
 
@@ -861,11 +947,11 @@ function launchConfetti(count = 45) {
 /* Großes Feier-Pop-up bei abgeschlossener Lieferung */
 async function finishOrderDelivery() {
   const deliveredOrder = state.activeOrder;
-  const foxWasActive = state.activeFoxBlock;
+  const foxWasActive = isRickRelevant(deliveredOrder, state.activeFoxBlock) ? state.activeFoxBlock : null;
   const packedPieces = [...state.leftBag, ...state.rightBag];
   const usedPiecesCount = packedPieces.length;
 
-  const opt = getOptimalPacking(deliveredOrder, foxWasActive);
+  const opt = getOptimalPacking(deliveredOrder, state.activeFoxBlock);
   const isProPacker = usedPiecesCount <= opt.minPieces;
 
   if (!tutorial.active) {
@@ -889,7 +975,7 @@ async function finishOrderDelivery() {
     : `<div class="result-badge result-tip" title="So geht es mit weniger Stücken">💡 <span class="result-arrow">➔</span> ${optChipsHTML}</div>`;
 
   const foxBadge = foxWasActive
-    ? `<div class="result-badge result-fox" title="Wüstenfuchs ausgetrickst – er lässt seine Beute fallen: ${config.license.lootName}">
+    ? `<div class="result-badge result-fox" title="${RICK_NAME} ausgetrickst – er lässt seine Beute fallen: ${config.license.lootName}">
          🦊💨 <span class="result-arrow">➔</span> <span class="loot-item ${state.unbundledThisOrder ? 'loot-sparkle' : ''}">${config.license.loot}</span>
        </div>`
     : '';
@@ -906,7 +992,7 @@ async function finishOrderDelivery() {
       <p>${config.animal.icon} ${config.animal.article} hat genau <strong>${deliveredOrder}× ${config.license.name}</strong> geliefert.</p>
       <p>Benutzte Frachtstücke: <strong>${usedPiecesCount}</strong> · Profi-Packer-Ziel: <strong>${opt.minPieces}</strong>
         ${isProPacker ? ' – optimal gebündelt! 🏅' : ' – mit größeren Bündeln wäre es mit weniger Stücken gegangen.'}</p>
-      ${foxWasActive ? `<p>🦊 Die ${foxWasActive}er-Sperre des Wüstenfuchses wurde durch Tauschen/Entbündeln umgangen.</p>` : ''}
+      ${foxWasActive ? `<p>🦊 Die ${foxWasActive}er-Sperre von ${RICK_NAME}, dem Wüstenfuchs, wurde durch Tauschen/Entbündeln umgangen.</p>` : ''}
       ${playerStatLine}
     </details>
   `;
@@ -943,7 +1029,9 @@ async function finishOrderDelivery() {
   if (tutorial.active) {
     nextTutorialOrders();
   } else {
+    advanceRick();
     state.availableOrders[state.activeOrderIdx] = generateReplacementOrder();
+    planRickNext(...rickOrderFilters());
   }
   state.activeOrderIdx = null;
 
@@ -1068,7 +1156,7 @@ function render() {
     }
 
     const foxInfoLine = state.activeFoxBlock
-      ? `<div class="fox-card-badge" style="margin-top:8px;">🦊 Wüstenfuchs blockiert ${state.activeFoxBlock}er-Depot!</div>`
+      ? rickBadgeHTML(state.activeFoxBlock, 'margin-top:8px;')
       : '';
 
     const overloadHint = totalLoaded > state.activeOrder
@@ -1101,12 +1189,12 @@ function render() {
     `;
   }
 
-  // Markt-Depots aktivieren/deaktivieren + Wüstenfuchs-Overlay rendern
+  renderRickBanner();
+
+  // Markt-Depots aktivieren/deaktivieren + Rick-Overlay rendern
   const winterCard = isCaveMode() ? state.winter.card : null;
   const canGrab = isCaveMode() ? Boolean(winterCard && winterCard.type === 'plus') : state.activeOrder !== null;
-  const foxBlockNow = isCaveMode()
-    ? (winterCard ? winterCard.foxBlock : null)
-    : (state.activeOrder !== null ? state.activeFoxBlock : null);
+  const foxBlockNow = rickBlockNow(); // Rick liegt schon vor der Kartenwahl sichtbar auf seinem Depot
   [
     { id: 'depot10', val: 10 },
     { id: 'depot5', val: 5 },
@@ -1128,7 +1216,7 @@ function render() {
       overlay.className = 'fox-blocker-overlay';
       overlay.innerHTML = `
         <div class="fox-emoji">🦊💤</div>
-        <strong>Vom Wüstenfuchs besetzt!</strong>
+        <strong>${RICK_NAME} schläft hier!</strong>
         <small>Tipp: Größeres Stück am Sattel entbündeln!</small>
       `;
       el.appendChild(overlay);
@@ -1885,35 +1973,45 @@ function isWinterCardValid(card, cave) {
   // Plus: Tier darf nicht überladen werden, und alles muss später noch in die Höhle passen
   const free = getCaveCapacity() - getCaveUsedCells(cave) - sumArray(cave.pending) - load;
   if (load + card.val > getBagCapacity() || card.val > free) return false;
-  // Muss sich mit höchstens 2 Stücken und den Passregeln lösen lassen (auch am Fuchs vorbei)
-  return Boolean(findPlusPlan(card.val, card.foxBlock, cave.bags.left, cave.bags.right));
+  // Muss sich mit höchstens 2 Stücken und den Passregeln lösen lassen (auch an Ricks aktueller Sperre vorbei)
+  return Boolean(findPlusPlan(card.val, rickBlockNow(), cave.bags.left, cave.bags.right));
 }
 
 function drawWinterCard(cave, existing) {
   const pool = [];
-  WINTER_PLUS_DECK.forEach(([val, n]) => { for (let i = 0; i < n; i++) pool.push({ type: 'plus', val, foxBlock: null }); });
-  WINTER_MINUS_DECK.forEach(([val, n]) => { for (let i = 0; i < n; i++) pool.push({ type: 'minus', val, foxBlock: null }); });
+  WINTER_PLUS_DECK.forEach(([val, n]) => { for (let i = 0; i < n; i++) pool.push({ type: 'plus', val }); });
+  WINTER_MINUS_DECK.forEach(([val, n]) => { for (let i = 0; i < n; i++) pool.push({ type: 'minus', val }); });
 
   const valid = pool.filter(c => isWinterCardValid(c, cave));
   if (valid.length === 0) return null;
   // Möglichst keine doppelten Karten in der Auslage
   const fresh = valid.filter(c => !existing.some(e => e && e.type === c.type && e.val === c.val));
   const source = fresh.length > 0 ? fresh : valid;
-  const card = { ...source[Math.floor(Math.random() * source.length)] };
-
-  // Wüstenfuchs: blockiert auf Plus-Karten ein Depot, das man eigentlich bräuchte
-  if (config.foxMode && card.type === 'plus' && Math.random() < 0.4) {
-    const candidates = [...new Set(getOptimalPacking(card.val).pieces)]
-      .filter(b => findPlusPlan(card.val, b, cave.bags.left, cave.bags.right));
-    if (candidates.length > 0) card.foxBlock = candidates[Math.floor(Math.random() * candidates.length)];
-  }
-  return card;
+  // Neue Karten sind immer lösbar (isWinterCardValid prüft Ricks aktuelle Sperre mit)
+  return { ...source[Math.floor(Math.random() * source.length)] };
 }
 
 // Die Auslage hat 3 feste Plätze. Eine Karte bleibt genau dort liegen, solange sie noch spielbar ist –
 // so kann das Kind vorausplanen. Ersetzt werden nur die gespielte und ungültig gewordene Karten,
 // und zwar an ihrem eigenen Platz (null = Platz leer, falls gerade keine passende Karte existiert).
 const WINTER_CARD_SLOTS = 3;
+
+/*
+ * Filter für Ricks nächste Sperre im Wintervorrat:
+ * - lösbar:   alle ausliegenden Plus-Karten bleiben mit der neuen Sperre erreichbar (vom aktuellen Taschenstand aus)
+ * - relevant: Rick betrifft mindestens eine ausliegende Plus-Karte
+ */
+function rickWinterFilters(cave) {
+  const plus = () => cave.cards.filter(c => c && c.type === 'plus');
+  return [
+    block => plus().every(c => findPlusPlan(c.val, block, cave.bags.left, cave.bags.right)),
+    block => plus().some(c => isRickRelevant(c.val, block))
+  ];
+}
+
+function syncRickToCave(cave) {
+  cave.rick = config.foxMode ? { ...state.rick } : null;
+}
 
 function refreshWinterCards(cave) {
   if (tutorial.active) return; // Die Übung legt ihre Karten selbst fest
@@ -1938,9 +2036,17 @@ function winterResume() {
   state.leftBag = [...cave.bags.left];
   state.rightBag = [...cave.bags.right];
   state.winter = createWinterTurnState();
+  // Rick macht dort weiter, wo er aufgehört hat (gespeichert in der Höhle)
+  resetRick();
+  if (config.foxMode) {
+    state.rick = cave.rick && cave.rick.current ? { current: cave.rick.current, next: cave.rick.next || null } : { current: null, next: null };
+    if (!state.rick.current) state.rick.current = pickRickBlock(null);
+  }
   refreshWinterCards(cave);
+  if (config.foxMode && !state.rick.next) planRickNext(...rickWinterFilters(cave));
+  syncRickToCave(cave);
   document.getElementById('celebrationModal').classList.add('hidden');
-  setSpeech(`${getSeason(cave).icon} Wähle oben eine Karte: ➕ einkaufen oder ➖ in die Höhle bringen!`, '');
+  setSpeech(rickAnnouncement() || `${getSeason(cave).icon} Wähle oben eine Karte: ➕ einkaufen oder ➖ in die Höhle bringen!`, '');
   render();
   if (document.getElementById('setupModal').classList.contains('hidden')) {
     continueGameFlow();
@@ -1970,8 +2076,8 @@ function pickWinterCard(idx) {
   fx('pick');
 
   if (card.type === 'plus') {
-    setSpeech(card.foxBlock
-      ? `🦊💤 Der Fuchs schläft auf den ${card.foxBlock}er-Kisten! Hol ${card.val} anders – du darfst auch zu viel nehmen, entbündeln und zurücklegen.`
+    setSpeech(isRickRelevant(card.val, rickBlockNow())
+      ? `🦊💤 ${RICK_NAME} schläft auf den ${rickBlockNow()}er-Kisten! Hol ${card.val} anders – du darfst auch zu viel nehmen, entbündeln und zurücklegen.`
       : `🧺 +${card.val}: Hol ${card.val}× ${config.license.icon} vom Markt – mit höchstens ${WINTER_MAX_TAKES} Stücken!`, '');
   } else {
     setSpeech(`🏠 −${card.val}: Pack ${card.val}× ${config.license.icon} ab – zuerst aus der rechten Tasche!`, '');
@@ -2000,8 +2106,8 @@ function winterTakeCargo(val) {
     setSpeech('🏠 Bei einer Minus-Karte wird abgeladen, nicht eingekauft. Tippe auf die Fracht in den Taschen!', 'error');
     return;
   }
-  if (w.card.foxBlock === val) {
-    setSpeech(`🦊💤 Pssst! Der Wüstenfuchs schläft auf den ${val}er-Kisten! Nimm ein anderes Stück.`, 'error');
+  if (rickBlockNow() === val) {
+    setSpeech(`🦊💤 Pssst! ${RICK_NAME} schläft auf den ${val}er-Kisten! Nimm ein anderes Stück.`, 'error');
     return;
   }
   if (w.takes >= WINTER_MAX_TAKES) {
@@ -2050,7 +2156,7 @@ function isWinterStuck() {
   const total = sumArray(state.leftBag) + sumArray(state.rightBag);
   const target = getWinterTarget();
   if (total >= target) return false; // Überschuss lässt sich durch Entbündeln lösen
-  return !planFrom(target, w.card.foxBlock, state.leftBag, state.rightBag, WINTER_MAX_TAKES - w.takes);
+  return !planFrom(target, rickBlockNow(), state.leftBag, state.rightBag, WINTER_MAX_TAKES - w.takes);
 }
 
 function winterUnpack(side, index) {
@@ -2125,10 +2231,12 @@ function consumeWinterCard(cave) {
 async function finishWinterPlus() {
   const cave = getActiveCave();
   const card = state.winter.card;
+  const outsmartedRick = isRickRelevant(card.val, rickBlockNow());
   consumeWinterCard(cave);
+  advanceRick(); // Die angekündigte Sperre gilt ab dem nächsten Einkauf
 
   let lootHTML = '';
-  if (card.foxBlock) {
+  if (outsmartedRick) {
     // Streich vereitelt: Der Fuchs lässt seine Beute fallen
     cave.loot.push({ icon: config.license.loot, name: config.license.lootName, sparkle: state.unbundledThisOrder });
     cave.foxUsed = true;
@@ -2137,7 +2245,7 @@ async function finishWinterPlus() {
   if (!tutorial.active && activeProfile) {
     const st = getModeStats(activeProfile, 'cave');
     st.totalCargoSent += card.val;
-    if (card.foxBlock) st.foxOutsmarted += 1;
+    if (outsmartedRick) st.foxOutsmarted += 1;
   }
 
   const total = sumArray(state.leftBag) + sumArray(state.rightBag);
@@ -2145,21 +2253,24 @@ async function finishWinterPlus() {
 
   if (total !== getBagCapacity()) {
     fx('plus', 'happy');
-    if (card.foxBlock) setTimeout(() => fx('fox', 'sly'), 500);
+    if (outsmartedRick) setTimeout(() => fx('fox', 'sly'), 500);
   }
 
   if (total === getBagCapacity()) {
+    syncRickToCave(cave); // die neue Ankündigung folgt nach dem Feiern in winterResume()
     await triggerKnackevoll(cave, lootHTML);
     return;
   }
 
   cave.bags = { left: [...state.leftBag], right: [...state.rightBag] };
   refreshWinterCards(cave);
+  planRickNext(...rickWinterFilters(cave));
+  syncRickToCave(cave);
   await saveCave();
   if (!tutorial.active && activeProfile) await dbSaveProfile(activeProfile);
-  launchConfetti(card.foxBlock ? 40 : 15);
+  launchConfetti(outsmartedRick ? 40 : 15);
   showToast(`✔ +${card.val} ${config.license.icon}${lootHTML}`);
-  setSpeech(`✅ +${card.val} eingekauft! Wähle die nächste Karte.`, 'success');
+  setSpeech(`✅ +${card.val} eingekauft! ${rickAnnouncement() || 'Wähle die nächste Karte.'}`, 'success');
   render();
 }
 
@@ -2260,8 +2371,9 @@ function showToast(html) {
 
 function renderWinterCardHTML(card, idx, active = false) {
   const isPlus = card.type === 'plus';
-  const fox = card.foxBlock
-    ? `<div class="fox-card-badge" title="Der Wüstenfuchs blockiert das ${card.foxBlock}er-Depot">🦊 🚫 ${card.foxBlock}er</div>`
+  const rickBlock = isPlus && isRickRelevant(card.val, rickBlockNow()) ? rickBlockNow() : null;
+  const fox = rickBlock
+    ? `<div class="fox-card-badge" title="${RICK_NAME} blockiert das ${rickBlock}er-Depot">🦊 🚫 ${rickBlock}er</div>`
     : '';
   return `
     <div class="winter-card ${isPlus ? 'card-plus' : 'card-minus'} ${active ? 'card-active' : ''}"
@@ -2278,9 +2390,10 @@ function renderWinterCardHTML(card, idx, active = false) {
 // Kleine, nicht antippbare Ansicht einer liegengebliebenen Karte (während ein Zug läuft)
 function renderWinterMiniCardHTML(card) {
   const isPlus = card.type === 'plus';
+  const rickHere = isPlus && isRickRelevant(card.val, rickBlockNow());
   return `<span class="winter-mini ${isPlus ? 'card-plus' : 'card-minus'}"
-                title="${isPlus ? 'Einkaufen' : 'Abladen'} ${card.val}${card.foxBlock ? ` – Fuchs blockiert das ${card.foxBlock}er-Depot` : ''}">
-            ${isPlus ? '🧺' : '🏠'}${isPlus ? '+' : '−'}${card.val}${card.foxBlock ? '🦊' : ''}
+                title="${isPlus ? 'Einkaufen' : 'Abladen'} ${card.val}${rickHere ? ` – ${RICK_NAME} blockiert das ${rickBlockNow()}er-Depot` : ''}">
+            ${isPlus ? '🧺' : '🏠'}${isPlus ? '+' : '−'}${card.val}${rickHere ? '🦊' : ''}
           </span>`;
 }
 
@@ -2483,8 +2596,8 @@ function startTutorial() {
   tutorial.winterTurns = 0;
   tutorial.stepIdx = 0;
   tutorial.cave = createEmptyCave();
-  tutorial.queue = orders.slice(1).map(o => ({ val: o.val, foxBlock: null }));
-  tutorial.cardQueue = [{ type: 'minus', val: 2, foxBlock: null }];
+  tutorial.queue = orders.slice(1).map(o => ({ val: o.val }));
+  tutorial.cardQueue = [{ type: 'minus', val: 2 }];
   tutorial.steps = isCaveMode() ? buildWinterTutorialSteps() : buildTutorialSteps(orders);
 
   state.activeOrder = null;
@@ -2493,8 +2606,8 @@ function startTutorial() {
   state.leftBag = [];
   state.rightBag = [];
   state.winter = createWinterTurnState();
-  state.availableOrders = [{ val: orders[0].val, foxBlock: null }];
-  tutorial.cave.cards = [{ type: 'plus', val: 6, foxBlock: null }];
+  state.availableOrders = [{ val: orders[0].val }];
+  tutorial.cave.cards = [{ type: 'plus', val: 6 }];
   storageUI.vertical = false;
 
   document.getElementById('tutorialBar').classList.remove('hidden');

@@ -114,13 +114,14 @@ function renderGuide() {
     <p class="guide-note">Die Sterne-Grenzen sind aus Testspielen geschätzt. Das Kind muss die Punkte nicht ausrechnen – es sieht beim Ablegen „+${p[10]} ⭐“ und merkt: große Kiste, große Zahl.</p>`;
 
   const fox = `
-    <p>Der Wüstenfuchs ist ein Schelm: Er legt sich auf ein Depot im Markt und blockiert es. Das Kind muss einen anderen Weg finden.</p>
+    <p>Rick, der Wüstenfuchs, ist ein Schelm: Er legt sich auf ein Depot im Markt und blockiert es. Das Kind muss einen anderen Weg finden.</p>
     <ul>
-      <li><strong>Beispiel:</strong> Der Fuchs liegt auf den 5er-Säcken, gebraucht wird aber ein 5er. Dann kann das Kind eine 10er-Kiste nehmen, sie entbündeln und die überzähligen Stücke zurücklegen – oder mit Einern auffüllen.</li>
+      <li><strong>Vorausplanen:</strong> Rick bleibt für eine ganze Lieferung (bzw. einen Einkaufs-Zug) auf demselben Depot. Über dem Markt steht, wo er gerade liegt und wohin er danach zieht. Die Karten sind so gewählt, dass sich jeder Auftrag trotz Sperre lösen lässt.</li>
+      <li><strong>Beispiel:</strong> Rick liegt auf den 5er-Säcken, gebraucht wird aber ein 5er. Dann kann das Kind eine 10er-Kiste nehmen, sie entbündeln und die überzähligen Stücke zurücklegen – oder mit Einern auffüllen.</li>
       <li><strong>Belohnung:</strong> Wer die Karte trotzdem schafft, bekommt die <em>Fuchs-Beute</em> (je nach Lizenz zum Beispiel ein goldener Honigtopf). Im Wintervorrat steht sie auf dem Schatzregal der Höhle. Sie funkelt, wenn das Kind dafür entbündelt hat. Wenn <em>jede</em> Beute funkelt, gibt es 🦊 🏆.</li>
-      <li><strong>Wann?</strong> Für Kinder, die das Packen schon sicher beherrschen. Er lässt sich im Setup ein- und ausschalten. Er erscheint nur bei Aufträgen bzw. bei Einkaufen-Karten.</li>
+      <li><strong>Wann?</strong> Für Kinder, die das Packen schon sicher beherrschen. Rick lässt sich im Setup ein- und ausschalten. Eine Beute gibt es nur, wenn seine Sperre für die gewählte Karte wirklich im Weg war.</li>
     </ul>
-    ${guideSay('Der Fuchs schläft auf einem Stapel. Du musst dir etwas anderes einfallen lassen – geht es mit einem größeren Stück, das du aufteilst?')}`;
+    ${guideSay('Rick schläft auf einem Stapel. Du musst dir etwas anderes einfallen lassen – geht es mit einem größeren Stück, das du aufteilst?')}`;
 
   const levels = `
     <ul>
@@ -166,7 +167,7 @@ function renderGuide() {
     guideSection('🐪', 'Modus „Endlos-Karawane“', endless),
     guideSection('❄️', 'Modus „Wintervorrat“', winter),
     guideSection('⭐', 'Punkte &amp; Sterne', scoring),
-    guideSection('🦊', 'Der Wüstenfuchs', fox),
+    guideSection('🦊', 'Rick, der Wüstenfuchs', fox),
     guideSection('🎚️', 'Stufen &amp; Auswahl', levels),
     guideSection('💬', 'Kinder begleiten', coaching),
     guideSection('🔧', 'Bedienung, Profile &amp; Datenschutz', tech)
