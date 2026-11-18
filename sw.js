@@ -1,8 +1,11 @@
-const CACHE_NAME = 'knackevoll-cache-v5';
+importScripts('./version.js');
+
+const CACHE_NAME = `knackevoll-cache-v${APP_VERSION}`;
 const ASSETS = [
   './',
   './index.html',
   './style.css',
+  './version.js',
   './game-data.js',
   './sound.js',
   './app.js',

@@ -185,7 +185,7 @@
   </section>
 
   <footer class="game-footer">
-    <span>© 2026 Tobias Moebert · <strong>KNACKEVOLL!</strong></span>
+    <span>© 2026 Tobias Moebert · <strong>KNACKEVOLL!</strong> <span id="appVersion"></span></span>
     <span>
       Lizenz:
       <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.de" target="_blank" rel="noopener noreferrer">
@@ -407,9 +407,11 @@
 <!-- Konfetti-Ebene -->
 <div class="confetti-layer" id="confettiLayer"></div>
 
+  <script src="version.js"></script>
   <script src="game-data.js"></script>
   <script src="sound.js"></script>
   <script src="app.js"></script>
   <script src="guide.js"></script>
+  <script>document.getElementById('appVersion').textContent = 'v' + APP_VERSION;</script>
 </body>
 </html>
