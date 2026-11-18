@@ -1204,14 +1204,13 @@ function render() {
     if (!el) return;
     el.classList.toggle('disabled', !canGrab);
 
-    // Vorheriges Fuchs-Overlay entfernen
+    // Rick-Overlay nur anlegen bzw. entfernen, wenn sich etwas ändert – sonst flackert es bei jedem Einpacken
     const oldFox = el.querySelector('.fox-blocker-overlay');
-    if (oldFox) oldFox.remove();
-
     const isFoxHere = Boolean(foxBlockNow) && foxBlockNow === d.val;
     el.classList.toggle('fox-blocked', isFoxHere);
 
-    if (isFoxHere) {
+    if (!isFoxHere && oldFox) oldFox.remove();
+    if (isFoxHere && !oldFox) {
       const overlay = document.createElement('div');
       overlay.className = 'fox-blocker-overlay';
       overlay.innerHTML = `
