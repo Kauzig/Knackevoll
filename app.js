@@ -373,7 +373,7 @@ function planRickNext(valid, relevant) {
   state.rick.next = pickRickBlock(state.rick.current, valid, relevant);
 }
 
-/* Top-Down SVG Illustrationen der 5 Packtiere */
+/* Top-Down SVG Illustrationen der Packtiere */
 function getTopDownAnimalSVG(animalId) {
   const strapsAndSaddle = `
     <rect x="4" y="76" width="152" height="12" rx="4" fill="#6e381b" stroke="#3e2411" stroke-width="2"/>
@@ -470,6 +470,33 @@ function getTopDownAnimalSVG(animalId) {
         </svg>
       `;
 
+    case 'sloth':
+      return `
+        <svg viewBox="0 0 160 200" width="100%" height="100%">
+          <ellipse cx="80" cy="168" rx="11" ry="8" fill="#a8977f" stroke="#57483a" stroke-width="2.5"/>
+          <g stroke="#f5f1e6" stroke-width="3" stroke-linecap="round">
+            <line x1="22" y1="50" x2="14" y2="40"/><line x1="28" y1="48" x2="23" y2="36"/><line x1="34" y1="48" x2="32" y2="36"/>
+            <line x1="138" y1="50" x2="146" y2="40"/><line x1="132" y1="48" x2="137" y2="36"/><line x1="126" y1="48" x2="128" y2="36"/>
+            <line x1="22" y1="150" x2="14" y2="160"/><line x1="28" y1="152" x2="23" y2="164"/><line x1="34" y1="152" x2="32" y2="164"/>
+            <line x1="138" y1="150" x2="146" y2="160"/><line x1="132" y1="152" x2="137" y2="164"/><line x1="126" y1="152" x2="128" y2="164"/>
+          </g>
+          <path d="M44 62 Q30 56 28 48" stroke="#8b7a64" stroke-width="12" stroke-linecap="round" fill="none"/>
+          <path d="M116 62 Q130 56 132 48" stroke="#8b7a64" stroke-width="12" stroke-linecap="round" fill="none"/>
+          <path d="M44 146 Q30 150 28 154" stroke="#8b7a64" stroke-width="12" stroke-linecap="round" fill="none"/>
+          <path d="M116 146 Q130 150 132 154" stroke="#8b7a64" stroke-width="12" stroke-linecap="round" fill="none"/>
+          <ellipse cx="80" cy="105" rx="42" ry="56" fill="#a8977f" stroke="#57483a" stroke-width="3"/>
+          <path d="M52 92 Q58 96 64 92 M96 92 Q102 96 108 92 M54 124 Q60 128 66 124 M94 124 Q100 128 106 124" stroke="#8b7a64" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+          ${strapsAndSaddle}
+          <circle cx="80" cy="38" r="23" fill="#d6c7a8" stroke="#57483a" stroke-width="2.5"/>
+          <ellipse cx="69" cy="34" rx="8" ry="11" transform="rotate(20 69 34)" fill="#57483a"/>
+          <ellipse cx="91" cy="34" rx="8" ry="11" transform="rotate(-20 91 34)" fill="#57483a"/>
+          <path d="M65 34 Q69 37 73 34" stroke="#fef9ee" stroke-width="2" fill="none" stroke-linecap="round"/>
+          <path d="M87 34 Q91 37 95 34" stroke="#fef9ee" stroke-width="2" fill="none" stroke-linecap="round"/>
+          <ellipse cx="80" cy="43" rx="4" ry="3" fill="#292524"/>
+          <path d="M72 49 Q80 55 88 49" stroke="#57483a" stroke-width="2" fill="none" stroke-linecap="round"/>
+        </svg>
+      `;
+
     case 'camel':
     default:
       return `
@@ -509,6 +536,23 @@ function renderProfileModal() {
     }).join('');
   }
 
+  const gearName = document.getElementById('profileGearName');
+  if (gearName) gearName.textContent = activeProfile ? activeProfile.name : 'Gast';
+  const animalsEl = document.getElementById('profileAnimals');
+  if (animalsEl) animalsEl.innerHTML = ANIMALS.map(a => `
+    <div class="tile-option ${a.id === config.animal.id ? 'active-tile' : ''}" onclick="chooseAnimal('${a.id}')">
+      <div style="font-size:2.1rem;">${a.icon}</div>
+      <strong>${a.name}</strong>
+    </div>
+  `).join('');
+  const licensesEl = document.getElementById('profileLicenses');
+  if (licensesEl) licensesEl.innerHTML = LICENSES.map(l => `
+    <div class="tile-option ${l.id === config.license.id ? 'active-tile' : ''}" onclick="chooseLicense('${l.id}')">
+      <div style="font-size:2.1rem;">${l.icon}</div>
+      <strong>${l.name}</strong>
+    </div>
+  `).join('');
+
   const statsEl = document.getElementById('activeProfileStatsBanner');
   if (statsEl && activeProfile) {
     const item = (icon, label, value) => `
@@ -546,28 +590,14 @@ function renderProfileModal() {
 function renderSetupModal() {
   const nameEl = document.getElementById('setupActivePlayerName');
   if (nameEl) nameEl.textContent = activeProfile ? activeProfile.name : 'Gast';
+  const gearEl = document.getElementById('setupActivePlayerGear');
+  if (gearEl) gearEl.textContent = `${config.animal.icon} ${config.animal.name} · ${config.license.icon} ${config.license.name}`;
 
-  // 1. Packtiere
-  document.getElementById('setupAnimals').innerHTML = ANIMALS.map(a => `
-    <div class="tile-option ${a.id === config.animal.id ? 'active-tile' : ''}" onclick="chooseAnimal('${a.id}')">
-      <div style="font-size:2.1rem;">${a.icon}</div>
-      <strong>${a.name}</strong>
-    </div>
-  `).join('');
-
-  // 2. Lizenzen
-  document.getElementById('setupLicenses').innerHTML = LICENSES.map(l => `
-    <div class="tile-option ${l.id === config.license.id ? 'active-tile' : ''}" onclick="chooseLicense('${l.id}')">
-      <div style="font-size:2.1rem;">${l.icon}</div>
-      <strong>${l.name}</strong>
-    </div>
-  `).join('');
-
-  // 3. Zahlenraum
+  // 1. Zahlenraum
   document.getElementById('lvlTile1').classList.toggle('active-tile', config.level === 1);
   document.getElementById('lvlTile2').classList.toggle('active-tile', config.level === 2);
 
-  // 4. Wüstenfuchs-Erweiterung (Modul 2)
+  // 2. Rick-Erweiterung (Modul 2)
   const foxOff = document.getElementById('foxOffTile');
   const foxOn = document.getElementById('foxOnTile');
   if (foxOff && foxOn) {
@@ -575,7 +605,7 @@ function renderSetupModal() {
     foxOn.classList.toggle('active-tile', config.foxMode);
   }
 
-  // 5. Spielmodus
+  // 3. Spielmodus
   const modeEndless = document.getElementById('modeEndlessTile');
   const modeCave = document.getElementById('modeCaveTile');
   if (modeEndless && modeCave) {
@@ -594,12 +624,14 @@ function renderSetupModal() {
 function chooseAnimal(id) {
   config.animal = ANIMALS.find(a => a.id === id);
   saveActiveProfilePreferences();
+  renderProfileModal();
   renderSetupModal();
 }
 
 function chooseLicense(id) {
   config.license = LICENSES.find(l => l.id === id);
   saveActiveProfilePreferences();
+  renderProfileModal();
   renderSetupModal();
 }
 
@@ -642,6 +674,8 @@ function closeProfileModal() {
   const changed = activeProfile && activeProfile.id !== profileIdOnModalOpen;
   if (changed && document.getElementById('setupModal').classList.contains('hidden')) {
     startRound();
+  } else {
+    render();
   }
 }
 

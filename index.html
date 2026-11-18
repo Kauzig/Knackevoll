@@ -200,21 +200,16 @@
   <div class="modal-dialog">
     <div class="modal-header-banner">
       <h2>⛺ Karawanen-Setup vor der Runde</h2>
-      <p>Wähle dein Packtier-Tableau, deine offizielle Fracht-Lizenz und den Zahlenraum!</p>
+      <p>Wähle den Zahlenraum, die Erweiterung und den Spielmodus!</p>
     </div>
 
     <div class="setup-player-hint">
       👤 Spieler: <strong id="setupActivePlayerName">Gast</strong>
+      <span id="setupActivePlayerGear" title="Reittier und Fracht-Lizenz stellst du über „Wechseln“ im Profil ein"></span>
       <button class="btn" onclick="openProfileModal()" style="padding:4px 10px; font-size:0.8rem;">Wechseln</button>
     </div>
 
-    <label class="setup-section-label">1. Wähle dein Packtier-Tableau:</label>
-    <div class="selection-grid" id="setupAnimals"></div>
-
-    <label class="setup-section-label">2. Wähle deine offizielle Fracht-Lizenz:</label>
-    <div class="selection-grid" id="setupLicenses"></div>
-
-    <label class="setup-section-label">3. Didaktische Stellschraube (Zahlenraum):</label>
+    <label class="setup-section-label">1. Didaktische Stellschraube (Zahlenraum):</label>
     <div class="selection-grid" style="grid-template-columns: 1fr 1fr;">
       <div class="tile-option" id="lvlTile1" onclick="setLevel(1)">
         <div style="font-size:1.3rem; font-weight:900;">Stufe 1: ZR bis 10</div>
@@ -226,7 +221,7 @@
       </div>
     </div>
 
-    <label class="setup-section-label">4. Erweiterung (Modul 2):</label>
+    <label class="setup-section-label">2. Erweiterung (Modul 2):</label>
     <div class="selection-grid" style="grid-template-columns: 1fr 1fr;">
       <div class="tile-option active-tile" id="foxOffTile" onclick="setFoxMode(false)">
         <div style="font-size:1.2rem; font-weight:900;">🌿 Ohne Rick</div>
@@ -238,7 +233,7 @@
       </div>
     </div>
 
-    <label class="setup-section-label">5. Spielmodus:</label>
+    <label class="setup-section-label">3. Spielmodus:</label>
     <div class="selection-grid" style="grid-template-columns: 1fr 1fr;">
       <div class="tile-option active-tile" id="modeEndlessTile" onclick="setGameMode('endless')">
         <div style="font-size:1.2rem; font-weight:900;">🐪 Endlos-Karawane</div>
@@ -277,7 +272,7 @@
   <div class="modal-dialog">
     <div class="modal-header-banner">
       <h2>👤 Spieler-Profile</h2>
-      <p>Wähle deinen Spieler aus, lege neue Profile an und sieh dir deine Karawanen-Statistik an!</p>
+      <p>Wähle deinen Spieler aus, such dir Reittier und Fracht-Lizenz aus und sieh dir deine Karawanen-Statistik an!</p>
     </div>
 
     <!-- Spieler-Management & Statistiken (IndexedDB) -->
@@ -293,6 +288,13 @@
       <div class="profile-list-grid" id="profileListContainer">
         <!-- Wird dynamisch aus der IndexedDB geladen -->
       </div>
+
+      <!-- Reittier und Fracht-Lizenz des ausgewählten Profils -->
+      <label class="setup-section-label">🐴 Reittier von <strong id="profileGearName">Gast</strong>:</label>
+      <div class="selection-grid" id="profileAnimals"></div>
+
+      <label class="setup-section-label">📜 Offizielle Fracht-Lizenz:</label>
+      <div class="selection-grid" id="profileLicenses"></div>
 
       <!-- Statistik-Banner für das ausgewählte Profil -->
       <div class="profile-stats-banner" id="activeProfileStatsBanner"></div>

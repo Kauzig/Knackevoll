@@ -1579,6 +1579,7 @@ body {
 .cave-theme-bear    { --cave-border: #78350f; --cave-bg: #f5e6cc; }
 .cave-theme-cat     { --cave-border: #ea580c; --cave-bg: #fff7ed; }
 .cave-theme-camel   { --cave-border: #b45309; --cave-bg: #fef3c7; }
+.cave-theme-sloth   { --cave-border: #4d7c0f; --cave-bg: #f0fdf4; }
 
 .cave-frame-title {
   text-align: center;

@@ -38,7 +38,7 @@ function renderGuide() {
        dass Bündeln schneller und ordentlicher ist als Einzelzählen.</p>
     <ol class="guide-steps">
       <li><strong>Profil wählen.</strong> Jedes Kind bekommt ein eigenes Profil (Name oben links). So hat es seine eigenen Einstellungen, seine Statistik und seine Höhlen.</li>
-      <li><strong>Spiel-Setup:</strong> Packtier und Fracht aussuchen lassen (das motiviert), Zahlenraum und Modus wählen – Empfehlung unter „Stufen &amp; Auswahl“.</li>
+      <li><strong>Spiel-Setup:</strong> Zahlenraum, Erweiterung und Modus wählen. Packtier und Fracht stellt das Kind im Spieler-Profil („Wechseln“) ein – das motiviert und wird je Profil gemerkt – Empfehlung unter „Stufen &amp; Auswahl“.</li>
       <li><strong>Übungsrunde:</strong> Beim ersten Start führt eine Hand durch zwei kleine Aufgaben. Das Kind soll sie <em>selbst</em> nachmachen. Im Setup lässt sie sich über „🎓 Übungsrunde starten“ wiederholen.</li>
       <li><strong>Danebensitzen, nicht vorsagen.</strong> Die Fragen unter „Kinder begleiten“ helfen, ohne die Lösung zu verraten.</li>
       <li><strong>10 bis 15 Minuten</strong> reichen. Der Spielstand wird laufend gespeichert, man kann jederzeit aufhören.</li>
@@ -152,7 +152,7 @@ function renderGuide() {
   const tech = `
     <ul>
       <li><strong>Profile:</strong> Name oben links antippen – dort Kinder anlegen, wechseln und die Statistik ansehen. Wer ein Profil mit ✖ löscht, löscht auch dessen Statistik und Höhlen unwiderruflich.</li>
-      <li><strong>Spiel-Setup:</strong> Tier, Fracht, Stufe, Fuchs und Modus. Jede Kombination aus Tier und Stufe hat ihre eigene Höhle.</li>
+      <li><strong>Spiel-Setup:</strong> Stufe, Rick und Modus (Tier und Fracht liegen im Spieler-Profil). Jede Kombination aus Tier und Stufe hat ihre eigene Höhle.</li>
       <li><strong>🔄 Neustart:</strong> Legt neue Aufträge bzw. Karten aus. Der Fortschritt in der Höhle bleibt erhalten.</li>
       <li><strong>🔊 Ton:</strong> Oben ein- und ausschalten (wird gemerkt). Im Setup spielt „▶ Töne testen“ alle Klänge vor. Die Tierreaktionen laufen auch ohne Ton.</li>
       <li><strong>Touch (Tablet):</strong> In der Höhle erst antippen (Vorschau), dann noch einmal auf die Vorschau tippen. Das ✔ pulsiert, wenn das Teil dort passt.</li>

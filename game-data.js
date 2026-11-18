@@ -8,7 +8,8 @@ const ANIMALS = [
   { id: 'raptor', name: 'Raptor', article: 'der Raptor', icon: '🦖' },
   { id: 'bear', name: 'Bär', article: 'der Bär', icon: '🐻' },
   { id: 'cat', name: 'Katze', article: 'die Katze', icon: '🐱' },
-  { id: 'camel', name: 'Kamel', article: 'das Kamel', icon: '🐪' }
+  { id: 'camel', name: 'Kamel', article: 'das Kamel', icon: '🐪' },
+  { id: 'sloth', name: 'Faultier', article: 'das Faultier', icon: '🦥' }
 ];
 
 const LICENSES = [
@@ -24,5 +25,6 @@ const CAVE_THEMES = {
   raptor:  { name: 'Urzeit-Vorratsnest',      deco: ['🌿', '🌋', '🦴'] },
   bear:    { name: 'Bärenhöhle',              deco: ['🪵', '🍂', '🍯'] },
   cat:     { name: 'Kratzbaum-Palast',        deco: ['🧶', '🛋️', '🐾'] },
-  camel:   { name: 'Oasen-Warenhaus',         deco: ['🌴', '🏺', '⛺'] }
+  camel:   { name: 'Oasen-Warenhaus',         deco: ['🌴', '🏺', '⛺'] },
+  sloth:   { name: 'Baumkronen-Vorratslager', deco: ['🍃', '🌿', '🍌'] }
 };

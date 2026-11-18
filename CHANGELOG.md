@@ -3,6 +3,12 @@
 Format orientiert sich an [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 Solange die Hauptversion `0` ist, können sich Spielstände und Verhalten zwischen Minor-Versionen ändern.
 
+## [0.6.0]
+### Hinzugefügt
+- Neues Packtier: Faultier 🦥 (Top-Down-Grafik, eigene Stimme, Höhlen-Thema „Baumkronen-Vorratslager“).
+### Geändert
+- Auswahl von Reittier und Fracht-Lizenz wandert aus dem Spiel-Setup ins Spieler-Profil.
+
 ## [0.5.0]
 ### Hinzugefügt
 - Zentrale Versionsnummer (`version.js`), Anzeige im Footer, Kopplung an den Service-Worker-Cache.

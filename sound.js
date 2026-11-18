@@ -102,6 +102,11 @@
     },
     camel() {
       tone(230, 0, 0.55, { type: 'sawtooth', gain: 0.2, to: 170, vibrato: 20, filter: 900 });
+    },
+    sloth() {
+      // Langgezogenes, gemütliches „Iiiih“
+      tone(480, 0, 0.9, { type: 'triangle', gain: 0.2, to: 760, vibrato: 6 });
+      tone(760, 0.85, 0.6, { type: 'triangle', gain: 0.16, to: 520, vibrato: 6 });
     }
   };
 
