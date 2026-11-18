@@ -2143,3 +2143,89 @@ body[data-season="winter"] { background: radial-gradient(circle at top, #ffffff 
   20%  { opacity: 1; transform: translateY(-4px) scale(1.25); }
   100% { opacity: 0; transform: translateY(-34px) scale(1); }
 }
+
+/* ============================================================================
+   Tierreaktionen & Ton-Schalter
+   ============================================================================ */
+.topdown-mount {
+  cursor: pointer;
+}
+
+.topdown-svg-wrap {
+  transform-origin: 50% 80%;
+}
+
+.topdown-svg-wrap.react-happy { animation: reactHop 0.6s ease-out; }
+.topdown-svg-wrap.react-cheer { animation: reactCheer 0.9s ease-out; }
+.topdown-svg-wrap.react-oops  { animation: reactOops 0.5s ease-in-out; }
+.topdown-svg-wrap.react-sly   { animation: reactSly 0.8s ease-in-out; }
+.topdown-svg-wrap.react-sleep { animation: reactSleep 2.4s ease-in-out infinite; }
+
+@keyframes reactHop {
+  0%, 100% { transform: translateY(0) scale(1); }
+  30% { transform: translateY(-16px) scale(1.06, 0.95); }
+  60% { transform: translateY(0) scale(0.96, 1.05); }
+}
+
+@keyframes reactCheer {
+  0%   { transform: translateY(0) rotate(0); }
+  25%  { transform: translateY(-26px) rotate(-10deg) scale(1.1); }
+  50%  { transform: translateY(0) rotate(8deg); }
+  75%  { transform: translateY(-16px) rotate(-6deg) scale(1.06); }
+  100% { transform: translateY(0) rotate(0); }
+}
+
+@keyframes reactOops {
+  0%, 100% { transform: translateX(0) rotate(0); }
+  20% { transform: translateX(-7px) rotate(-3deg); }
+  40% { transform: translateX(7px) rotate(3deg); }
+  60% { transform: translateX(-5px) rotate(-2deg); }
+  80% { transform: translateX(5px) rotate(2deg); }
+}
+
+@keyframes reactSly {
+  0%, 100% { transform: rotate(0) scale(1); }
+  35% { transform: rotate(-7deg) scale(1.04); }
+  70% { transform: rotate(5deg) scale(1.04); }
+}
+
+@keyframes reactSleep {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.04, 0.97); }
+}
+
+.animal-bubble {
+  position: absolute;
+  top: -6px;
+  left: 50%;
+  transform: translate(-50%, 0);
+  font-size: 2rem;
+  line-height: 1;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 4;
+}
+
+.animal-bubble.show {
+  animation: bubbleUp 1.3s ease-out forwards;
+}
+
+@keyframes bubbleUp {
+  0%   { opacity: 0; transform: translate(-50%, 14px) scale(0.6); }
+  20%  { opacity: 1; transform: translate(-50%, -4px) scale(1.2); }
+  75%  { opacity: 1; transform: translate(-50%, -14px) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -26px) scale(1); }
+}
+
+.setup-sound-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 12px 0;
+  color: var(--wood-dark);
+}
+
+#soundToggleBtn {
+  min-width: 48px;
+}

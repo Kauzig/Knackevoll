@@ -16,6 +16,16 @@ let state = {
   unbundledThisOrder: false // Wurde beim aktuellen Auftrag entbündelt? (Extra-Funkeln für die Fuchs-Beute)
 };
 
+// Ton & Tierreaktion (sound.js). Fehlt das Skript, läuft das Spiel einfach stumm weiter.
+function fx(name, reaction) {
+  if (window.KnackSound) window.KnackSound.play(name, config.animal.id, reaction);
+}
+
+// Antippen des Tieres: Stimme + kleine Reaktion
+function tapAnimal() {
+  fx('voice', 'happy');
+}
+
 /* ============================================================================
    SPIELER-MANAGEMENT & STATISTIKEN (IndexedDB)
    ============================================================================ */
@@ -675,6 +685,7 @@ function pickOrderCard(index) {
   state.activeOrder = chosen.val;
   state.activeFoxBlock = chosen.foxBlock;
   state.unbundledThisOrder = false;
+  fx('pick');
 
   const opt = getOptimalPacking(state.activeOrder, state.activeFoxBlock);
   closeOrderModal();
@@ -763,6 +774,7 @@ function takeCargo(val) {
   } else {
     state.rightBag.push(val);
   }
+  fx('take');
 
   // Falls Zielwert exakt getroffen -> Lieferung feiern!
   if (checkOrderCompletion()) return;
@@ -800,6 +812,7 @@ function unpackCargo(side, index) {
   if (index < 0 || index >= bag.length) return;
 
   const removedVal = bag.splice(index, 1)[0];
+  fx('unpack');
 
   // Prüfen, ob durch das Auspacken des Überschusses genau der Zielwert erreicht wurde!
   if (checkOrderCompletion()) return;
@@ -815,6 +828,7 @@ function unbundleTen(side) {
   if (idx === -1) return;
 
   bag.splice(idx, 1, 5, 5);
+  fx('unbundle');
   state.unbundledThisOrder = true;
   saveBagsIfIdle();
   setSpeech('🔄 Clever entbündelt: Die blaue 10er-Kiste wurde in zwei gelbe 5er-Säcke geteilt! Du kannst einzelne Stücke per Klick auspacken.', '');
@@ -828,6 +842,7 @@ function unbundleFive(side) {
   if (idx === -1) return;
 
   bag.splice(idx, 1, 1, 1, 1, 1, 1);
+  fx('unbundle');
   state.unbundledThisOrder = true;
   saveBagsIfIdle();
   setSpeech('🔄 Clever entbündelt: Der gelbe 5er-Sack wurde in fünf einzelne 1er aufgeschnürt! Klicke überzählige 1er an, um sie auszupacken.', '');
@@ -869,6 +884,9 @@ async function finishOrderDelivery() {
   }
 
   launchConfetti(isProPacker ? 65 : 40);
+  fx(isProPacker ? 'deliverPro' : 'deliver', isProPacker ? 'cheer' : 'happy');
+  if (isProPacker) setTimeout(() => fx('voice', 'cheer'), 900);
+  if (foxWasActive) setTimeout(() => fx('fox', 'sly'), 1400);
 
   const chip = v => `<span class="mini-cargo-chip chip-${v}">${v} ${config.license.icon}</span>`;
   const userChipsHTML = packedPieces.map(chip).join('');
@@ -960,6 +978,7 @@ function wobbleBag(id) {
 }
 
 function setSpeech(text, type) {
+  if (type === 'error') fx('error', 'oops');
   const banner = document.getElementById('speechBanner');
   banner.className = 'camel-speech' + (type ? ` speech-${type}` : '');
   document.getElementById('speechText').textContent = text;
@@ -1572,11 +1591,13 @@ function placeSelectedPiece(r, c) {
   const a = clampAnchor(size, r, c, vertical);
 
   if (!canPlacePiece(grid, size, a.r, a.c, vertical)) {
+    fx('error', 'oops');
     renderStorage(`⚠️ Da passt der ${size}er nicht hin! Probier eine andere Stelle${size > 1 ? ' oder drehe das Teil' : ''}.`, 'error');
     return;
   }
 
   const rowsBefore = countFullRows(grid);
+  const seasonBefore = getSeason(cave).id;
   const newPiece = { size, r: a.r, c: a.c, vertical, batch: cave.batch };
   cave.pieces.push(newPiece);
   storageUI.justPlaced = newPiece;
@@ -1584,6 +1605,16 @@ function placeSelectedPiece(r, c) {
   const rowsAfter = countFullRows(buildCaveGrid(cave));
 
   saveCave();
+  fx('place' + size);
+  if (rowsAfter > rowsBefore) setTimeout(() => fx('row', 'happy'), 180);
+  const seasonNow = getSeason(cave);
+  if (seasonNow.id !== seasonBefore) {
+    // Jahreszeitenwechsel: kurzer Jingle, Symbol in der Bildmitte, Tier freut sich
+    setTimeout(() => {
+      fx('season_' + seasonNow.id, 'cheer');
+      showToast(seasonNow.icon);
+    }, rowsAfter > rowsBefore ? 700 : 250);
+  }
 
   if (rowsAfter > rowsBefore) {
     launchConfetti(25);
@@ -1604,6 +1635,7 @@ function removeStoredPiece(idx) {
   storageUI.selectedIdx = cave.pending.length - 1;
   storageUI.vertical = piece.vertical;
   saveCave();
+  fx('unpack');
   renderStorage('↩️ Zurück in die Ablage genommen.');
 }
 
@@ -1708,6 +1740,7 @@ function showCaveComplete() {
   `;
 
   document.getElementById('caveCompleteModal').classList.remove('hidden');
+  fx('winter', 'sleep');
   setSpeech(`❄️ ${config.animal.article} hält zufrieden Winterschlaf vor den Vorräten!`, 'success');
 }
 
@@ -1900,6 +1933,7 @@ function pickWinterCard(idx) {
     unloaded: []
   };
   state.unbundledThisOrder = false;
+  fx('pick');
 
   if (card.type === 'plus') {
     setSpeech(card.foxBlock
@@ -1962,6 +1996,7 @@ function winterTakeCargo(val) {
   } else {
     state.rightBag.push(val);
   }
+  fx('take');
   w.takes += 1;
 
   if (checkWinterCompletion()) return;
@@ -1995,6 +2030,7 @@ function winterUnpack(side, index) {
       return;
     }
     bag.splice(index, 1);
+    fx('unpack');
   } else {
     const need = w.card.val - sumArray(w.unloaded);
     if (val > need) {
@@ -2004,6 +2040,7 @@ function winterUnpack(side, index) {
     }
     bag.splice(index, 1);
     w.unloaded.push(val);
+    fx('unpack');
   }
 
   if (checkWinterCompletion()) return;
@@ -2056,6 +2093,11 @@ async function finishWinterPlus() {
   const total = sumArray(state.leftBag) + sumArray(state.rightBag);
   state.winter = createWinterTurnState();
 
+  if (total !== getBagCapacity()) {
+    fx('plus', 'happy');
+    if (card.foxBlock) setTimeout(() => fx('fox', 'sly'), 500);
+  }
+
   if (total === getBagCapacity()) {
     await triggerKnackevoll(cave, lootHTML);
     return;
@@ -2079,6 +2121,7 @@ async function finishWinterMinus() {
   cave.bags = { left: [...state.leftBag], right: [...state.rightBag] };
   cave.pending = [...cave.pending, ...unloaded];
   state.winter = createWinterTurnState();
+  fx('minus', 'happy');
   await saveCave();
   showToast(`✔ −${card.val} ${config.license.icon} ➔ 🏠`);
   render();
@@ -2100,6 +2143,9 @@ async function triggerKnackevoll(cave, lootHTML = '') {
   }
   await saveCave();
   launchConfetti(90);
+  fx('knackevoll', 'cheer');
+  setTimeout(() => fx('voice', 'cheer'), 1500);
+  if (lootHTML) setTimeout(() => fx('fox', 'sly'), 2400);
 
   const chips = allPieces.map(v => `<span class="mini-cargo-chip chip-${v}">${v} ${config.license.icon}</span>`).join('');
   document.getElementById('celebrationDialog').innerHTML = `
@@ -2131,6 +2177,7 @@ function bundleCargo(side, kind) {
   const insertAt = use[0];
   for (let i = use.length - 1; i >= 0; i--) bag.splice(use[i], 1);
   bag.splice(insertAt, 0, kind);
+  fx('bundle', 'happy');
   setSpeech(`🔗 Gebündelt: ${need}× ${from}er ➔ 1× ${kind}er!`, '');
   saveBagsIfIdle();
   render();
@@ -2482,6 +2529,8 @@ function finishTutorial() {
   stopTutorial();
   markTutorialDone();
   launchConfetti(70);
+  fx('deliverPro', 'cheer');
+  setTimeout(() => fx('voice', 'cheer'), 900);
   document.getElementById('tutorialEndAnimal').textContent = config.animal.icon;
   document.getElementById('tutorialEndModal').classList.remove('hidden');
 }

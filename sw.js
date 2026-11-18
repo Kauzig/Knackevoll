@@ -1,8 +1,10 @@
-const CACHE_NAME = 'knackevoll-cache-v1';
+const CACHE_NAME = 'knackevoll-cache-v2';
 const ASSETS = [
   './',
   './index.html',
   './style.css',
+  './game-data.js',
+  './sound.js',
   './app.js',
   './manifest.json'
 ];

@@ -35,6 +35,7 @@
             <span style="opacity:0.4;">|</span>
             <span>🦊 Fuchs: <strong id="headerFoxCount">0</strong></span>
         </div>
+        <button class="btn" id="soundToggleBtn" onclick="toggleSound()" title="Ton an/aus">🔊</button>
         <button class="btn" onclick="openSetupModal()" title="Packtier, Lizenz, Zahlenraum & Erweiterungen einstellen">⚙️ Spiel-Setup</button>
         <button class="btn" onclick="resetGame()">🔄 Neustart</button>
     </div>
@@ -136,7 +137,8 @@
       </div>
 
       <!-- Top-Down Packtier zwischen den Taschen -->
-      <div class="topdown-mount">
+      <div class="topdown-mount" onclick="tapAnimal()" title="Antippen!">
+        <div class="animal-bubble" id="animalBubble"></div>
         <div class="topdown-svg-wrap" id="topDownAnimalSVG"></div>
         <div class="mount-caption" id="mountCaptionLabel">🦖 Raptor</div>
       </div>
@@ -255,6 +257,12 @@
     </div>
 
     <div class="motto-scroll" id="setupMottoBox"></div>
+
+    <div class="setup-sound-row">
+      <strong>🔊 Ton:</strong>
+      <button class="btn" onclick="toggleSound()" title="Ton an/aus">🔊 / 🔇</button>
+      <button class="btn" onclick="soundDemo()" title="Alle Töne und Tierreaktionen nacheinander anhören">▶ Töne testen</button>
+    </div>
 
     <div class="setup-footer-row">
       <button class="btn" onclick="startTutorialFromSetup()" title="Die geführte Übungsrunde noch einmal spielen">
@@ -386,6 +394,7 @@
 <div class="confetti-layer" id="confettiLayer"></div>
 
   <script src="game-data.js"></script>
+  <script src="sound.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
