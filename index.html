@@ -36,6 +36,7 @@
             <span>🦊 Fuchs: <strong id="headerFoxCount">0</strong></span>
         </div>
         <button class="btn" id="soundToggleBtn" onclick="toggleSound()" title="Ton an/aus">🔊</button>
+        <button class="btn" onclick="openGuide()" title="Anleitung für Eltern und Lehrkräfte">👩‍🏫 Anleitung</button>
         <button class="btn" onclick="openSetupModal()" title="Packtier, Lizenz, Zahlenraum & Erweiterungen einstellen">⚙️ Spiel-Setup</button>
         <button class="btn" onclick="resetGame()">🔄 Neustart</button>
     </div>
@@ -265,9 +266,12 @@
     </div>
 
     <div class="setup-footer-row">
-      <button class="btn" onclick="startTutorialFromSetup()" title="Die geführte Übungsrunde noch einmal spielen">
-        🎓 Übungsrunde starten
-      </button>
+      <span class="setup-footer-left">
+        <button class="btn" onclick="startTutorialFromSetup()" title="Die geführte Übungsrunde noch einmal spielen">
+          🎓 Übungsrunde starten
+        </button>
+        <button class="btn" onclick="openGuide()" title="Anleitung für Eltern und Lehrkräfte">👩‍🏫 Anleitung</button>
+      </span>
       <button class="btn btn-oasis" onclick="startFromSetup()" style="font-size:1.05rem; padding:11px 24px;">
         🚀 Karawane starten!
       </button>
@@ -387,6 +391,23 @@
   </div>
 </div>
 
+<!-- Anleitung für Eltern & Lehrkräfte -->
+<div class="modal-backdrop hidden" id="guideModal">
+  <div class="modal-dialog guide-dialog">
+    <div class="modal-header-banner">
+      <h2>👩‍🏫 Anleitung für Eltern &amp; Lehrkräfte</h2>
+      <p>So erklärst du Kindern die Bausteine und Regeln. Zu jedem Punkt steht ein Satz in Kindersprache.</p>
+    </div>
+
+    <div id="guideBody"></div>
+
+    <div class="guide-actions guide-noprint">
+      <button class="btn" onclick="printGuide()" title="Anleitung drucken">🖨️ Drucken</button>
+      <button class="btn btn-oasis" onclick="closeGuide()" style="font-size:1.05rem; padding:11px 24px;">✔ Schließen</button>
+    </div>
+  </div>
+</div>
+
 <!-- Kurze Bestätigung mitten im Bild (z. B. „✔ +6“) -->
 <div class="game-toast" id="gameToast"></div>
 
@@ -396,5 +417,6 @@
   <script src="game-data.js"></script>
   <script src="sound.js"></script>
   <script src="app.js"></script>
+  <script src="guide.js"></script>
 </body>
 </html>

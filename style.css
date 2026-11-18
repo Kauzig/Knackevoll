@@ -2614,3 +2614,169 @@ body[data-season="winter"] { background: radial-gradient(circle at top, #ffffff 
 .bazaar-grid .order-slot-box.winter-slot.locked-order {
   display: block;
 }
+
+/* ============================================================================
+   Anleitung für Eltern & Lehrkräfte
+   ============================================================================ */
+.guide-dialog {
+  max-width: 780px;
+}
+
+.setup-footer-left {
+  display: inline-flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.guide-section {
+  border: 2px solid #e2d3bb;
+  border-radius: 14px;
+  background: #fff;
+  margin-bottom: 8px;
+  overflow: hidden;
+}
+
+.guide-section[open] {
+  border-color: var(--wood-light);
+}
+
+.guide-section > summary {
+  cursor: pointer;
+  padding: 12px 14px;
+  min-height: 48px; /* gut tippbar */
+  font-weight: 900;
+  font-size: 1.05rem;
+  color: var(--wood-dark);
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  user-select: none;
+}
+
+.guide-section > summary::-webkit-details-marker { display: none; }
+
+.guide-section > summary::after {
+  content: '▸';
+  margin-left: auto;
+  font-size: 1.1rem;
+  color: var(--wood-mid);
+  transition: transform 0.15s;
+}
+
+.guide-section[open] > summary::after {
+  transform: rotate(90deg);
+}
+
+.guide-icon {
+  font-size: 1.4rem;
+}
+
+.guide-content {
+  padding: 2px 16px 14px;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: #3b2a1c;
+}
+
+.guide-content p { margin: 8px 0; }
+.guide-content ul, .guide-content ol { margin: 6px 0; padding-left: 20px; }
+.guide-content li { margin: 6px 0; }
+.guide-questions li { margin: 3px 0; }
+
+.guide-steps li { margin: 8px 0; }
+
+.guide-say {
+  margin: 6px 0 4px;
+  padding: 6px 10px;
+  background: #eff6ff;
+  border-left: 4px solid var(--dienes-blue);
+  border-radius: 8px;
+  color: #1e3a8a;
+}
+
+.guide-note {
+  font-size: 0.85rem;
+  color: #6b5344;
+}
+
+.guide-table {
+  border-collapse: collapse;
+  margin: 8px 0;
+  width: 100%;
+}
+
+.guide-table td {
+  padding: 5px 8px;
+  border-bottom: 1px dashed #e2d3bb;
+  vertical-align: middle;
+}
+
+.guide-table td:first-child {
+  white-space: nowrap;
+  width: 1%;
+}
+
+.guide-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+}
+
+/* Druck: nur die Anleitung, alles aufgeklappt, ohne Knöpfe */
+@media print {
+  body > *:not(#guideModal) {
+    display: none !important;
+  }
+
+  body {
+    background: #fff !important;
+    padding: 0 !important;
+  }
+
+  #guideModal {
+    position: static !important;
+    display: block !important;
+    background: none !important;
+    backdrop-filter: none !important;
+    padding: 0 !important;
+  }
+
+  #guideModal.hidden {
+    display: none !important;
+  }
+
+  #guideModal .modal-dialog {
+    max-width: none !important;
+    max-height: none !important;
+    overflow: visible !important;
+    box-shadow: none !important;
+    border: none !important;
+    padding: 0 !important;
+  }
+
+  .guide-noprint {
+    display: none !important;
+  }
+
+  .guide-section {
+    break-inside: avoid-page;
+    border-color: #999;
+  }
+
+  .guide-section > summary::after {
+    display: none;
+  }
+
+  .guide-say {
+    background: #fff;
+    border-left-color: #333;
+    color: #000;
+  }
+}
+
+.guide-content .mini-cargo-chip {
+  white-space: nowrap;
+}
