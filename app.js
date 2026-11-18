@@ -1228,7 +1228,7 @@ function render() {
 const fallbackCaves = {}; // Falls kein Profil geladen werden konnte
 
 // Zustand der Einlager-Ansicht (nicht gespeichert)
-const storageUI = { selectedIdx: 0, vertical: false, hover: null, justPlaced: null };
+const storageUI = { selectedIdx: 0, vertical: false, hover: null, justPlaced: null, lastPointer: 'mouse' };
 
 function isCaveMode() {
   return config.gameMode === 'cave';
@@ -1388,7 +1388,7 @@ function renderCaveHTML(cave, interactive = false, sleeping = false) {
       ${renderLootShelfHTML(cave)}
       <div class="cave-grid ${rows === 5 ? 'cave-half' : ''}"
            style="grid-template-columns: repeat(${cols}, 1fr); grid-template-rows: repeat(${rows}, 1fr);"
-           ${interactive ? 'onpointerleave="caveHoverLeave()"' : ''}>
+           ${interactive ? 'onpointerdown="storageUI.lastPointer = event.pointerType" onpointerleave="caveHoverLeave(event)"' : ''}>
         ${cells}${pieces}${preview}
         ${sleeping ? `<div class="cave-sleeper">${config.animal.icon}<span>💤</span></div>` : ''}
       </div>
@@ -1564,23 +1564,38 @@ function caveHover(event, r, c) {
   updateCavePreview();
 }
 
-function caveHoverLeave() {
+function caveHoverLeave(event) {
+  // Bei Touch und Stift feuert pointerleave direkt nach dem Loslassen – noch vor dem Klick.
+  // Die Vorschau darf dann nicht gelöscht werden, sonst klappt das zweite Antippen nie.
+  if (event && event.pointerType && event.pointerType !== 'mouse') return;
   if (!storageUI.hover) return;
   storageUI.hover = null;
   updateCavePreview();
 }
 
+// Maus: Vorschau liegt schon unter dem Zeiger, ein Klick legt ab.
+// Touch: 1. Antippen zeigt die Vorschau, 2. Antippen irgendwo auf die Vorschau legt dort ab.
 function caveCellClick(r, c) {
   const cave = getActiveCave();
   if (cave.pending.length === 0) return;
 
-  const sameSpot = storageUI.hover && storageUI.hover.r === r && storageUI.hover.c === c;
-  if (!sameSpot) {
-    storageUI.hover = { r, c };
-    renderStorage();
-    return;
+  const size = cave.pending[storageUI.selectedIdx];
+  const vertical = size > 1 && storageUI.vertical;
+
+  if (storageUI.hover) {
+    const a = clampAnchor(size, storageUI.hover.r, storageUI.hover.c, vertical);
+    const onPreview = vertical
+      ? (c === a.c && r >= a.r && r < a.r + size)
+      : (r === a.r && c >= a.c && c < a.c + size);
+    if (onPreview) {
+      // Nach dem Ablegen keine „Geister-Vorschau“ des nächsten Teils an gleicher Stelle (nur bei Touch)
+      if (storageUI.lastPointer !== 'mouse') storageUI.hover = null;
+      placeSelectedPiece(a.r, a.c);
+      return;
+    }
   }
-  placeSelectedPiece(r, c);
+  storageUI.hover = { r, c };
+  renderStorage();
 }
 
 function placeSelectedPiece(r, c) {

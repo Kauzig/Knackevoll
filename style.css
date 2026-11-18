@@ -2229,3 +2229,31 @@ body[data-season="winter"] { background: radial-gradient(circle at top, #ffffff 
 #soundToggleBtn {
   min-width: 48px;
 }
+
+/* Vorschau beim Einlagern: pulsiert und zeigt ✔, damit klar ist „hier nochmal tippen = ablegen“ */
+.cave-preview {
+  position: relative;
+  opacity: 0.75;
+}
+
+.cave-preview.valid {
+  animation: previewPulse 0.9s ease-in-out infinite;
+}
+
+.cave-preview.valid::after {
+  content: '✔';
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.3rem;
+  font-weight: 900;
+  color: #fff;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
+}
+
+@keyframes previewPulse {
+  0%, 100% { outline-color: var(--oasis-green); }
+  50% { outline-color: #bbf7d0; }
+}
