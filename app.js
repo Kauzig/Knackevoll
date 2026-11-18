@@ -687,7 +687,7 @@ function closeOrderModal() {
 
 // Wertebereich für Aufträge (Endlos-Karawane)
 function getOrderRange() {
-  const maxVal = config.level === 1 ? 9 : 19; // Bis 9 bzw. 19, damit beim Entbündeln immer Platz in der Tasche ist
+  const maxVal = config.level === 1 ? 10 : 19; // Stufe 1 bis 10 (die 10 ist das erste Zehnerbündel), Stufe 2 bis 19; alle Aufträge sind auch mit Ricks Sperren lösbar
   const minVal = config.level === 1 ? 2 : 6;
   return { minVal, maxVal };
 }
