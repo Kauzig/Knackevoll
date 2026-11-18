@@ -4,6 +4,8 @@
 
 KNACKEVOLL! ist ein browserbasierter Prototyp für den Mathematikunterricht in der Schuleingangsphase (1. Klasse). Die Anwendung unterstützt das Erlernen von Zahlenräumen bis 10 und 20 durch eine spielerische Auseinandersetzung mit Zerlegung, Bündelung und Stellenwertverständnis.
 
+**Hinweis**: Bei der vorliegenden Anwendung handelt es sich um einen konzeptionellen Prototyp. Das didaktische Design sowie die Lernwirksamkeit wurden bisher nicht wissenschaftlich evaluiert.
+
 ## Didaktisches Konzept
 
 Das Programm verfolgt mehrere mathematische Lernziele:
