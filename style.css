@@ -2543,3 +2543,16 @@ body[data-season="winter"] { background: radial-gradient(circle at top, #ffffff 
     box-shadow: 0 4px 0 #d6c3a5;
   }
 }
+
+/* Leerer Kartenplatz (gerade keine passende Karte) – hält die Positionen der anderen Karten stabil */
+.winter-card.card-empty {
+  border-style: dashed;
+  border-color: #d6c3a5;
+  background: transparent;
+  box-shadow: none;
+  cursor: default;
+}
+
+.winter-card.card-empty:hover {
+  transform: none;
+}

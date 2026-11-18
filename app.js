@@ -1922,15 +1922,22 @@ function drawWinterCard(cave, existing) {
   return card;
 }
 
-// Ungültig gewordene Karten ersetzen und die Auslage auf 3 auffüllen
+// Die Auslage hat 3 feste Plätze. Eine Karte bleibt genau dort liegen, solange sie noch spielbar ist –
+// so kann das Kind vorausplanen. Ersetzt werden nur die gespielte und ungültig gewordene Karten,
+// und zwar an ihrem eigenen Platz (null = Platz leer, falls gerade keine passende Karte existiert).
+const WINTER_CARD_SLOTS = 3;
+
 function refreshWinterCards(cave) {
   if (tutorial.active) return; // Die Übung legt ihre Karten selbst fest
-  cave.cards = cave.cards.filter(c => c && isWinterCardValid(c, cave));
-  while (cave.cards.length < 3) {
-    const card = drawWinterCard(cave, cave.cards);
-    if (!card) break;
-    cave.cards.push(card);
+  const slots = Array.from({ length: WINTER_CARD_SLOTS }, (_, i) => {
+    const card = cave.cards[i];
+    return card && isWinterCardValid(card, cave) ? card : null;
+  });
+  for (let i = 0; i < WINTER_CARD_SLOTS; i++) {
+    if (slots[i]) continue;
+    slots[i] = drawWinterCard(cave, slots.filter(Boolean)); // null, wenn nichts Spielbares da ist
   }
+  cave.cards = slots;
 }
 
 /* ---------- Spielzug ---------- */
@@ -2119,11 +2126,11 @@ function checkWinterCompletion() {
 
 // Karte aus der Auslage nehmen, Zug zählen
 function consumeWinterCard(cave) {
-  cave.cards.splice(state.winter.cardIdx, 1);
+  cave.cards[state.winter.cardIdx] = null; // Platz wird frei, die anderen Karten bleiben liegen
   cave.turns += 1;
   if (tutorial.active) {
     tutorial.winterTurns += 1;
-    if (tutorial.cardQueue.length > 0) cave.cards = [tutorial.cardQueue.shift()];
+    cave.cards = tutorial.cardQueue.length > 0 ? [tutorial.cardQueue.shift()] : [];
   }
 }
 
@@ -2291,8 +2298,10 @@ function renderWinterPanel() {
   if (!w.card) {
     slot.className = 'order-slot-box winter-slot';
     lockLabel.textContent = '👆';
-    slot.innerHTML = cave.cards.length
-      ? `<div class="winter-card-row">${cave.cards.map((c, i) => renderWinterCardHTML(c, i)).join('')}</div>`
+    slot.innerHTML = cave.cards.some(Boolean)
+      ? `<div class="winter-card-row">${cave.cards.map((c, i) => c
+          ? renderWinterCardHTML(c, i)
+          : '<div class="winter-card card-empty"></div>').join('')}</div>`
       : `<div style="font-size:2rem;">🏠</div>`;
     return;
   }
