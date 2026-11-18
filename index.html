@@ -56,25 +56,25 @@
     <div class="board-panel">
       <h3 class="panel-heading">
         <span>🏪 Offener Fracht-Markt</span>
-        <small style="font-weight:700; color:#78716c;">Klicke auf ein Frachtstück zum Einladen</small>
+        <small class="panel-hint" style="font-weight:700; color:#78716c;">Klicke auf ein Frachtstück zum Einladen</small>
       </h3>
         <div class="market-depots">
             <!-- 10er-Kiste Blau -->
-            <div class="depot-card" id="depot10" onclick="takeCargo(10)">
+            <div class="depot-card" id="depot10" onclick="takeCargo(10)" title="Füllt 1 ganze Tasche sofort (10)">
                 <div class="depot-title">10er-Kiste (Blau)</div>
                 <div class="dienes-preview-10" id="depot10Label">10 mal ✨</div>
                 <div class="depot-sub">Füllt 1 ganze Tasche sofort (10)</div>
             </div>
         
             <!-- 5er-Sack Gelb -->
-            <div class="depot-card" id="depot5" onclick="takeCargo(5)">
+            <div class="depot-card" id="depot5" onclick="takeCargo(5)" title="Halbe Tasche bis zur Naht (5)">
                 <div class="depot-title">5er-Sack (Gelb)</div>
                 <div class="dienes-preview-5" id="depot5Label">5 mal ✨</div>
                 <div class="depot-sub">Halbe Tasche bis zur Naht (5)</div>
             </div>
         
             <!-- 1er-Einheit Rot -->
-            <div class="depot-card" id="depot1" onclick="takeCargo(1)">
+            <div class="depot-card" id="depot1" onclick="takeCargo(1)" title="Einzelnes Frachtstück (1)">
                 <div class="depot-title">1er-Einheit (Rot)</div>
                 <div class="dienes-preview-1" id="unitDepotIcon">1 mal ✨</div>
                 <div class="depot-sub">Einzelnes Frachtstück (1)</div>

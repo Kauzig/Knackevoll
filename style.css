@@ -2268,3 +2268,278 @@ body[data-season="winter"] { background: radial-gradient(circle at top, #ffffff 
   0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.6); }
   50% { transform: scale(1.15); box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
 }
+
+/* ============================================================================
+   Kompakter Basar: Auftrag bzw. Vorräte für den Winter + Offener Markt
+   Auf breiten Bildschirmen nebeneinander, sonst untereinander – aber flach.
+   Tippflächen bleiben groß genug für Finger (Depots ≥ 84 px, Karten ≥ 76 px hoch).
+   ============================================================================ */
+.bazaar-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+@media (min-width: 900px) {
+  .bazaar-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.bazaar-grid .board-panel {
+  display: flex;
+  flex-direction: column;
+  padding: 8px 12px 12px;
+  border-width: 3px;
+  border-radius: 16px;
+  box-shadow: 0 4px 0 rgba(92, 58, 33, 0.22);
+}
+
+.bazaar-grid .panel-heading {
+  margin: 0 0 8px;
+  padding-bottom: 4px;
+  font-size: 1rem;
+}
+
+.bazaar-grid .panel-heading small {
+  font-size: 0.8rem;
+}
+
+.panel-hint {
+  display: none;
+}
+
+/* --- Auftrags-/Vorrats-Feld --- */
+.bazaar-grid .order-slot-box {
+  flex: 1;
+  min-height: 0;
+  padding: 8px 10px;
+  border-width: 2px;
+  border-radius: 14px;
+}
+
+/* Noch kein Auftrag: Symbol, Text und Knopf in einer Zeile */
+.bazaar-grid .order-slot-box:not(.locked-order):not(.winter-slot) {
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px 14px;
+  min-height: 84px;
+}
+
+.bazaar-grid .order-slot-box:not(.locked-order):not(.winter-slot) > div {
+  font-size: 1.7rem !important;
+  margin: 0 !important;
+}
+
+.bazaar-grid .order-slot-box:not(.locked-order):not(.winter-slot) > p {
+  margin: 0 !important;
+}
+
+/* Aktiver Auftrag (Endlos): Zahl + Streifen links, Profi-Ziel rechts */
+.bazaar-grid .order-slot-box.locked-order {
+  grid-template-columns: auto 1fr;
+  gap: 12px;
+  padding: 8px 10px;
+}
+
+@media (max-width: 559px) {
+  .bazaar-grid .order-slot-box.locked-order {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+}
+
+.bazaar-grid .order-main-info {
+  padding-right: 12px;
+}
+
+.bazaar-grid .order-badge-num {
+  font-size: 2.4rem;
+}
+
+.bazaar-grid .order-cargo-title {
+  font-size: 0.9rem;
+  margin: 2px 0 4px;
+}
+
+.bazaar-grid .twenty-strip-box {
+  max-width: 130px;
+}
+
+.bazaar-grid .ten-pip {
+  height: 9px;
+}
+
+.bazaar-grid .pro-goal-showcase {
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  padding: 6px 10px;
+  border-width: 2px;
+  border-radius: 12px;
+}
+
+.bazaar-grid .pro-goal-left {
+  gap: 8px;
+}
+
+.bazaar-grid .pro-medal-icon {
+  width: 40px;
+  height: 40px;
+  border-width: 2px;
+  border-radius: 10px;
+  font-size: 1.5rem;
+}
+
+.bazaar-grid .pro-goal-text small {
+  display: none; /* Der Satz darunter sagt dasselbe – spart zwei Zeilen */
+}
+
+.bazaar-grid .pro-goal-text strong {
+  font-size: 1rem;
+}
+
+.bazaar-grid .crate-pip {
+  width: 26px;
+  height: 26px;
+  font-size: 0.9rem;
+}
+
+.bazaar-grid .pro-counter-pill,
+.bazaar-grid .overload-warning-pill {
+  font-size: 0.75rem;
+  padding: 2px 8px;
+}
+
+/* --- Wintervorrat: Karten --- */
+.bazaar-grid .winter-slot {
+  padding: 8px;
+}
+
+.winter-card-row {
+  gap: 8px;
+}
+
+.winter-card {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0 8px;
+  min-height: 76px;
+  padding: 6px 4px;
+  border-width: 3px;
+  border-radius: 14px;
+  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.2);
+  touch-action: manipulation;
+}
+
+.winter-card-icon { font-size: 1.4rem; }
+.winter-card-num  { font-size: 2.1rem; }
+.winter-card-sub  { flex-basis: 100%; margin-top: 0; font-size: 0.95rem; line-height: 1.1; }
+
+.winter-card .fox-card-badge {
+  flex-basis: auto;
+  margin-top: 2px;
+}
+
+.winter-card.card-active {
+  min-width: 100px;
+}
+
+.winter-active-row {
+  flex-wrap: nowrap;
+  gap: 10px;
+}
+
+.winter-takes {
+  font-size: 1.7rem;
+}
+
+.winter-unload-tray {
+  min-height: 30px;
+}
+
+.winter-cancel-btn {
+  min-width: 48px;
+  min-height: 48px;
+  padding: 4px 12px;
+  font-size: 1.4rem;
+}
+
+/* --- Offener Markt --- */
+.bazaar-grid .market-depots {
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  flex: 1;
+}
+
+.bazaar-grid .depot-card {
+  justify-content: center;
+  gap: 4px;
+  min-height: 84px;
+  padding: 8px 6px;
+  border-width: 3px;
+  border-radius: 14px;
+  box-shadow: 0 4px 0 #d6c3a5;
+  touch-action: manipulation;
+}
+
+.bazaar-grid .depot-title {
+  font-size: 0.8rem;
+  line-height: 1.15;
+  text-align: center;
+}
+
+.bazaar-grid .depot-sub {
+  display: none;
+}
+
+.bazaar-grid .dienes-preview-10,
+.bazaar-grid .dienes-preview-5,
+.bazaar-grid .dienes-preview-1 {
+  height: 36px;
+  padding: 0 6px;
+  font-size: 0.85rem;
+}
+
+.bazaar-grid .dienes-preview-10 { max-width: 150px; }
+.bazaar-grid .dienes-preview-5  { width: 70%; min-width: 80px; }
+.bazaar-grid .dienes-preview-1  { width: 60px; }
+
+.bazaar-grid .fox-blocker-overlay {
+  padding: 4px;
+  background: #fff7ed; /* deckend, damit der Depot-Titel nicht durchscheint */
+}
+
+.bazaar-grid .fox-blocker-overlay .fox-emoji {
+  font-size: 1.5rem;
+  margin: 0;
+}
+
+.bazaar-grid .fox-blocker-overlay strong {
+  font-size: 0.72rem;
+}
+
+.bazaar-grid .fox-blocker-overlay small {
+  display: none;
+}
+
+@media (max-width: 559px) {
+  .winter-card-num { font-size: 1.8rem; }
+  .bazaar-grid .depot-title { font-size: 0.72rem; }
+  .bazaar-grid .dienes-preview-5 { min-width: 64px; }
+}
+
+/* Touch-Geräte: kein „klebendes“ Hover nach dem Antippen */
+@media (hover: none) {
+  .depot-card:hover:not(.disabled),
+  .winter-card:hover {
+    transform: none;
+  }
+  .bazaar-grid .depot-card:hover:not(.disabled) {
+    border-color: #cbb69b;
+    box-shadow: 0 4px 0 #d6c3a5;
+  }
+}
