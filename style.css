@@ -1386,6 +1386,14 @@ body {
   }
 }
 
+.p-stat-section + .p-stat-section { margin-top: 10px; }
+.p-stat-title { margin: 0 0 6px; font-size: 0.95rem; color: var(--wood-dark); }
+.p-stat-badge {
+  font-size: 0.65rem; font-weight: 800; text-transform: uppercase;
+  background: #dcfce7; color: #15803d; border-radius: 8px; padding: 2px 6px; margin-left: 4px;
+}
+.p-stat-section:not(.p-stat-current) .profile-stats-banner { opacity: 0.85; }
+
 .p-stat-item {
   display: flex;
   align-items: center;

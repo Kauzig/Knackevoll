@@ -97,9 +97,38 @@ async function dbDeleteProfile(id) {
   });
 }
 
+// Statistik ist pro Spielmodus getrennt: stats.endless (Endlos-Karawane) und stats.cave (Wintervorrat).
+// Ältere Profile hatten eine gemeinsame, flache Statistik – die gehört zur Endlos-Karawane.
+function migrateStats(profile) {
+  if (!profile) return;
+  const old = profile.stats || {};
+  if (old.endless && old.cave) return;
+  profile.stats = {
+    endless: {
+      totalCargoSent: old.totalCargoSent || 0,
+      packedAnimals: old.packedAnimals || 0,
+      proPackers: old.proPackers || 0,
+      foxOutsmarted: old.foxOutsmarted || 0
+    },
+    cave: {
+      totalCargoSent: 0,
+      foxOutsmarted: 0,
+      cavesFilled: old.cavesFilled || 0,
+      knackevoll: old.knackevoll || 0
+    }
+  };
+}
+
+function getModeStats(profile, mode) {
+  if (!profile) return {};
+  migrateStats(profile);
+  return profile.stats[mode === 'cave' ? 'cave' : 'endless'];
+}
+
 async function initPlayerManagement() {
   try {
     profiles = await dbGetAllProfiles();
+    profiles.forEach(migrateStats);
     if (profiles.length === 0) {
       const defaultProfile = {
         id: 'player_' + Date.now(),
@@ -108,13 +137,9 @@ async function initPlayerManagement() {
         licenseId: 'fairy',
         level: 2,
         foxMode: false,
-        stats: {
-          totalCargoSent: 0,
-          packedAnimals: 0,
-          proPackers: 0
-        },
         createdAt: Date.now()
       };
+      migrateStats(defaultProfile);
       await dbSaveProfile(defaultProfile);
       profiles = [defaultProfile];
     }
@@ -163,14 +188,9 @@ async function createNewProfile() {
     level: config.level,
     foxMode: config.foxMode,
     gameMode: config.gameMode,
-    stats: {
-      totalCargoSent: 0,
-      packedAnimals: 0,
-      proPackers: 0,
-      foxOutsmarted: 0
-    },
     createdAt: Date.now()
   };
+  migrateStats(newProfile);
 
   await dbSaveProfile(newProfile);
   profiles.push(newProfile);
@@ -210,21 +230,11 @@ async function saveActiveProfilePreferences() {
 
 async function recordDeliveryStats(deliveredAmount, isProPacker, wasFoxOutsmarted) {
   if (!activeProfile) return;
-  if (!activeProfile.stats) {
-    activeProfile.stats = { totalCargoSent: 0, packedAnimals: 0, proPackers: 0, foxOutsmarted: 0 };
-  }
-  // Abwärtskompatibilität für bestehende Profile
-  if (typeof activeProfile.stats.totalCargoSent !== 'number') activeProfile.stats.totalCargoSent = 0;
-  if (typeof activeProfile.stats.foxOutsmarted !== 'number') activeProfile.stats.foxOutsmarted = 0;
-
-  activeProfile.stats.totalCargoSent += deliveredAmount;
-  activeProfile.stats.packedAnimals += 1;
-  if (isProPacker) {
-    activeProfile.stats.proPackers += 1;
-  }
-  if (wasFoxOutsmarted) {
-    activeProfile.stats.foxOutsmarted += 1;
-  }
+  const st = getModeStats(activeProfile, 'endless');
+  st.totalCargoSent += deliveredAmount;
+  st.packedAnimals += 1;
+  if (isProPacker) st.proPackers += 1;
+  if (wasFoxOutsmarted) st.foxOutsmarted += 1;
   await dbSaveProfile(activeProfile);
 }
 
@@ -415,56 +425,37 @@ function renderProfileModal() {
   }
 
   const statsEl = document.getElementById('activeProfileStatsBanner');
-    if (statsEl && activeProfile) {
-      const st = activeProfile.stats || { totalCargoSent: 0, packedAnimals: 0, proPackers: 0, foxOutsmarted: 0 };
-      const cargoTotal = st.totalCargoSent || 0;
-      const foxTotal = st.foxOutsmarted || 0;
-      const rate = st.packedAnimals > 0 ? Math.round((st.proPackers / st.packedAnimals) * 100) : 0;
-      statsEl.innerHTML = `
-        <div class="p-stat-item">
-          <span class="p-stat-icon">📦</span>
-          <div class="p-stat-text">
-            <small>Verschickte Fracht</small>
-            <strong>${cargoTotal} Einh.</strong>
-          </div>
+  if (statsEl && activeProfile) {
+    const item = (icon, label, value) => `
+      <div class="p-stat-item">
+        <span class="p-stat-icon">${icon}</span>
+        <div class="p-stat-text">
+          <small>${label}</small>
+          <strong>${value}</strong>
         </div>
-        <div class="p-stat-item">
-          <span class="p-stat-icon">🐪</span>
-          <div class="p-stat-text">
-            <small>Gepackte Tiere</small>
-            <strong>${st.packedAnimals}</strong>
-          </div>
-        </div>
-        <div class="p-stat-item">
-          <span class="p-stat-icon">🏅</span>
-          <div class="p-stat-text">
-            <small>Profi-Packer</small>
-            <strong>${st.proPackers} <span style="font-size:0.8rem; font-weight:700; color:#15803d;">(${rate}%)</span></strong>
-          </div>
-        </div>
-        <div class="p-stat-item">
-          <span class="p-stat-icon">🦊</span>
-          <div class="p-stat-text">
-            <small>Schlauer als Fuchs</small>
-            <strong>${foxTotal}×</strong>
-          </div>
-        </div>
-        <div class="p-stat-item">
-          <span class="p-stat-icon">🏠</span>
-          <div class="p-stat-text">
-            <small>Winter geschafft</small>
-            <strong>${st.cavesFilled || 0}</strong>
-          </div>
-        </div>
-        <div class="p-stat-item">
-          <span class="p-stat-icon">💥</span>
-          <div class="p-stat-text">
-            <small>KNACKEVOLL!</small>
-            <strong>${st.knackevoll || 0}×</strong>
-          </div>
-        </div>
-      `;
-    }
+      </div>`;
+    const en = getModeStats(activeProfile, 'endless');
+    const cv = getModeStats(activeProfile, 'cave');
+    const rate = en.packedAnimals > 0 ? Math.round((en.proPackers / en.packedAnimals) * 100) : 0;
+    const section = (mode, title, items) => `
+      <div class="p-stat-section ${config.gameMode === mode ? 'p-stat-current' : ''}">
+        <h4 class="p-stat-title">${title}${config.gameMode === mode ? ' <span class="p-stat-badge">aktueller Modus</span>' : ''}</h4>
+        <div class="profile-stats-banner">${items.join('')}</div>
+      </div>`;
+    const endlessSection = section('endless', '🐪 Endlos-Karawane', [
+      item('📦', 'Verschickte Fracht', `${en.totalCargoSent} Einh.`),
+      item('🐪', 'Gepackte Tiere', en.packedAnimals),
+      item('🏅', 'Profi-Packer', `${en.proPackers} <span style="font-size:0.8rem; font-weight:700; color:#15803d;">(${rate}%)</span>`),
+      item('🦊', 'Schlauer als Fuchs', `${en.foxOutsmarted}×`)
+    ]);
+    const caveSection = section('cave', '❄️ Wintervorrat', [
+      item('📦', 'Eingelagerte Fracht', `${cv.totalCargoSent} Einh.`),
+      item('🏠', 'Winter geschafft', cv.cavesFilled),
+      item('💥', 'KNACKEVOLL!', `${cv.knackevoll}×`),
+      item('🦊', 'Schlauer als Fuchs', `${cv.foxOutsmarted}×`)
+    ]);
+    statsEl.innerHTML = config.gameMode === 'cave' ? caveSection + endlessSection : endlessSection + caveSection;
+  }
 }
 
 function renderSetupModal() {
@@ -904,9 +895,9 @@ async function finishOrderDelivery() {
     : '';
 
   // Ausführliche Auswertung & Gesamtbilanz nur auf Nachfrage (für Eltern & Lehrkräfte)
-  const pStats = (activeProfile && activeProfile.stats) || {};
+  const pStats = getModeStats(activeProfile, 'endless');
   const playerStatLine = activeProfile
-    ? `<p>👤 <strong>${activeProfile.name}s Gesamtbilanz:</strong> 📦 ${pStats.totalCargoSent || 0} Fracht · 🐪 ${pStats.packedAnimals || 0} Tiere · 🏅 ${pStats.proPackers || 0}× Profi · 🦊 ${pStats.foxOutsmarted || 0}× Fuchs ausgetrickst</p>`
+    ? `<p>👤 <strong>${activeProfile.name}s Bilanz Endlos-Karawane:</strong> 📦 ${pStats.totalCargoSent || 0} Fracht · 🐪 ${pStats.packedAnimals || 0} Tiere · 🏅 ${pStats.proPackers || 0}× Profi · 🦊 ${pStats.foxOutsmarted || 0}× Fuchs ausgetrickst</p>`
     : '';
 
   const adultDetails = `
@@ -1014,18 +1005,16 @@ function render() {
     headerNameEl.textContent = activeProfile.name;
   }
 
-  const pStats = (activeProfile && activeProfile.stats)
-    ? activeProfile.stats
-    : { totalCargoSent: 0, packedAnimals: 0, proPackers: 0 };
-
-  const hCargo = document.getElementById('headerCargoCount');
-  const hAnimal = document.getElementById('headerAnimalCount');
-  const hPro = document.getElementById('headerProCount');
-  const hFox = document.getElementById('headerFoxCount');
-  if (hCargo) hCargo.textContent = pStats.totalCargoSent || 0;
-  if (hAnimal) hAnimal.textContent = pStats.packedAnimals || 0;
-  if (hPro) hPro.textContent = pStats.proPackers || 0;
-  if (hFox) hFox.textContent = pStats.foxOutsmarted || 0;
+  const pill = document.getElementById('headerStatsPill');
+  if (pill) {
+    const ms = getModeStats(activeProfile, config.gameMode);
+    const parts = config.gameMode === 'cave'
+      ? [['📦 Fracht', ms.totalCargoSent], ['🏠 Winter', ms.cavesFilled], ['💥 Knackevoll', ms.knackevoll], ['🦊 Fuchs', ms.foxOutsmarted]]
+      : [['📦 Fracht', ms.totalCargoSent], ['🐪 Tiere', ms.packedAnimals], ['🏅 Profi', ms.proPackers], ['🦊 Fuchs', ms.foxOutsmarted]];
+    pill.innerHTML = parts.map(([l, v]) => `<span>${l}: <strong>${v || 0}</strong></span>`)
+      .join('<span style="opacity:0.4;">|</span>');
+    pill.title = config.gameMode === 'cave' ? 'Deine Bilanz im Wintervorrat' : 'Deine Bilanz in der Endlos-Karawane';
+  }
 
   // Frachtbrief & Top-Down Packtier zwischen den Taschen
   document.getElementById('waybillEmoji').textContent = config.license.icon;
@@ -1682,8 +1671,7 @@ async function finishStorage() {
   if (getCaveUsedCells(cave) >= getCaveCapacity()) {
     cave.completed = true;
     if (activeProfile) {
-      if (!activeProfile.stats) activeProfile.stats = {};
-      activeProfile.stats.cavesFilled = (activeProfile.stats.cavesFilled || 0) + 1;
+      getModeStats(activeProfile, 'cave').cavesFilled += 1;
       const key = getCaveRecordKey(cave);
       if (!activeProfile.caveRecords) activeProfile.caveRecords = {};
       const best = activeProfile.caveRecords[key];
@@ -2147,9 +2135,9 @@ async function finishWinterPlus() {
     lootHTML = ` 🦊💨 ➔ <span class="loot-item ${state.unbundledThisOrder ? 'loot-sparkle' : ''}">${config.license.loot}</span>`;
   }
   if (!tutorial.active && activeProfile) {
-    const st = activeProfile.stats || (activeProfile.stats = {});
-    st.totalCargoSent = (st.totalCargoSent || 0) + card.val;
-    if (card.foxBlock) st.foxOutsmarted = (st.foxOutsmarted || 0) + 1;
+    const st = getModeStats(activeProfile, 'cave');
+    st.totalCargoSent += card.val;
+    if (card.foxBlock) st.foxOutsmarted += 1;
   }
 
   const total = sumArray(state.leftBag) + sumArray(state.rightBag);
@@ -2199,8 +2187,7 @@ async function triggerKnackevoll(cave, lootHTML = '') {
   state.leftBag = [];
   state.rightBag = [];
   if (!tutorial.active && activeProfile) {
-    const st = activeProfile.stats || (activeProfile.stats = {});
-    st.knackevoll = (st.knackevoll || 0) + 1;
+    getModeStats(activeProfile, 'cave').knackevoll += 1;
     await dbSaveProfile(activeProfile);
   }
   await saveCave();
@@ -2384,7 +2371,7 @@ const tutorial = {
 function isTutorialDone(profile = activeProfile) {
   if (!profile) return false;
   // Wer schon Tiere gepackt hat, kennt das Spiel bereits
-  return Boolean(profile.tutorialDone) || Boolean(profile.stats && profile.stats.packedAnimals > 0);
+  return Boolean(profile.tutorialDone) || Boolean(profile.stats && getModeStats(profile, 'endless').packedAnimals > 0);
 }
 
 // Startet eine Runde – beim allerersten Mal als geführte Übung
