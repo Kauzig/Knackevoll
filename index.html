@@ -195,12 +195,13 @@
   </footer>
 </div>
 
-<!-- POP-UP 1: Karawanen-Setup (öffnet direkt beim Spielstart) -->
+<!-- POP-UP 1: Karawanen-Setup (öffnet direkt beim Spielstart). Oben der Modus als Reiter, darunter dessen Inhalt. -->
 <div class="modal-backdrop" id="setupModal">
   <div class="modal-dialog">
-    <div class="modal-header-banner">
-      <h2>⛺ Karawanen-Setup vor der Runde</h2>
-      <p>Wähle den Zahlenraum, die Erweiterung und den Spielmodus!</p>
+    <div class="modal-header-banner has-close">
+      <button class="modal-close-x" id="setupCloseBtn" onclick="closeSetupModal()" style="display:none;" title="Schließen: Änderungen verwerfen, das laufende Spiel geht weiter" aria-label="Schließen">✕</button>
+      <h2>⛺ Karawanen-Setup</h2>
+      <p>Wohin geht die Reise?</p>
     </div>
 
     <div class="setup-player-hint">
@@ -209,58 +210,76 @@
       <button class="btn" onclick="openProfileModal()" style="padding:4px 10px; font-size:0.8rem;">Wechseln</button>
     </div>
 
-    <label class="setup-section-label">1. Didaktische Stellschraube (Zahlenraum):</label>
-    <div class="selection-grid" style="grid-template-columns: 1fr 1fr;">
-      <div class="tile-option" id="lvlTile1" onclick="setLevel(1)">
-        <div style="font-size:1.3rem; font-weight:900;">Stufe 1: ZR bis 10</div>
-        <small>Nur linke Satteltasche (1. Halbjahr)</small>
-      </div>
-      <div class="tile-option active-tile" id="lvlTile2" onclick="setLevel(2)">
-        <div style="font-size:1.3rem; font-weight:900;">Stufe 2: ZR bis 20</div>
-        <small>Beide Satteltaschen (20er-Feld)</small>
-      </div>
+    <div class="setup-tabs" role="tablist">
+      <button class="setup-tab" id="tabEndless" role="tab" onclick="selectSetupTab('endless')">
+        <span>🐪 Endlos-Karawane</span><small>Aufträge ohne Ende</small>
+      </button>
+      <button class="setup-tab" id="tabCave" role="tab" onclick="selectSetupTab('cave')">
+        <span>❄️ Wintervorrat</span><small>Plus, Minus &amp; Höhle</small>
+      </button>
+      <button class="setup-tab" id="tabStory" role="tab" onclick="selectSetupTab('story')" title="Das Abenteuer: Finde den Knackevollen Schatz">
+        <span>📖 Abenteuer</span><small id="tabStoryProgress"></small>
+      </button>
+      <button class="setup-tab setup-tab-settings" id="tabSettings" role="tab" onclick="selectSetupTab('settings')" title="Zahlenraum, Rick und Ton">
+        <span>⚙️ Einstellungen</span>
+      </button>
     </div>
 
-    <label class="setup-section-label">2. Erweiterung (Modul 2):</label>
-    <div class="selection-grid" style="grid-template-columns: 1fr 1fr;">
-      <div class="tile-option active-tile" id="foxOffTile" onclick="setFoxMode(false)">
-        <div style="font-size:1.2rem; font-weight:900;">🌿 Ohne Rick</div>
-        <small>Alle Markt-Depots sind immer frei</small>
+    <div class="setup-panes">
+    <!-- Reiter Endlos-Karawane / Wintervorrat: Beschreibung und Einstellungen für das freie Spiel -->
+    <div class="setup-pane" id="setupModePane">
+      <p class="setup-mode-desc" id="setupModeDesc"></p>
+
+      <label class="setup-section-label">Zahlenraum:</label>
+      <div class="selection-grid" style="grid-template-columns: 1fr 1fr;">
+        <div class="tile-option" id="lvlTile1" onclick="setLevel(1)">
+          <div style="font-size:1.3rem; font-weight:900;">Stufe 1: ZR bis 10</div>
+          <small>Nur linke Satteltasche (1. Halbjahr)</small>
+        </div>
+        <div class="tile-option active-tile" id="lvlTile2" onclick="setLevel(2)">
+          <div style="font-size:1.3rem; font-weight:900;">Stufe 2: ZR bis 20</div>
+          <small>Beide Satteltaschen (20er-Feld)</small>
+        </div>
       </div>
-      <div class="tile-option" id="foxOnTile" onclick="setFoxMode(true)">
-        <div style="font-size:1.2rem; font-weight:900;">🦊 Mit Rick, dem Wüstenfuchs!</div>
-        <small>Rick blockiert ein Depot – fordert cleveres Entbündeln</small>
+
+      <label class="setup-section-label">Erweiterung:</label>
+      <div class="selection-grid" style="grid-template-columns: 1fr 1fr;">
+        <div class="tile-option active-tile" id="foxOffTile" onclick="setFoxMode(false)">
+          <div style="font-size:1.2rem; font-weight:900;">🌿 Ohne Rick</div>
+          <small>Alle Markt-Depots sind immer frei</small>
+        </div>
+        <div class="tile-option" id="foxOnTile" onclick="setFoxMode(true)">
+          <div style="font-size:1.2rem; font-weight:900;">🦊 Mit Rick, dem Wüstenfuchs!</div>
+          <small>Rick blockiert ein Depot – fordert cleveres Entbündeln</small>
+        </div>
       </div>
+
+      <div class="motto-scroll" id="setupMottoBox"></div>
     </div>
 
-    <label class="setup-section-label">3. Spielmodus:</label>
-    <div class="selection-grid" style="grid-template-columns: 1fr 1fr;">
-      <div class="tile-option active-tile" id="modeEndlessTile" onclick="setGameMode('endless')">
-        <div style="font-size:1.2rem; font-weight:900;">🐪 Endlos-Karawane</div>
-        <small>Ein Auftrag nach dem anderen – ohne Ende</small>
-      </div>
-      <div class="tile-option" id="modeCaveTile" onclick="setGameMode('cave')">
-        <div style="font-size:1.2rem; font-weight:900;">❄️ Wintervorrat</div>
-        <small id="modeCaveSub">Fülle die Höhle deines Tieres</small>
-      </div>
+    <!-- Reiter Abenteuer: Karte mit den Folgen -->
+    <div class="setup-pane" id="setupStoryPane">
+      <div id="storyMapBody"></div>
     </div>
 
-    <div class="motto-scroll" id="setupMottoBox"></div>
-
-    <div class="setup-sound-row">
-      <strong>🔊 Ton:</strong>
-      <button class="btn" onclick="toggleSound()" title="Ton an/aus">🔊 / 🔇</button>
-      <button class="btn" onclick="soundDemo()" title="Alle Töne und Tierreaktionen nacheinander anhören">▶ Töne testen</button>
+    <!-- Reiter Einstellungen: allgemeine Einstellungen, die nicht zu einem Modus gehören -->
+    <div class="setup-pane" id="setupSettingsPane">
+      <div class="setup-sound-row">
+        <strong>🔊 Ton:</strong>
+        <button class="btn" onclick="toggleSound()" title="Ton an/aus">🔊 / 🔇</button>
+        <button class="btn" onclick="soundDemo()" title="Alle Töne und Tierreaktionen nacheinander anhören">▶ Töne testen</button>
+      </div>
+    </div>
     </div>
 
     <div class="setup-footer-row">
       <span class="setup-footer-left">
-        <button class="btn" onclick="startTutorialFromSetup()" title="Die geführte Übungsrunde noch einmal spielen">
-          🎓 Übungsrunde starten
+        <button class="btn btn-quiet" onclick="startTutorialFromSetup()" title="Die geführte Übungsrunde noch einmal spielen">
+          🎓 Übungsrunde
         </button>
-        <button class="btn" onclick="openGuide()" title="Anleitung für Eltern und Lehrkräfte">👩‍🏫 Anleitung</button>
+        <button class="btn btn-quiet" onclick="openGuide()" title="Anleitung für Eltern und Lehrkräfte">👩‍🏫 Anleitung</button>
       </span>
-      <button class="btn btn-oasis" onclick="startFromSetup()" style="font-size:1.05rem; padding:11px 24px;">
+      <button class="btn btn-oasis" id="setupStartBtn" onclick="startFromSetup()" style="font-size:1.05rem; padding:11px 24px;">
         🚀 Karawane starten!
       </button>
     </div>
@@ -386,6 +405,17 @@
   </div>
 </div>
 
+<!-- Abenteuer (Story-Modus): Karte, Szenen und Fortschrittsleiste -->
+<div class="modal-backdrop hidden" id="storySceneModal" onclick="storySceneNext()">
+  <div class="modal-dialog story-scene" id="storySceneDialog"></div>
+</div>
+
+<div class="tutorial-bar story-bar hidden" id="storyBar">
+  <span class="tutorial-bar-icon">📖</span>
+  <strong id="storyBarTitle"></strong>
+  <button class="tutorial-skip" onclick="abortEpisode()" title="Folge abbrechen">✖</button>
+</div>
+
 <!-- Anleitung für Eltern & Lehrkräfte -->
 <div class="modal-backdrop hidden" id="guideModal">
   <div class="modal-dialog guide-dialog">
@@ -412,6 +442,8 @@
   <script src="version.js"></script>
   <script src="game-data.js"></script>
   <script src="sound.js"></script>
+  <script src="story-data.js"></script>
+  <script src="story.js"></script>
   <script src="app.js"></script>
   <script src="guide.js"></script>
   <script>document.getElementById('appVersion').textContent = 'v' + APP_VERSION;</script>

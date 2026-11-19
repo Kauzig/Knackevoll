@@ -126,6 +126,23 @@ function getModeStats(profile, mode) {
   return profile.stats[mode === 'cave' ? 'cave' : 'endless'];
 }
 
+/*
+ * Zahlenraum und Rick sind pro Spielmodus getrennt: profile.modeSettings = { endless: {level, foxMode}, cave: {...} }.
+ * Ältere Profile hatten eine gemeinsame Einstellung (profile.level / foxMode); beide Modi starten damit.
+ * config.level und config.foxMode sind immer die Werte des aktuellen Modus.
+ */
+const fallbackSettings = {}; // Falls kein Profil geladen werden konnte
+
+function getModeSettings(profile, mode) {
+  const holder = profile || fallbackSettings;
+  if (!holder.modeSettings) holder.modeSettings = {};
+  const key = mode === 'cave' ? 'cave' : 'endless';
+  if (!holder.modeSettings[key]) {
+    holder.modeSettings[key] = { level: holder.level || 2, foxMode: Boolean(holder.foxMode) };
+  }
+  return holder.modeSettings[key];
+}
+
 async function initPlayerManagement() {
   try {
     profiles = await dbGetAllProfiles();
@@ -162,9 +179,14 @@ async function selectProfile(profileId, shouldRenderSetup = true) {
 
   config.animal = ANIMALS.find(a => a.id === target.animalId) || ANIMALS[1];
   config.license = LICENSES.find(l => l.id === target.licenseId) || LICENSES[0];
-  config.level = target.level || 2;
-  config.foxMode = Boolean(target.foxMode);
   config.gameMode = target.gameMode === 'cave' ? 'cave' : 'endless';
+  // Beide Modi sofort anlegen: ältere Profile übernehmen so ihre gemeinsame Einstellung für beide,
+  // bevor eine Änderung die alten Felder (level, foxMode) überschreibt
+  getModeSettings(target, 'endless');
+  getModeSettings(target, 'cave');
+  const modeSettings = getModeSettings(target, config.gameMode);
+  config.level = modeSettings.level;
+  config.foxMode = modeSettings.foxMode;
 
   if (shouldRenderSetup) {
     renderProfileModal();
@@ -189,6 +211,7 @@ async function createNewProfile() {
     level: config.level,
     foxMode: config.foxMode,
     gameMode: config.gameMode,
+    modeSettings: JSON.parse(JSON.stringify(captureSetup().modeSettings)), // übernimmt die Einstellungen beider Modi
     createdAt: Date.now()
   };
   migrateStats(newProfile);
@@ -220,12 +243,15 @@ async function removeProfile(event, profileId) {
 }
 
 async function saveActiveProfilePreferences() {
-  if (!activeProfile) return;
+  if (!activeProfile || story.active) return; // Story-Folgen überschreiben die Einstellungen nur vorübergehend
   activeProfile.animalId = config.animal.id;
   activeProfile.licenseId = config.license.id;
-  activeProfile.level = config.level;
+  activeProfile.level = config.level;       // gleichzeitig der Stand des aktuellen Modus (ältere Versionen lesen nur diese Felder)
   activeProfile.foxMode = config.foxMode;
   activeProfile.gameMode = config.gameMode;
+  const modeSettings = getModeSettings(activeProfile, config.gameMode);
+  modeSettings.level = config.level;
+  modeSettings.foxMode = config.foxMode;
   await dbSaveProfile(activeProfile);
 }
 
@@ -308,6 +334,7 @@ function isRickRelevant(val, block) {
  * Die neue Sperre unterscheidet sich immer von der aktuellen.
  */
 function pickRickBlock(exclude, valid = () => true, relevant = () => true) {
+  if (story.active) return storyNextRickBlock(); // Story: Sperren stehen im Episoden-Skript
   const candidates = RICK_DEPOTS.filter(d => d !== exclude);
   const ok = candidates.filter(valid);
   const base = ok.length > 0 ? ok : candidates;
@@ -605,16 +632,30 @@ function renderSetupModal() {
     foxOn.classList.toggle('active-tile', config.foxMode);
   }
 
-  // 3. Spielmodus
-  const modeEndless = document.getElementById('modeEndlessTile');
-  const modeCave = document.getElementById('modeCaveTile');
-  if (modeEndless && modeCave) {
-    modeEndless.classList.toggle('active-tile', config.gameMode !== 'cave');
-    modeCave.classList.toggle('active-tile', config.gameMode === 'cave');
-    const dims = getCaveDims();
-    document.getElementById('modeCaveSub').textContent =
-      `Plus & Minus: Vorräte in die ${getCaveTheme().name} (${dims.rows}×${dims.cols})`;
-  }
+  // Ansicht: freier Modus (Endlos/Winter, folgt config.gameMode), Abenteuer oder Einstellungen
+  const view = setupView;
+  const inMode = view === 'mode';
+  document.getElementById('tabEndless').classList.toggle('active-tab', inMode && config.gameMode !== 'cave');
+  document.getElementById('tabCave').classList.toggle('active-tab', inMode && config.gameMode === 'cave');
+  document.getElementById('tabStory').classList.toggle('active-tab', view === 'story');
+  document.getElementById('tabSettings').classList.toggle('active-tab', view === 'settings');
+  document.getElementById('tabStoryProgress').textContent = `${storyFragments().length}/${STORY_FRAGMENT_TOTAL} 🧩`;
+  // Alle Reiter liegen übereinander im selben Grid-Feld. Inaktive sind nur unsichtbar, nehmen aber Platz ein,
+  // damit das Fenster beim Wechseln nicht in der Höhe springt.
+  document.getElementById('setupModePane').classList.toggle('pane-inactive', !inMode);
+  document.getElementById('setupStoryPane').classList.toggle('pane-inactive', view !== 'story');
+  document.getElementById('setupSettingsPane').classList.toggle('pane-inactive', view !== 'settings');
+  document.getElementById('setupStartBtn').style.visibility = inMode ? '' : 'hidden'; // Folgen starten direkt auf der Karte
+  if (view === 'story') renderStoryMap();
+
+  const dims = getCaveDims();
+  document.getElementById('setupModeDesc').textContent = config.gameMode === 'cave'
+    ? `Plus & Minus: Vorräte in die ${getCaveTheme().name} (${dims.rows}×${dims.cols})`
+    : 'Ein Auftrag nach dem anderen – ohne Ende.';
+
+  // Schließen ohne Neustart geht erst, wenn eine Runde läuft
+  const closeBtn = document.getElementById('setupCloseBtn');
+  if (closeBtn) closeBtn.style.display = gameRunning ? '' : 'none';
 
   const playerName = activeProfile ? activeProfile.name : 'Karawanen-Kind';
   document.getElementById('setupMottoBox').textContent =
@@ -647,20 +688,108 @@ function setFoxMode(enabled) {
   renderSetupModal();
 }
 
+// Reiter im Setup: 'mode' (Endlos oder Wintervorrat, je nach config.gameMode), 'story' (Abenteuer) oder 'settings'.
+// Abenteuer und Einstellungen sind keine Spielmodi (config.gameMode bleibt unberührt),
+// Endlos und Wintervorrat setzen den Modus wie bisher.
+let setupView = 'mode';
+
+function selectSetupTab(tab) {
+  if (tab === 'story') {
+    openStoryMap();
+    return;
+  }
+  if (tab === 'settings') {
+    setupView = 'settings';
+    renderSetupModal();
+    return;
+  }
+  setupView = 'mode';
+  setGameMode(tab);
+}
+
+// Moduswechsel: Zahlenraum und Rick des alten Modus merken, die des neuen laden
 function setGameMode(mode) {
-  config.gameMode = mode === 'cave' ? 'cave' : 'endless';
+  const next = mode === 'cave' ? 'cave' : 'endless';
+  if (next !== config.gameMode) {
+    const old = getModeSettings(activeProfile, config.gameMode);
+    old.level = config.level;
+    old.foxMode = config.foxMode;
+    config.gameMode = next;
+    const loaded = getModeSettings(activeProfile, next);
+    config.level = loaded.level;
+    config.foxMode = loaded.foxMode;
+  }
   saveActiveProfilePreferences();
   renderSetupModal();
 }
 
+// Läuft schon eine Runde? Erst dann lässt sich das Setup schließen, ohne zu starten.
+let gameRunning = false;
+
+// Merkt sich, wie das Setup beim Öffnen aussah. Das ✕ verwirft alle Änderungen
+// (Profil, Tier, Fracht, Zahlenraum, Rick, Modus) und setzt die laufende Runde fort.
+let setupSnapshot = null;
+
+function captureSetup() {
+  const modeSettings = {
+    endless: { ...getModeSettings(activeProfile, 'endless') },
+    cave: { ...getModeSettings(activeProfile, 'cave') }
+  };
+  modeSettings[config.gameMode === 'cave' ? 'cave' : 'endless'] = { level: config.level, foxMode: config.foxMode };
+  return {
+    profileId: activeProfile ? activeProfile.id : null,
+    animalId: config.animal.id,
+    licenseId: config.license.id,
+    gameMode: config.gameMode,
+    modeSettings
+  };
+}
+
+function snapshotSetup() {
+  setupSnapshot = captureSetup();
+}
+
+function setupChanged() {
+  return JSON.stringify(captureSetup()) !== JSON.stringify(setupSnapshot);
+}
+
+// Stellt Profil und Einstellungen vom Öffnen des Setups wieder her (auch im gespeicherten Profil)
+async function revertSetup() {
+  const s = setupSnapshot;
+  const target = profiles.find(p => p.id === s.profileId);
+  if (!target) return;
+  target.animalId = s.animalId;
+  target.licenseId = s.licenseId;
+  target.gameMode = s.gameMode;
+  target.modeSettings = JSON.parse(JSON.stringify(s.modeSettings));
+  const active = target.modeSettings[s.gameMode === 'cave' ? 'cave' : 'endless'];
+  target.level = active.level;
+  target.foxMode = active.foxMode;
+  await dbSaveProfile(target);
+  await selectProfile(target.id, false);
+}
+
 function openSetupModal() {
+  if (story.active) { storyLeaveForMenu(); return; } // nach Rückfrage: Folge beenden, Setup ist danach offen
+  snapshotSetup();
+  setupView = 'mode';
   renderSetupModal();
   document.getElementById('setupModal').classList.remove('hidden');
+}
+
+// ✕: Setup schließen, Änderungen verwerfen und die laufende Runde fortsetzen
+async function closeSetupModal() {
+  document.getElementById('setupModal').classList.add('hidden');
+  if (setupChanged()) await revertSetup();
+  renderProfileModal();
+  render();
+  continueGameFlow();
 }
 
 let profileIdOnModalOpen = null;
 
 function openProfileModal() {
+  if (!storyLeaveForMenu()) return;
   profileIdOnModalOpen = activeProfile ? activeProfile.id : null;
   renderProfileModal();
   document.getElementById('profileModal').classList.remove('hidden');
@@ -739,6 +868,7 @@ function rickOrderFilters() {
 }
 
 function generateOrders() {
+  if (story.active) return storyInitialOrders();
   const { minVal, maxVal } = getOrderRange();
   if (maxVal < 1) return [];
   const span = maxVal - minVal + 1;
@@ -767,6 +897,8 @@ function generateReplacementOrder() {
 }
 
 function resetGame() {
+  gameRunning = true;
+  if (story.active) storyResetRun(); // Neustart in einer Folge beginnt die Folge von vorn
   if (isCaveMode()) {
     winterResume();
     return;
@@ -988,10 +1120,12 @@ async function finishOrderDelivery() {
   const opt = getOptimalPacking(deliveredOrder, state.activeFoxBlock);
   const isProPacker = usedPiecesCount <= opt.minPieces;
 
-  if (!tutorial.active) {
-    await recordDeliveryStats(deliveredOrder, isProPacker, Boolean(foxWasActive));
-  } else {
+  if (tutorial.active) {
     tutorial.deliveries += 1;
+  } else if (story.active) {
+    if (isProPacker) story.proPackers += 1; // Story-Folgen zählen nicht in die Modus-Statistik
+  } else {
+    await recordDeliveryStats(deliveredOrder, isProPacker, Boolean(foxWasActive));
   }
 
   launchConfetti(isProPacker ? 65 : 40);
@@ -1016,7 +1150,7 @@ async function finishOrderDelivery() {
 
   // Ausführliche Auswertung & Gesamtbilanz nur auf Nachfrage (für Eltern & Lehrkräfte)
   const pStats = getModeStats(activeProfile, 'endless');
-  const playerStatLine = activeProfile
+  const playerStatLine = activeProfile && !story.active
     ? `<p>👤 <strong>${activeProfile.name}s Bilanz Endlos-Karawane:</strong> 📦 ${pStats.totalCargoSent || 0} Fracht · 🐪 ${pStats.packedAnimals || 0} Tiere · 🏅 ${pStats.proPackers || 0}× Profi · 🦊 ${pStats.foxOutsmarted || 0}× Fuchs ausgetrickst</p>`
     : '';
 
@@ -1062,6 +1196,10 @@ async function finishOrderDelivery() {
   state.activeFoxBlock = null;
   if (tutorial.active) {
     nextTutorialOrders();
+  } else if (story.active) {
+    advanceRick();
+    storyRefillOrders(state.activeOrderIdx);
+    planRickNext(...rickOrderFilters());
   } else {
     advanceRick();
     state.availableOrders[state.activeOrderIdx] = generateReplacementOrder();
@@ -1128,7 +1266,8 @@ function render() {
   }
 
   const pill = document.getElementById('headerStatsPill');
-  if (pill) {
+  if (pill) pill.style.display = story.active ? 'none' : ''; // Die Modus-Statistik gehört nicht zum Abenteuer
+  if (pill && !story.active) {
     const ms = getModeStats(activeProfile, config.gameMode);
     const parts = config.gameMode === 'cave'
       ? [['📦 Fracht', ms.totalCargoSent], ['🏠 Winter', ms.cavesFilled], ['💥 Knackevoll', ms.knackevoll], ['🦊 Fuchs', ms.foxOutsmarted]]
@@ -1573,6 +1712,10 @@ function renderCavePanel() {
 
 // Entscheidet, was als Nächstes passiert: Einlagern, Abschlussbildschirm, Karte oder Auftrag
 function continueGameFlow() {
+  if (story.active && state.availableOrders.length === 0) {
+    completeEpisode();
+    return;
+  }
   if (isCaveMode()) {
     const cave = getActiveCave();
     if (cave.completed && !tutorial.active) {
@@ -2620,6 +2763,7 @@ function getTutorialStorageCell() {
 }
 
 function startTutorial() {
+  gameRunning = true;
   ['setupModal', 'profileModal', 'orderModal', 'celebrationModal', 'storageModal', 'caveCompleteModal', 'tutorialEndModal']
     .forEach(id => document.getElementById(id).classList.add('hidden'));
 
@@ -2750,6 +2894,7 @@ function finishTutorial() {
 
 function closeTutorialEnd() {
   document.getElementById('tutorialEndModal').classList.add('hidden');
+  if (storyContinueAfterTutorial()) return;
   resetGame();
 }
 
@@ -2759,6 +2904,7 @@ function skipTutorial() {
   state.winter = createWinterTurnState();
   stopTutorial();
   markTutorialDone();
+  if (storyContinueAfterTutorial()) return;
   resetGame();
 }
 

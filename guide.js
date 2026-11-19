@@ -38,7 +38,7 @@ function renderGuide() {
        dass Bündeln schneller und ordentlicher ist als Einzelzählen.</p>
     <ol class="guide-steps">
       <li><strong>Profil wählen.</strong> Jedes Kind bekommt ein eigenes Profil (Name oben links). So hat es seine eigenen Einstellungen, seine Statistik und seine Höhlen.</li>
-      <li><strong>Spiel-Setup:</strong> Zahlenraum, Erweiterung und Modus wählen. Packtier und Fracht stellt das Kind im Spieler-Profil („Wechseln“) ein – das motiviert und wird je Profil gemerkt – Empfehlung unter „Stufen &amp; Auswahl“.</li>
+      <li><strong>Spiel-Setup:</strong> Oben den Modus wählen (🐪 Endlos-Karawane, ❄️ Wintervorrat oder 📖 Abenteuer). In den beiden freien Modi stellst du darunter Zahlenraum und Rick ein; das Abenteuer legt beides pro Folge selbst fest. Der Ton liegt im Reiter „⚙️ Einstellungen“. Packtier und Fracht stellt das Kind im Spieler-Profil („Wechseln“) ein – das motiviert und wird je Profil gemerkt – Empfehlung unter „Stufen &amp; Auswahl“.</li>
       <li><strong>Übungsrunde:</strong> Beim ersten Start führt eine Hand durch zwei kleine Aufgaben. Das Kind soll sie <em>selbst</em> nachmachen. Im Setup lässt sie sich über „🎓 Übungsrunde starten“ wiederholen.</li>
       <li><strong>Danebensitzen, nicht vorsagen.</strong> Die Fragen unter „Kinder begleiten“ helfen, ohne die Lösung zu verraten.</li>
       <li><strong>10 bis 15 Minuten</strong> reichen. Der Spielstand wird laufend gespeichert, man kann jederzeit aufhören.</li>

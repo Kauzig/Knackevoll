@@ -2812,3 +2812,274 @@ body[data-season="winter"] { background: radial-gradient(circle at top, #ffffff 
 .guide-content .mini-cargo-chip {
   white-space: nowrap;
 }
+
+/* ============================================================================
+   Story-Modus: Karte, Szenen, Fortschrittsleiste
+   ============================================================================ */
+.story-bar strong {
+  font-size: 1.05rem;
+  color: var(--wood-dark);
+}
+
+.story-scene {
+  max-width: 560px;
+  text-align: center;
+  padding: 26px 22px;
+  cursor: pointer;
+}
+
+.story-scene-icon {
+  display: block;
+  font-size: 4.6rem;
+  line-height: 1.1;
+}
+
+.story-scene-name {
+  min-height: 1.4em;
+  font-weight: 900;
+  color: var(--wood-dark);
+  margin-top: 4px;
+}
+
+.story-scene-text {
+  min-height: 6em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 10px 0 14px;
+  font-size: 1.45rem;
+  line-height: 1.45;
+  font-weight: 700;
+  color: var(--wood-dark);
+}
+
+.story-scene-dots {
+  justify-content: center;
+  margin-bottom: 14px;
+}
+
+.story-scene-actions {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+}
+
+.story-scene-next {
+  font-size: 1.6rem;
+  padding: 10px 34px;
+}
+
+.story-fragments {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
+.story-fragment {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  border-radius: 10px;
+  border: 3px dashed var(--wood-light);
+  background: #f3ead8;
+  opacity: 0.7;
+}
+
+.story-fragment.found {
+  border-style: solid;
+  border-color: #166534;
+  background: #dcfce7;
+  opacity: 1;
+}
+
+.story-episode {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  margin-bottom: 10px;
+  padding: 12px 16px;
+  text-align: left;
+  font: inherit;
+  color: var(--wood-dark);
+  background: #fff8eb;
+  border: 3px solid var(--wood-mid);
+  border-radius: 16px;
+  cursor: pointer;
+}
+
+.story-episode.done {
+  border-color: #166534;
+  background: #f0fdf4;
+}
+
+.story-episode.locked {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.story-episode-place {
+  font-size: 2.2rem;
+}
+
+.story-episode-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.story-episode-text small {
+  font-size: 0.95rem;
+}
+
+.story-episode-state {
+  font-size: 1.5rem;
+}
+
+/* Schließen-Kreuz oben rechts im Fensterkopf (wie im Betriebssystem) */
+.modal-header-banner.has-close {
+  position: relative;
+  padding-right: 56px;
+}
+
+.modal-close-x {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 38px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 248, 235, 0.18);
+  color: #fff8eb;
+  font-size: 1.3rem;
+  font-weight: 900;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.modal-close-x:hover,
+.modal-close-x:focus-visible {
+  background: #dc2626;
+}
+
+/* ============================================================================
+   Setup: Modus als Reiter (Abenteuer · Endlos-Karawane · Wintervorrat)
+   ============================================================================ */
+.setup-tabs {
+  display: flex;
+  gap: 8px;
+  margin: 12px 0 14px;
+}
+
+.setup-tab {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 9px 6px;
+  font: inherit;
+  font-weight: 900;
+  color: var(--wood-dark);
+  background: #fff;
+  border: 3px solid #d6c3a5;
+  border-radius: 14px;
+  box-shadow: 0 4px 0 #d6c3a5;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.setup-tab small {
+  font-size: 0.75rem;
+  font-weight: 700;
+  opacity: 0.8;
+}
+
+.setup-tab:hover {
+  transform: translateY(-2px);
+  border-color: var(--wood-mid);
+}
+
+.setup-tab.active-tab {
+  background: #fef3c7;
+  border-color: #d97706;
+  box-shadow: 0 4px 0 #d97706;
+}
+
+.setup-mode-desc {
+  margin: 0 0 4px;
+  font-weight: 700;
+  color: var(--wood-dark);
+}
+
+@media (max-width: 520px) {
+  .setup-tabs {
+    flex-wrap: wrap;
+  }
+
+  .setup-tab {
+    flex: 1 1 45%;
+  }
+}
+
+/* Reiter „Einstellungen“ abgesetzt am rechten Rand, Zusammenfassung im Modus-Reiter, ruhige Fuß-Buttons */
+.setup-tab-settings {
+  flex: 0 0 auto;
+  margin-left: auto;
+  justify-content: center;
+  padding: 9px 12px;
+  border-style: dashed;
+}
+
+.btn-quiet {
+  padding: 6px 12px;
+  font-size: 0.85rem;
+  background: transparent;
+  border: 2px solid #d6c3a5;
+  box-shadow: none;
+  color: var(--wood-dark);
+}
+
+.btn-quiet:hover {
+  background: #fef3c7;
+  border-color: var(--wood-mid);
+}
+
+.setup-footer-row {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 2px solid #e2d3bb;
+}
+
+.setup-sound-row {
+  margin-top: 16px;
+}
+
+/* Alle Reiter-Inhalte teilen sich ein Grid-Feld: Die Höhe richtet sich nach dem größten, das Fenster springt nicht */
+.setup-panes {
+  display: grid;
+}
+
+.setup-pane {
+  grid-area: 1 / 1;
+  align-self: start;
+}
+
+.setup-pane.pane-inactive {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.story-episode-list {
+  max-height: 300px;
+  overflow-y: auto;
+}

@@ -8,6 +8,8 @@ const ASSETS = [
   './version.js',
   './game-data.js',
   './sound.js',
+  './story-data.js',
+  './story.js',
   './app.js',
   './guide.js',
   './manifest.json'
