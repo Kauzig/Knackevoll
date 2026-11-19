@@ -28,7 +28,7 @@ Als optionale Erweiterung blockiert Rick, der Wüstenfuchs, den Zugriff auf eine
 
 ## Technische Umsetzung und Datenschutz
 
-Die Anwendung ist als Progressive Web App (PWA) konzipiert. Alle Spielerprofile und Statistiken werden lokal im Browser über IndexedDB gespeichert. Es erfolgt keine Übertragung von Daten an externe Server, wodurch eine datenschutzkonforme Nutzung im schulischen Umfeld gewährleistet ist.
+Die Anwendung ist als Progressive Web App (PWA) konzipiert. Alle Spielerprofile und Statistiken werden lokal im Browser über IndexedDB gespeichert. Es erfolgt keine Übertragung von Daten an externe Server.
 
 ## Direkt spielen / Lokal starten
 
