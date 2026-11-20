@@ -1,0 +1,25 @@
+{
+  "name": "Knackevoll-Sandbox",
+  "image": "mcr.microsoft.com/devcontainers/javascript-node:22",
+
+  // Installiert Abhängigkeiten automatisch, falls eine package.json existiert
+  "postCreateCommand": "if [ -f package.json ]; then npm install; fi",
+
+  // Typische Ports für lokale Dev-Server (z. B. Vite, Live Server, http-server)
+  "forwardPorts": [5500],
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ritwickdey.LiveServer"
+      ]
+    }
+  },
+
+  // Läuft als Non-Root-User 'node' (verhindert root-Dateirechte auf dem Host)
+  "remoteUser": "node",
+  "containerUser": "node",
+  "runArgs": [
+    "--userns=keep-id"
+  ]
+}

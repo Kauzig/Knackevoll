@@ -5,10 +5,9 @@ Solange die Hauptversion `0` ist, können sich Spielstände und Verhalten zwisch
 
 ## [0.7.0]
 ### Hinzugefügt
+- Abenteuer-Modus (Story) „Der Knackevolle Schatz“: Karte mit Folgen und Packplan-Fragmenten, Szenen mit Crew-Tieren und Rick, Fortschritt pro Spielerprofil.
 - Setup neu geordnet: Der Modus ist ein Reiter oben (🐪 Endlos-Karawane, ❄️ Wintervorrat, 📖 Abenteuer mit Fortschritt). Zahlenraum und Rick bleiben im jeweiligen Modus, der Ton liegt im eigenen Reiter „⚙️ Einstellungen“, die Abenteuer-Karte direkt im Reiter. Die Buttons unten sind durch eine Linie abgesetzt.
 - Zahlenraum und Rick werden pro Spielmodus gespeichert: Endlos-Karawane und Wintervorrat haben je eigene Einstellungen (ältere Profile übernehmen ihre bisherige Einstellung für beide).
-- Das Setup-Fenster springt beim Wechseln der Reiter nicht mehr in der Höhe.
-- Abenteuer-Modus (Story) „Der Knackevolle Schatz“: Karte mit Folgen und Packplan-Fragmenten, Szenen mit Crew-Tieren und Rick, Fortschritt pro Spielerprofil.
 - Spiel-Setup lässt sich über ein ✕ oben rechts schließen (auch die Abenteuer-Karte), ohne eine neue Runde zu starten. Änderungen im Setup werden dabei verworfen, nur „Karawane starten“ übernimmt sie.
 - Der Abenteuer-Reiter zeigt den Fortschritt, z. B. „2/7 🧩“.
 - Prolog mit Grundhandlung und Vorstellung des Karawanen-Teams (beim ersten Öffnen, später über „Legende & Team“ wiederholbar).
